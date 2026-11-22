@@ -1,12 +1,24 @@
 [gd_scene format=3 uid="uid://bya2k84hoabi7"]
 
 [ext_resource type="Script" uid="uid://518vam5k38rh" path="res://Scenes/Main.cs" id="1_jjgbg"]
+[ext_resource type="Script" uid="uid://bsl2tgt1di66w" path="res://Scenes/BoardRenderer.cs" id="2_board"]
 
-[node name="Main" type="Node2D" unique_id=384432117]
+[node name="Main" type="Control" unique_id=384432117]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("1_jjgbg")
 
-[node name="StatusLabel" type="Label" parent="." unique_id=1908988358]
-offset_left = 40.0
-offset_top = 40.0
-offset_right = 80.0
-offset_bottom = 63.0
+[node name="BoardRenderer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_board")

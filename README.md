@@ -1,11 +1,11 @@
 # Castrum Tactics
 
-Castrum Tactics is a two-player, turn-based strategy game in development about controlling territory on a 2D grid. The engine-independent C# library defines maps and initializes board state. The Godot proof of concept runs a single scene whose C# script updates a label and logs a startup message. The developer verified it on Windows and ran the exported APK on a physical Android device.
+Castrum Tactics is a two-player, turn-based strategy game in development about controlling territory on a 2D grid. The engine-independent C# library defines maps and initializes board state. The Godot main scene displays a 7-by-5 demonstration board from that state. The developer verified the earlier startup prototype on Windows and a physical Android device.
 
 ## Open and run
 
 1. Install Godot 4.7.2 .NET and a .NET SDK that can build the project's `net8.0` desktop target and `net9.0` Android target. The .NET 10 SDK can build both targets.
-2. Import `project.godot` in the Godot Project Manager and press **F5** to run the main scene. The label should display `C# is running successfully!`.
+2. Import `project.godot` in the Godot Project Manager and press **F5** to run the main scene. The board shows green playable terrain, dark inaccessible terrain, and two gold dots for candidate starting positions. Resize the window to see the board stay centered with square cells.
 3. Run `dotnet build CastrumTactics.csproj` from the repository root to check the Godot C# build from the command line.
 
 The project uses C# and Godot's Compatibility renderer. Android export uses Godot's Gradle build template.
