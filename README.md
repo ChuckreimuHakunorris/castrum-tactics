@@ -12,8 +12,10 @@ The project uses C# and Godot's Compatibility renderer. Android export uses Godo
 
 ## Android export
 
-1. Install the Godot 4.7.2 .NET export templates and configure the Java and Android SDK paths in Godot's editor settings. The installed Gradle template specifies JDK 17 as the minimum, Android SDK Platform 36, Build Tools 36.1.0 and NDK 29.0.14206865. Install Android SDK Platform-Tools for device deployment.
+1. Install the Godot 4.7.2 .NET export templates, JDK 17, Android SDK Platform 36, and Build Tools 36.1.0. Install Android SDK Platform-Tools for device deployment and configure the Java and Android SDK paths in Godot's editor settings. The checked-in template uses compile and target API 36 and minimum API 24. Gradle can install missing SDK packages when their licenses have already been accepted. [Gradle SDK downloads](https://developer.android.com/studio/intro/update#download-with-gradle)
 2. On a fresh checkout, open the installed export templates' `android_source.zip` and copy `libs/debug/godot-lib.template_debug.aar` and `libs/release/godot-lib.template_release.aar` into their corresponding folders under `android/build/`. This preserves the project's Gradle scripts and Android resources. Godot generates the project assets and .NET runtime files during export.
 3. In **Project > Export**, choose the **Android** preset to export an ARM64 debug APK. Choose a local output directory such as `exports/`. Keep signing keys and credentials local.
+
+The template pins NDK `29.0.14206865` for native tooling. The verified debug export used prebuilt native libraries and packaged them without stripping symbols, so it succeeded without that NDK. The current Gradle project has no CMake build. Use the versions in [`config.gradle`](android/build/config.gradle) for this project. The general Godot 4.7 setup guide lists older SDK packages. [Godot 4.7 Android setup](https://docs.godotengine.org/en/4.7/tutorials/export/exporting_for_android.html#download-the-android-sdk)
 
 See the [game design](Documentation/GameDesign.md) and [art direction](Documentation/ArtDirection.md) for planned gameplay and visual direction.
