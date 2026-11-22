@@ -1,3 +1,52 @@
-# Godot 4+ specific ignores
+# Godot cache and export credentials
 .godot/
-/android/
+export_credentials.cfg
+
+# .NET build outputs
+[Bb]in/
+[Oo]bj/
+
+# Project exports
+/exports/
+/CastrumTactics*.exe
+*.apk
+*.aab
+*.apks
+*.idsig
+*.pck
+
+# Gradle caches and generated outputs in the Godot Android template
+.gradle/
+.kotlin/
+.cxx/
+/android/build/build/
+/android/build/assetPackInstallTime/build/
+/android/build/assetPackInstallTime/src/main/assets/
+/android/build/src/main/assets/
+/android/build/libs/gdextensionlibs.json
+/android/build/libs/*/arm64-v8a/
+/android/build/libs/*/armeabi-v7a/
+/android/build/libs/*/x86/
+/android/build/libs/*/x86_64/
+
+# Godot engine libraries supplied by the matching .NET export templates
+/android/build/libs/*/godot-lib.template_*.aar
+
+# Local IDE, SDK and signing configuration
+.vs/
+.idea/
+*.iml
+*.user
+*.suo
+local.properties
+gradle-local.properties
+keystore.properties
+signing.properties
+secrets.properties
+*.keystore
+*.jks
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example

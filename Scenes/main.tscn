@@ -4,3 +4,9 @@
 
 [node name="Main" type="Node2D" unique_id=384432117]
 script = ExtResource("1_jjgbg")
+
+[node name="StatusLabel" type="Label" parent="." unique_id=1908988358]
+offset_left = 40.0
+offset_top = 40.0
+offset_right = 80.0
+offset_bottom = 63.0
