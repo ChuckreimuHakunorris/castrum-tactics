@@ -2,9 +2,11 @@
 
 ## Implemented
 
-The proof of concept uses a single Godot scene. Its [`Main`](xref:Global.Main) script extends Godot's `Node2D`. When the scene is ready, it updates the on-screen status label and writes a startup message to the log. This verifies that C# runs in the exported game on Windows and Android.
+The Godot project references [CastrumTactics.Domain](xref:CastrumTactics.Domain) as a separate assembly. The Godot project's compile items exclude domain and test source files. The domain library targets .NET 8 and has no Godot or NuGet package dependencies. It builds independently, and the xUnit test project references it directly.
 
-The [CastrumTactics.Domain](xref:CastrumTactics.Domain) library targets .NET 8 and has no Godot or NuGet package dependencies. It builds independently, and the xUnit test project references the domain directly. The Godot scene still runs the startup proof of concept.
+When the main scene is ready, [`Main`](xref:Global.Main) creates a [`BoardState`](xref:CastrumTactics.Domain.BoardState) from the 7-by-5 demonstration map and passes the board and the map's candidate starting positions to [`BoardRenderer`](xref:Global.BoardRenderer). The demonstration map is defined separately from the scene's renderer.
+
+`BoardRenderer` is a full-rect Godot `Control` that draws terrain from cell snapshots and can overlay candidate starting positions. It maps columns to horizontal positions and rows to vertical positions. The fit uses the smaller of the available width per column and height per row so that the board stays centered and its cells stay square as the control resizes. The scene contains one renderer for the whole board.
 
 - [`BoardPosition`](xref:CastrumTactics.Domain.BoardPosition) uses zero-based coordinates from the top-left. Terrain grids use row and column order, `[y, x]`.
 - [`MapDefinition`](xref:CastrumTactics.Domain.MapDefinition) validates and copies the dimensions, terrain, and candidate starting positions. Starting positions describe eligibility and do not place pieces.
@@ -17,6 +19,6 @@ The domain will add controlled board changes, legal moves, turn resolution, and 
 
 The [`CellState`](xref:CastrumTactics.Domain.CellState) constructor accepts any nonnegative health on playable terrain. This includes an owned knight or castle at zero, an empty cell that remains playable at zero, a grave with positive health, and values above the initial health of 3. Before adding state transitions, the rules need to settle collision grave health and which snapshots are reachable in a match. The design already specifies that capture creates a grave when health drops to zero.
 
-Godot scripts and scenes will handle player input, render board state, and connect the game logic to the UI and platform services. Godot code will pass player commands to the rules and display the resulting state. Dependencies will flow from Godot integration to the game logic so the rules can be shared by the local game, AI, and future multiplayer validation.
+Godot scripts and scenes will handle player input and connect the game logic to the UI and platform services. Godot code will pass player commands to the rules and display the resulting state. The separate domain assembly lets the local game, AI, and future multiplayer validation share the rules.
 
 The [Game Design Document](GameDesign.md) records the planned rules and open decisions.

@@ -7,6 +7,7 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="Domain/CastrumTactics.Domain.csproj" />
     <Compile Remove="Domain/**/*.cs;Tests/**/*.cs" />
     <!-- Android exports stage copies of Godot scripts under these generated paths. -->
     <Compile Remove="android/build/build/**/*.cs;android/build/src/main/assets/**/*.cs" />
