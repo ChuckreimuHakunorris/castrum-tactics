@@ -6,6 +6,12 @@ export_credentials.cfg
 [Bb]in/
 [Oo]bj/
 
+# DocFX metadata, site, and intermediate files
+/Documentation/api/.manifest
+/Documentation/api/*.yml
+/Documentation/.docfx/
+/Documentation/.cache/
+
 # Project exports
 /exports/
 /CastrumTactics*.exe

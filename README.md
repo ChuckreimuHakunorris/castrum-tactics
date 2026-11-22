@@ -19,3 +19,7 @@ The project uses C# and Godot's Compatibility renderer. Android export uses Godo
 The template pins NDK `29.0.14206865` for native tooling. The verified debug export used prebuilt native libraries and packaged them without stripping symbols, so it succeeded without that NDK. The current Gradle project has no CMake build. Use the versions in [`config.gradle`](android/build/config.gradle) for this project. The general Godot 4.7 setup guide lists older SDK packages. [Godot 4.7 Android setup](https://docs.godotengine.org/en/4.7/tutorials/export/exporting_for_android.html#download-the-android-sdk)
 
 See the [game design](Documentation/GameDesign.md) and [art direction](Documentation/ArtDirection.md) for planned gameplay and visual direction.
+
+## Developer documentation
+
+See the [documentation homepage source](Documentation/index.md) for architecture and API reference navigation, and the [documentation contributor guide](Documentation/contributing.md) for local builds, writing conventions, and GitHub Pages setup.

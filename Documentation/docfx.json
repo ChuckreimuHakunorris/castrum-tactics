@@ -1,0 +1,35 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/v2.81.0/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "..",
+          "files": ["CastrumTactics.csproj"]
+        }
+      ],
+      "dest": "api",
+      "filter": "api-filter.yml",
+      "globalNamespaceId": "Global"
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": ["*.md", "toc.yml", "api/index.md", "api/*.yml"]
+      }
+    ],
+    "resource": [
+      {
+        "files": ["assets/**/*.png"]
+      }
+    ],
+    "output": ".docfx/site",
+    "template": ["default", "modern"],
+    "globalMetadata": {
+      "_appName": "Castrum Tactics",
+      "_appTitle": "Castrum Tactics Developer Documentation",
+      "_enableSearch": true
+    }
+  }
+}

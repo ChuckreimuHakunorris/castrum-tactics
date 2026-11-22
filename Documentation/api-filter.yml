@@ -1,0 +1,5 @@
+# Godot generates these nested lookup types for scene scripts.
+apiRules:
+  - exclude:
+      uidRegex: '\.(MethodName|PropertyName|SignalName)$'
+      type: Class
