@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CastrumTactics.Domain", "Do
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CastrumTactics.Domain.Tests", "Tests\CastrumTactics.Domain.Tests.csproj", "{8127AF0E-E3F7-41CD-B35A-12EEA4B29B68}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CastrumTactics.Presentation.Tests", "Tests\Presentation\CastrumTactics.Presentation.Tests.csproj", "{0A259E36-0386-451A-9991-56F7A5E9DDBF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 	Debug|Any CPU = Debug|Any CPU
@@ -27,5 +29,9 @@ Global
 		{8127AF0E-E3F7-41CD-B35A-12EEA4B29B68}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8127AF0E-E3F7-41CD-B35A-12EEA4B29B68}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8127AF0E-E3F7-41CD-B35A-12EEA4B29B68}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{0A259E36-0386-451A-9991-56F7A5E9DDBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A259E36-0386-451A-9991-56F7A5E9DDBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A259E36-0386-451A-9991-56F7A5E9DDBF}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A259E36-0386-451A-9991-56F7A5E9DDBF}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 EndGlobal
