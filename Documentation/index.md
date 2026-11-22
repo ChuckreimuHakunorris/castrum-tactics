@@ -2,7 +2,7 @@
 
 Castrum Tactics is a two-player, turn-based strategy game in development for Windows and Android. Players compete to control territory on a configurable 2D grid.
 
-The Godot 4.7.2 .NET proof of concept runs a single C# scene and has been verified on Windows and a physical Android device. Gameplay systems are still in the design stage.
+The Godot 4.7.2 .NET proof of concept runs a single C# scene and has been verified on Windows and a physical Android device. The engine-independent domain library now defines maps and initializes board state. Gameplay actions are planned.
 
 - [Architecture](architecture.md) describes the current scene and the planned boundary between the game rules and Godot.
 - [API reference](api/index.md) lists the types and members available in the C# project.

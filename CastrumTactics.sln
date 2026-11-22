@@ -2,6 +2,10 @@
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CastrumTactics", "CastrumTactics.csproj", "{21E39B04-1D05-4389-8E21-2D1E3F47EDF1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CastrumTactics.Domain", "Domain\CastrumTactics.Domain.csproj", "{C374E5D5-A6AE-49CA-B0AF-49AE0F15A410}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CastrumTactics.Domain.Tests", "Tests\CastrumTactics.Domain.Tests.csproj", "{8127AF0E-E3F7-41CD-B35A-12EEA4B29B68}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 	Debug|Any CPU = Debug|Any CPU
@@ -15,5 +19,13 @@ Global
 		{21E39B04-1D05-4389-8E21-2D1E3F47EDF1}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
 		{21E39B04-1D05-4389-8E21-2D1E3F47EDF1}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
 		{21E39B04-1D05-4389-8E21-2D1E3F47EDF1}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+		{C374E5D5-A6AE-49CA-B0AF-49AE0F15A410}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C374E5D5-A6AE-49CA-B0AF-49AE0F15A410}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C374E5D5-A6AE-49CA-B0AF-49AE0F15A410}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C374E5D5-A6AE-49CA-B0AF-49AE0F15A410}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{8127AF0E-E3F7-41CD-B35A-12EEA4B29B68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8127AF0E-E3F7-41CD-B35A-12EEA4B29B68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8127AF0E-E3F7-41CD-B35A-12EEA4B29B68}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8127AF0E-E3F7-41CD-B35A-12EEA4B29B68}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 EndGlobal

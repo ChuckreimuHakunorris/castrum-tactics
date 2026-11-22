@@ -1,12 +1,12 @@
 # Castrum Tactics
 
-Castrum Tactics is a planned two-player, turn-based strategy game about controlling territory on a 2D grid. The current proof of concept runs a single scene whose C# script updates a label and logs a startup message. Gameplay is still in the design stage. The developer manually verified the proof of concept on Windows and installed and ran the exported APK on a physical Android device.
+Castrum Tactics is a two-player, turn-based strategy game in development about controlling territory on a 2D grid. The engine-independent C# library defines maps and initializes board state. The Godot proof of concept runs a single scene whose C# script updates a label and logs a startup message. The developer verified it on Windows and ran the exported APK on a physical Android device.
 
 ## Open and run
 
 1. Install Godot 4.7.2 .NET and a .NET SDK that can build the project's `net8.0` desktop target and `net9.0` Android target. The .NET 10 SDK can build both targets.
 2. Import `project.godot` in the Godot Project Manager and press **F5** to run the main scene. The label should display `C# is running successfully!`.
-3. Run `dotnet build` from the repository root to check the C# build from the command line.
+3. Run `dotnet build CastrumTactics.csproj` from the repository root to check the Godot C# build from the command line.
 
 The project uses C# and Godot's Compatibility renderer. Android export uses Godot's Gradle build template.
 
@@ -21,5 +21,7 @@ The template pins NDK `29.0.14206865` for native tooling. The verified debug exp
 See the [game design](Documentation/GameDesign.md) and [art direction](Documentation/ArtDirection.md) for planned gameplay and visual direction.
 
 ## Developer documentation
+
+With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain tests. The tests run without the Godot editor or runtime.
 
 See the [documentation homepage source](Documentation/index.md) for architecture and API reference navigation, and the [documentation contributor guide](Documentation/contributing.md) for local builds, writing conventions, and GitHub Pages setup.

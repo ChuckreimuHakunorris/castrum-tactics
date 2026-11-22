@@ -86,22 +86,16 @@ A square's terrain should be represented separately from its piece/occupant stat
 
 Conceptual tile data:
 
-- **Terrain type:** e.g. Grass, Rock, River.
+- **Terrain accessibility:** Playable or Inaccessible.
 - **Piece type:** None, Knight, Castle, Grave.
-- **Owner:** None, Red, Blue.
+- **Owner:** Unowned, Player One, or Player Two. Faction color is presentation data.
 - **Ground health:** Starts at 3 where applicable.
 
 This is a conceptual model; the final C# types and invariants should be designed during implementation.
 
 ### 4.1 Terrain
 
-Initial terrain examples:
-
-- **Grass:** Normal playable ground.
-- **Rock:** Impassable.
-- **River:** Impassable.
-
-Rocks and rivers:
+Playable terrain is normal gameplay ground. Rocks and rivers are visual representations of the same inaccessible terrain. Inaccessible cells:
 
 - Cannot be occupied.
 - Cannot be selected as a move or starting position.

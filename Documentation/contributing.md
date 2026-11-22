@@ -19,7 +19,7 @@ dotnet docfx build Documentation/docfx.json --warningsAsErrors
 dotnet docfx serve Documentation/.docfx/site
 ```
 
-Open [http://localhost:8080](http://localhost:8080) to preview the site. DocFX reads the desktop C# project and resolves its NuGet dependencies. Documentation builds require neither the Godot editor nor Android export tools. The tool manifest pins DocFX, and the API YAML and static HTML are generated locally or in CI.
+Open [http://localhost:8080](http://localhost:8080) to preview the site. DocFX reads the desktop C# project and the domain project directly and resolves their dependencies. Documentation builds require neither the Godot editor nor Android export tools. The tool manifest pins DocFX, and the API YAML and static HTML are generated locally or in CI.
 
 DocFX can leave old generated files after a type is renamed or removed. To rebuild from scratch, preview the cleanup with `git clean -ndX -- Documentation/api/ Documentation/.docfx/`. Run the same command with `-fdX` to remove the listed ignored files, then rebuild.
 
