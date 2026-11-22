@@ -5,8 +5,10 @@ Castrum Tactics is a two-player, turn-based strategy game in development about c
 ## Open and run
 
 1. Install Godot 4.7.2 .NET and a .NET SDK that can build the project's `net8.0` desktop target and `net9.0` Android target. The .NET 10 SDK can build both targets.
-2. Import `project.godot` in the Godot Project Manager and press **F5** to run the main scene. The board shows green playable terrain, dark inaccessible terrain, and two gold dots for candidate starting positions. Resize the window to see the board stay centered with square cells.
+2. Import `project.godot` in the Godot Project Manager and press **F5** to run the main scene. Left-click a green playable cell to outline it, or tap it on Android. Dark inaccessible cells and the gaps leave the selection in place. Gold dots mark candidate starting positions. Resize the window to see the board stay centered with square cells.
 3. Run `dotnet build CastrumTactics.csproj` from the repository root to check the Godot C# build from the command line.
+
+When running inside Godot's embedded Game view, select **Input** in the Game toolbar before testing the board. **2D** mode intercepts clicks to inspect nodes. Clicking the board in that mode can outline the full-window renderer. [Godot Game view interaction modes](https://docs.godotengine.org/en/4.7/tutorials/editor/game_embedding.html#interaction-mode)
 
 The project uses C# and Godot's Compatibility renderer. Android export uses Godot's Gradle build template.
 
@@ -22,6 +24,6 @@ See the [game design](Documentation/GameDesign.md) and [art direction](Documenta
 
 ## Developer documentation
 
-With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain tests. The tests run without the Godot editor or runtime.
+With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain and board geometry tests. The tests run without the Godot editor or runtime.
 
 See the [documentation homepage source](Documentation/index.md) for architecture and API reference navigation, and the [documentation contributor guide](Documentation/contributing.md) for local builds, writing conventions, and GitHub Pages setup.

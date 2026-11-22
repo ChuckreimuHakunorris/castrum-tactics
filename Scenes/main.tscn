@@ -13,7 +13,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_jjgbg")
 
-[node name="BoardRenderer" type="Control" parent="."]
+[node name="BoardRenderer" type="Control" parent="." unique_id=291723830]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
