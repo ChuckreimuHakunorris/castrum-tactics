@@ -5,6 +5,21 @@ namespace CastrumTactics.Domain.Tests;
 public sealed class MapDefinitionTests
 {
     [Fact]
+    public void ConstructorRejectsNullTerrain()
+    {
+        Assert.Throws<ArgumentNullException>("terrain", () => new MapDefinition(1, 1, null!, []));
+    }
+
+    [Fact]
+    public void ConstructorRejectsNullStartingPositions()
+    {
+        TerrainType[,] terrain = { { TerrainType.Playable } };
+
+        Assert.Throws<ArgumentNullException>("startingPositions",
+            () => new MapDefinition(1, 1, terrain, null!));
+    }
+
+    [Fact]
     public void SquareMapAcceptsEmptyStartingPositions()
     {
         TerrainType[,] terrain =

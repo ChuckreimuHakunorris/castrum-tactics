@@ -15,6 +15,8 @@ The [CastrumTactics.Domain](xref:CastrumTactics.Domain) library targets .NET 8 a
 
 The domain will add controlled board changes, legal moves, turn resolution, and win conditions. Opening eligibility beyond the map's candidate list and ground health restoration remain design decisions.
 
+The [`CellState`](xref:CastrumTactics.Domain.CellState) constructor accepts any nonnegative health on playable terrain. This includes an owned knight or castle at zero, an empty cell that remains playable at zero, a grave with positive health, and values above the initial health of 3. Before adding state transitions, the rules need to settle collision grave health and which snapshots are reachable in a match. The design already specifies that capture creates a grave when health drops to zero.
+
 Godot scripts and scenes will handle player input, render board state, and connect the game logic to the UI and platform services. Godot code will pass player commands to the rules and display the resulting state. Dependencies will flow from Godot integration to the game logic so the rules can be shared by the local game, AI, and future multiplayer validation.
 
 The [Game Design Document](GameDesign.md) records the planned rules and open decisions.

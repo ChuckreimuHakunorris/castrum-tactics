@@ -13,6 +13,10 @@ public readonly record struct CellState
     /// <exception cref="ArgumentException">
     /// The piece and owner are inconsistent, or an inaccessible cell has a piece or nonzero ground health.
     /// </exception>
+    /// <remarks>
+    /// Snapshot validation accepts any nonnegative health on playable terrain, including zero for a knight
+    /// or castle. The health rules for match state transitions are still to be defined.
+    /// </remarks>
     public CellState(TerrainType terrain, PieceType piece, PlayerId? owner, int groundHealth)
     {
         if (!Enum.IsDefined(terrain))

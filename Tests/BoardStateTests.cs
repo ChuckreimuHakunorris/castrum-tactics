@@ -5,6 +5,12 @@ namespace CastrumTactics.Domain.Tests;
 public sealed class BoardStateTests
 {
     [Fact]
+    public void ConstructorRejectsNullMap()
+    {
+        Assert.Throws<ArgumentNullException>("map", () => new BoardState(null!));
+    }
+
+    [Fact]
     public void RectangularBoardInitializesEveryCornerAndEdgeFromTheMap()
     {
         TerrainType[,] terrain =
@@ -48,6 +54,23 @@ public sealed class BoardStateTests
         Assert.False(board.IsWithinBounds(position));
         Assert.Throws<ArgumentOutOfRangeException>("position", () => board.GetCell(position));
         Assert.Throws<ArgumentOutOfRangeException>("position", () => board.IsPlayable(position));
+    }
+
+    [Fact]
+    public void BoardRetainsItsTerrainAfterTheSourceArrayChanges()
+    {
+        TerrainType[,] terrain = { { TerrainType.Playable, TerrainType.Inaccessible } };
+        var board = new BoardState(new MapDefinition(2, 1, terrain, []));
+        var originallyPlayable = new BoardPosition(0, 0);
+        var originallyInaccessible = new BoardPosition(1, 0);
+
+        terrain[0, 0] = TerrainType.Inaccessible;
+        terrain[0, 1] = TerrainType.Playable;
+
+        Assert.Equal(TerrainType.Playable, board.GetCell(originallyPlayable).Terrain);
+        Assert.Equal(TerrainType.Inaccessible, board.GetCell(originallyInaccessible).Terrain);
+        Assert.True(board.IsPlayable(originallyPlayable));
+        Assert.False(board.IsPlayable(originallyInaccessible));
     }
 
     [Fact]

@@ -176,6 +176,8 @@ A castle is stationary and cannot be conquered under the current rules. It still
 
 **Open decision:** Confirm whether ground health is stored per square for the entire match and whether it can ever be restored. The current understanding is that it decreases on ownership changes and does not regenerate, but this should be explicitly confirmed and tested.
 
+**Open invariant:** Decide what health a collision-created grave should carry and which piece and health combinations can appear in live match state. A capture that reduces health to zero creates a grave. Decide whether zero health can occur on playable terrain without a grave and whether 3 is also a maximum before implementing state transitions.
+
 ### 5.4 Simultaneous move resolution
 
 When both players submit a main-phase selection for the same turn:
