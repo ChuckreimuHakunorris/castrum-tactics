@@ -6,7 +6,7 @@
 **Project type:** 2D turn-based grid strategy game  
 **Primary purpose:** Playable game and professional software-engineering portfolio project
 
-> This document records the design and development decisions discussed so far. It is a working baseline, not a claim that every rule or technical choice is final. Items marked **Open decision** require confirmation before the relevant feature is implemented. For the main-phase domain rules and planned integration, see [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
+> This document records the design and development decisions discussed so far. It is a working baseline, not a claim that every rule or technical choice is final. Items marked **Open decision** require confirmation before the relevant feature is implemented. For the main-phase rules and local integration, see [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
 
 ---
 
@@ -167,7 +167,7 @@ A castle is stationary and cannot be conquered under the current rules. It still
 
 **Clarified main-phase selection rule:** Knights and castles influence the **eight immediately adjacent squares** (including diagonals), not chess-knight L-shaped destinations. A player's **own knight is always a potential upgrade target**, even if it has no other friendly piece adjacent to it. This exception does not permit an upgrade on a square already classified as secured. Neither player may select **any** secured square, including an empty square or own knight; secured-square exclusion does not apply during the opening draft.
 
-The domain derives each player's legal selection set separately from the resolved board and its territory analysis. The current local session and Godot scene stop at the end of the opening draft. See [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) for details.
+The domain derives each player's legal selection set separately from the resolved board and its territory analysis. The local session uses these rules to run the main phase and publish final scores. See [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) for details.
 
 ### 5.3 Ground health, direct collisions, and capture
 
@@ -201,7 +201,7 @@ When the selections target **different squares**, both legal actions resolve ind
 
 ## 6. Territorial control, end of game and scoring
 
-The main phase derives **strategic territorial control separately from physical piece ownership**. A region may be secured for a player even if some squares are empty. Secured squares are unavailable to both players. A player-color overlay is planned for the Godot scene.
+The main phase derives **strategic territorial control separately from physical piece ownership**. A region may be secured for a player even if some squares are empty. Secured squares are unavailable to both players. The Godot scene displays their control with a faction-colored tint.
 
 ### 6.1 Conservative territorial classification v1
 

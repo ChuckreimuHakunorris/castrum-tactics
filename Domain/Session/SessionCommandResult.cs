@@ -15,6 +15,6 @@ public enum SessionCommandResult
     /// <summary>The command is unavailable in the current match phase.</summary>
     WrongPhase,
 
-    /// <summary>The position is outside the set of eligible starting positions.</summary>
+    /// <summary>The position is unavailable to this player in the current round.</summary>
     IneligiblePosition
 }

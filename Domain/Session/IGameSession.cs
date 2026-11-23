@@ -15,6 +15,11 @@ public interface IGameSession
     /// <returns>Whether the command was accepted or the reason it was rejected.</returns>
     SessionCommandResult SubmitOpeningSelection(OpeningSelection selection);
 
+    /// <summary>Submits or revises a main-phase choice. Both players' choices resolve together when the second player submits.</summary>
+    /// <param name="command">The player, position, and round to submit.</param>
+    /// <returns>Whether the command was accepted or the reason it was rejected.</returns>
+    SessionCommandResult SubmitMainPhaseSelection(MainPhaseCommand command);
+
     /// <summary>Starts a fresh draft on the same map when the opening requires a restart.</summary>
     /// <param name="roundId">The identifier of the snapshot that reported the restart requirement.</param>
     /// <returns>Whether the command was accepted or the reason it was rejected.</returns>

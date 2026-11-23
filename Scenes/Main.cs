@@ -4,7 +4,7 @@ using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using Godot;
 
-/// <summary>Presents the local opening draft and forwards both players' commands to the game session.</summary>
+/// <summary>Presents the local match and forwards both players' commands to the game session.</summary>
 public partial class Main : Control
 {
     private IGameSession _session = null!;
@@ -16,7 +16,7 @@ public partial class Main : Control
     private Button _submit = null!;
     private Button _restart = null!;
     private PlayerId _activePlayer = PlayerId.PlayerOne;
-    private long _displayedRoundId;
+    private GameSessionSnapshot _displayed = null!;
 
     /// <summary>Starts the local demonstration and binds the scene controls to session updates.</summary>
     public override void _Ready()
@@ -64,7 +64,7 @@ public partial class Main : Control
         if (_activePlayer != player)
         {
             _activePlayer = player;
-            _board.ClearSelection();
+            UpdateBoardView();
         }
 
         UpdateControls();
@@ -74,11 +74,17 @@ public partial class Main : Control
     {
         if (_board.SelectedPosition is { } position)
         {
-            ShowRejection(_session.SubmitOpeningSelection(new OpeningSelection(_activePlayer, position, _displayedRoundId)));
+            SessionCommandResult result = _displayed.Phase switch
+            {
+                MatchPhase.Opening => _session.SubmitOpeningSelection(new(_activePlayer, position, _displayed.RoundId)),
+                MatchPhase.Main => _session.SubmitMainPhaseSelection(new(_activePlayer, position, _displayed.RoundId)),
+                _ => SessionCommandResult.WrongPhase
+            };
+            ShowRejection(result);
         }
     }
 
-    private void RestartDraft() => ShowRejection(_session.RestartDraft(_displayedRoundId));
+    private void RestartDraft() => ShowRejection(_session.RestartDraft(_displayed.RoundId));
 
     private void ShowRejection(SessionCommandResult result)
     {
@@ -87,49 +93,64 @@ public partial class Main : Control
             DisplayState(_session.Current);
             _status.Text = result switch
             {
-                SessionCommandResult.IneligiblePosition => "That starting position is unavailable. Choose a gold dot.",
-                SessionCommandResult.StaleRound => "The draft has advanced. Choose for the current round.",
+                SessionCommandResult.IneligiblePosition => "That square is unavailable. Choose a marked square.",
+                SessionCommandResult.StaleRound => "The match has advanced. Choose for the current turn.",
                 SessionCommandResult.WrongPhase => "This action is unavailable in the current phase.",
-                _ => "The draft command was rejected."
+                _ => "The match command was rejected."
             };
         }
     }
 
     private void DisplayState(GameSessionSnapshot snapshot)
     {
-        _displayedRoundId = snapshot.RoundId;
-        _board.SetBoard(snapshot.Board, snapshot.EligiblePositions);
+        _displayed = snapshot;
+        UpdateBoardView();
         UpdateControls();
+    }
+
+    private void UpdateBoardView()
+    {
+        _board.SetBoard(_displayed.Board, _displayed.Phase == MatchPhase.Main
+            ? _displayed.GetMainPhaseLegalSelections(_activePlayer)
+            : _displayed.EligiblePositions, _displayed.Territory);
     }
 
     private void UpdateControls()
     {
-        GameSessionSnapshot snapshot = _session.Current;
-        bool isOpening = snapshot.Phase == MatchPhase.Opening;
+        GameSessionSnapshot snapshot = _displayed;
+        bool canSubmit = snapshot.Phase is MatchPhase.Opening or MatchPhase.Main;
         bool hasSubmitted = snapshot.HasSubmitted(_activePlayer);
         _playerOne.SetPressedNoSignal(_activePlayer == PlayerId.PlayerOne);
         _playerTwo.SetPressedNoSignal(_activePlayer == PlayerId.PlayerTwo);
-        _players.Visible = isOpening;
-        _submit.Visible = isOpening;
-        _submit.Disabled = !isOpening || _board.SelectedPosition is null;
+        _players.Visible = canSubmit;
+        _submit.Visible = canSubmit;
+        _submit.Disabled = !canSubmit || _board.SelectedPosition is null;
         _submit.Text = hasSubmitted ? "Revise selection" : "Submit selection";
         _restart.Visible = snapshot.Phase == MatchPhase.OpeningRestartRequired;
 
-        if (!isOpening)
+        if (snapshot.FinalResult is { } result)
         {
-            _status.Text = snapshot.Phase == MatchPhase.Main
-                ? "Draft complete. Both players have starting knights."
-                : "The draft ended without starting knights. Restart to try again.";
+            string outcome = result.Winner is { } winner ? $"{PlayerName(winner)} wins" : "Draw";
+            _status.Text = $"Match complete · {outcome}\nPlayer One {result.PlayerOneScore} · Player Two {result.PlayerTwoScore}";
+            return;
+        }
+
+        if (!canSubmit)
+        {
+            _status.Text = "The draft ended without starting knights. Restart to try again.";
             return;
         }
 
         PlayerId opponent = _activePlayer == PlayerId.PlayerOne ? PlayerId.PlayerTwo : PlayerId.PlayerOne;
+        bool isOpening = snapshot.Phase == MatchPhase.Opening;
+        string choose = isOpening ? "Choose a gold dot and submit." : "Choose a gold-outlined square and submit.";
         string instruction = hasSubmitted
             ? $"Waiting for {PlayerName(opponent)}. You can still revise."
             : snapshot.HasSubmitted(opponent)
-                ? $"{PlayerName(opponent)} has submitted. Choose a gold dot and submit."
-                : "Choose a gold dot and submit.";
-        _status.Text = $"Round {snapshot.ResolvedRounds + 1} · {PlayerName(_activePlayer)}\n{instruction}";
+                ? $"{PlayerName(opponent)} submitted. Choose a marked square."
+                : choose;
+        string turn = isOpening ? $"Draft {snapshot.ResolvedRounds + 1}" : $"Main {snapshot.ResolvedMainTurns + 1}";
+        _status.Text = $"{turn} · {PlayerName(_activePlayer)}\n{instruction}";
     }
 
     private static string PlayerName(PlayerId player) => player == PlayerId.PlayerOne ? "Player One" : "Player Two";

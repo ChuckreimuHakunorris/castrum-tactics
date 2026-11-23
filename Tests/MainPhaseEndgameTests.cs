@@ -1,4 +1,3 @@
-using CastrumTactics.Domain.Session;
 using Xunit;
 
 namespace CastrumTactics.Domain.Tests;
@@ -13,13 +12,10 @@ public sealed class MainPhaseEndgameTests
         TerrainType[,] terrain = { { ground, blocked, ground, ground, blocked, ground, ground } };
         var firstStart = new BoardPosition(0, 0);
         var secondStart = new BoardPosition(2, 0);
-        var session = new LocalGameSession(new MapDefinition(7, 1, terrain, [firstStart, secondStart]));
-        long round = session.Current.RoundId;
-        Assert.Equal(SessionCommandResult.Accepted, session.SubmitOpeningSelection(new(PlayerId.PlayerOne, firstStart, round)));
-        Assert.Equal(SessionCommandResult.Accepted, session.SubmitOpeningSelection(new(PlayerId.PlayerTwo, secondStart, round)));
-        Assert.Equal(MatchPhase.Main, session.Current.Phase);
+        var draft = new OpeningDraft(new MapDefinition(7, 1, terrain, [firstStart, secondStart]));
+        OpeningDraft resolved = draft.Resolve(firstStart, secondStart);
 
-        var state = MainPhaseState.Evaluate(session.Current.Board);
+        var state = MainPhaseState.Evaluate(resolved.Board);
 
         AssertFinished(state, 1, 2, PlayerId.PlayerTwo);
         Assert.Equal(TerritoryControl.Neutral, state.Territory.GetControl(new BoardPosition(5, 0)));
