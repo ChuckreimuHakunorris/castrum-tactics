@@ -16,6 +16,7 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - [`MapDefinition`](xref:CastrumTactics.Domain.MapDefinition) validates and copies the dimensions, terrain, and candidate starting positions. Starting positions describe eligibility and do not place pieces.
 - [`BoardState`](xref:CastrumTactics.Domain.BoardState) initializes empty, unowned cells and exposes immutable [`CellState`](xref:CastrumTactics.Domain.CellState) values. Playable ground starts at 3 health. Inaccessible ground carries 0 health and cannot contain pieces. A grave makes playable terrain unusable while leaving the underlying terrain unchanged.
 - [`TerrainType`](xref:CastrumTactics.Domain.TerrainType) has two values, playable and inaccessible. Rocks and rivers are visual treatments for inaccessible ground. [`PlayerId`](xref:CastrumTactics.Domain.PlayerId) identifies the player independently of faction color.
+- [`TerritoryAnalyzer`](xref:CastrumTactics.Domain.TerritoryAnalyzer) flood-fills each traversable component once using eight-neighbor adjacency. [`MainPhaseState`](xref:CastrumTactics.Domain.MainPhaseState) exposes per-player legal selections, resolves a simultaneous pair, and reports a final score when either player has no legal selections.
 
 ## Milestone 4 decisions
 
@@ -25,8 +26,14 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - The local session processes commands serially and publishes state synchronously. The same snapshot contract serves both players with submission flags and resolved results. Round identifiers advance across both resolution and restart, while the visible round count resets. Asynchronous remote acknowledgments and transport are deferred.
 - `MapDefinition` accepts fewer than two starting positions so incomplete maps can be represented. `LocalGameSession` requires at least two starting positions and rejects an incomplete map before initializing a draft. A valid map whose draft ends in all collisions still supports a restart.
 
+## Milestone 5 decisions
+
+- A main-phase evaluation binds the immutable board, territory grid, and both legal sets. Callers resolve a pair against that evaluation and evaluate the new board for the next turn. This keeps legal choices from different board snapshots from being combined.
+- Territory is fully recomputed for each new resolved board. The conservative traversal counts bordering castles as terminal sources and knights at every health. No cache or health-aware reachability is needed for v1.
+- Opening and main-phase resolution share the immutable board transition and direct-collision outcome. Each phase keeps responsibility for deciding whether a pair of selections is legal.
+
 ## Planned
 
-The current Main phase status reports successful opening completion. Main-phase selections and combat, scoring, CPU inputs, and a remote session remain future work. Ranked map validation remains a separate design decision.
+The current Main phase status reports successful opening completion. Connecting main-phase selections, combat, and scoring to the session and scene remains future work, along with CPU inputs and a remote session. Ranked map validation remains a separate design decision.
 
-The [Game Design Document](GameDesign.md) records the rules and open design decisions. The [Session Architecture](SessionArchitecture.md) describes the authority and presentation boundaries. The [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) documents the **planned** territory analysis, player-specific legal moves, simultaneous main-phase resolution and either-player endgame condition; these have **not yet been implemented**.
+The [Game Design Document](GameDesign.md) records the rules and open design decisions. The [Session Architecture](SessionArchitecture.md) describes the authority and presentation boundaries. The [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) documents the implemented domain rules and planned integration.
