@@ -75,6 +75,7 @@ The domain layer is responsible for:
 - Resolving simultaneous selections.
 - Applying resulting state transitions.
 - Determining match progression and, eventually, game completion.
+- In the planned main phase, deriving territorial classifications from the resolved board, then legal selections separately for each player; checking the **either-player no-legal-moves** end condition.
 
 The domain must remain independent of Godot, input devices, networking, and AI implementations.
 
@@ -161,7 +162,7 @@ Possible presentation states include:
 
 A submission acknowledgment and a completed turn are distinct events.
 
-Milestone 4 publishes a [`GameSessionSnapshot`](xref:CastrumTactics.Domain.Session.GameSessionSnapshot) with an immutable board, eligible positions, resolved-round count, round identifier, phase, and each player's submission flag. No coordinate from a pending command is published. Rejected commands leave the current snapshot and pending choices intact.
+Milestone 4 publishes a [`GameSessionSnapshot`](xref:CastrumTactics.Domain.Session.GameSessionSnapshot) with an immutable board, opening eligible positions, resolved-round count, round identifier, phase, and each player's submission flag. No coordinate from a pending command is published. Rejected commands leave the current snapshot and pending choices intact.
 
 The local demonstration passes a player identifier chosen by a UI toggle. Changing the active player clears the provisional highlight. The session can restart only when the draft requires it, and advances the identifier on restart so commands from earlier rounds cannot affect the new draft.
 
@@ -193,6 +194,7 @@ Adopt the architecture incrementally.
 
 **Later milestones**
 
+- Follow the accepted [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) design: domain territory analysis → player-specific legal moves → simultaneous resolution; secured territory cannot be selected and the match finishes when **either** player has no legal moves. Treat these as planned requirements, not implemented behavior.
 - Introduce CPU decision-making through the same command mechanism.
 - Implement main-phase rules in the shared domain.
 - Introduce `RemoteGameSession` when multiplayer development begins.

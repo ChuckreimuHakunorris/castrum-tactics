@@ -29,4 +29,4 @@ The renderer handles physical left-button and touch presses after GUI input, con
 
 The current Main phase status reports successful opening completion. Main-phase selections and combat, scoring, CPU inputs, and a remote session remain future work. Ranked map validation remains a separate design decision.
 
-The [Game Design Document](GameDesign.md) records the rules and open design decisions. The [Session Architecture](SessionArchitecture.md) describes the authority and presentation boundaries.
+The [Game Design Document](GameDesign.md) records the rules and open design decisions. The [Session Architecture](SessionArchitecture.md) describes the authority and presentation boundaries. The [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) documents the **planned** territory analysis, player-specific legal moves, simultaneous main-phase resolution and either-player endgame condition; these have **not yet been implemented**.
