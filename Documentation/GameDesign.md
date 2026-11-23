@@ -1,12 +1,12 @@
 # Castrum Tactics — Game Design Document
 
 **Document status:** Revised draft  
-**Version:** 0.2  
-**Last updated:** 2026-11-21  
+**Version:** 0.4  
+**Last updated:** 2026-11-23  
 **Project type:** 2D turn-based grid strategy game  
 **Primary purpose:** Playable game and professional software-engineering portfolio project
 
-> This document records the design and development decisions discussed so far. It is a working baseline, not a claim that every rule or technical choice is final. Items marked **Open decision** require confirmation before the relevant feature is implemented.
+> This document records the design and development decisions discussed so far. It is a working baseline, not a claim that every rule or technical choice is final. Items marked **Open decision** require confirmation before the relevant feature is implemented. For the planned main phase, see [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
 
 ---
 
@@ -167,6 +167,10 @@ The existing pieces remain in place. The selection produces an outcome based on 
 
 A castle is stationary and cannot be conquered under the current rules. It still expands the player's selectable area.
 
+**Clarified main-phase selection rule:** Knights and castles influence the **eight immediately adjacent squares** (including diagonals), not chess-knight L-shaped destinations. A player's **own knight is always a potential upgrade target**, even if it has no other friendly piece adjacent to it. This exception does not permit an upgrade on a square already classified as secured. Neither player may select **any** secured square, including an empty square or own knight; secured-square exclusion does not apply during the opening draft.
+
+The planned main-phase domain logic derives each player's legal selection set separately from the resolved board and its territorial analysis. See [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) for details.
+
 ### 5.3 Ground health, direct collisions, and capture
 
 Ground health belongs to the square and never becomes negative. Creating a knight on empty ground or upgrading a friendly knight to a castle preserves ground health.
@@ -184,7 +188,7 @@ A capture occurs when a player legally selects an enemy knight while the opponen
 | Legal capture at health 1, opponent selects elsewhere | Unowned grave at health 0 |
 | Both players legally select the same square at health 3 | Direct collision creates an unowned grave at health 2 |
 
-Ground health regeneration, the maximum reachable health, and whether other rules can produce a live piece or empty playable square at zero health remain open.
+Ground health does not regenerate under the currently specified actions; whether a future mechanic restores health remains open. Current main-phase actions do not create a living piece on zero-health ground.
 
 ### 5.4 Simultaneous move resolution
 
@@ -195,17 +199,36 @@ When both players submit a main-phase selection for the same turn:
 - If both legally selected the same square, direct collision takes precedence over the ordinary placement, capture, or upgrade outcome.
 - The result must not depend on which player's submission happens to be processed first.
 
-The exact ordering for interactions between two different selected squares may require additional rules once edge cases are enumerated. The implementation should make resolution deterministic and test those cases explicitly.
+When the selections target **different squares**, both legal actions resolve independently using the pre-turn board. An action that removes a piece does not retroactively invalidate the other player's different-square selection. A same-square direct collision takes precedence over both ordinary actions. Resolution must remain independent of submission order.
 
-## 6. End of game and scoring
+## 6. Territorial control, end of game and scoring
 
-The match ends when neither player has any legal moves remaining.
+The main phase derives **strategic territorial control separately from physical piece ownership**. A region may be secured for a player even if some squares are empty. Secured squares receive a subtle player-color overlay and become unavailable as selections **to both players**. The game does not require filling already-secured territory with knights.
 
-The winner is determined by comparing the players' controlled territory according to the final scoring rules. A tie is a draw.
+### 6.1 Conservative territorial classification v1
 
-The original rules also state that inaccessible territory can count as belonging conclusively to the player who controls it.
+Perform an eight-directional connected-component flood fill through playable empty cells and knights, but **never through graves, castles, or inaccessible terrain**. For a component, record the owners of knights inside it and adjacent castles encountered as **terminal boundaries** (include the castle's owner without traversing the castle). Classify every traversable square in the component identically:
 
-**Open decision:** Define “legal move,” “controlled territory,” and the treatment of empty enclosed regions and graves precisely. These definitions should be expressed as domain rules and covered by automated tests before the endgame feature is considered complete.
+- Player One's pieces only: secured by Player One.
+- Player Two's pieces only: secured by Player Two.
+- Both players' pieces: contested.
+- Neither player's pieces: neutral, unreachable by either player under the present board configuration.
+
+Every castle is secured by its own player independently; graves are permanently neutral. The traversal deliberately treats a knight on ground health 1 as traversable even when an actual capture would produce a blocking grave. This may leave an effectively inaccessible region **visually contested**, and is an intentional, understandable simplification for playtesting.
+
+Playably isolated regions with **no connection to any opening starting position**, through the map's fixed accessible terrain using eight-neighbor connectivity, can be classified permanently neutral from match initialization. Additionally, **new neutral regions can appear dynamically**, when graves or castles isolate an area from all remaining pieces. Reanalyze after every resolved turn; initial classification alone is insufficient.
+
+### 6.2 Endgame condition
+
+**The match ends immediately when either player has no legal main-phase selection remaining.** No passing mechanic is needed. Check upon entering Main and after every main-phase resolution. Legal selections exclude secured territory for both players and include the own-knight upgrade exception on contested knights.
+
+With this specified conservative region algorithm, any contested region contains or borders a legal selection for **both** players. Therefore an ended match has no contested playable squares. This is an invariant to verify in domain tests.
+
+### 6.3 Final scoring
+
+At match completion, count **all secured playable squares** for the corresponding player, including secured empty squares, knights, and castles. Neutral playable squares and graves score zero. The greater total wins; equal totals draw.
+
+**Open decision:** The original rules suggest that inaccessible terrain might count toward territory. Whether/how such squares score is **not** settled; do not silently award them. Other endgame scoring rules described above are agreed. The details of the analyzer and invariants are in [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
 
 ## 7. Maps
 
@@ -372,9 +395,9 @@ The following items should be resolved before the corresponding feature is imple
 
 1. **Fixed Draft collision accounting:** Does a collision consume a player's allocated pick, or does that player receive a replacement?
 2. **Ground health lifecycle:** Is health permanently reduced throughout the match, with no restoration?
-3. **Scoring:** Precisely how are controlled squares, empty enclosed territory, inaccessible regions, and graves counted?
-4. **Legal-move definition:** What exact conditions determine that a player has no legal moves?
-5. **Simultaneous different-square interactions:** Are there cases where one player's selected square affects the validity or outcome of the opponent's different selected square in the same turn? If so, define a deterministic resolution rule.
+3. **Inaccessible terrain scoring:** Decide whether and how unplayable terrain contributes to the otherwise agreed secured-square scoring system.
+4. **Territory v1 playtesting:** Revisit conservative connectivity versus exact reachability only if playtesting demonstrates a need.
+5. **Ground health restoration:** Decide whether any future mechanics can regenerate health; no such mechanic is specified at present.
 6. **Fixed Draft eligibility and completion:** Precisely which map squares are eligible starting positions, and how does Fixed Draft terminate?
 7. **Ranked map validation:** Which checks are mandatory structural rules, and which are optional fairness indicators?
 8. **Map data format:** Confirm the representation and versioning strategy for built-in and user-created maps.
@@ -405,6 +428,7 @@ A feature should generally be considered complete when:
 
 | Version | Date | Notes |
 |---|---|---|
+| 0.4 | 2026-11-23 | Clarified eight-adjacent-cell range and own-knight upgrades. Adopted conservative territory flood fill, secured-square move restriction, either-player no-moves endgame, and secured-playable-square scoring; kept inaccessible-terrain scoring open. |
 | 0.3 | 2026-11-23 | Confirmed Unlimited Draft eligibility, simultaneous resolution, and restart. Defined direct collision and capture as separate ground-health transitions. |
 | 0.2 | 2026-11-21 | Adopted Godot 4 .NET, C#, the Compatibility renderer, VS Code with Codex, and xUnit. Clarified the engine-independent rules architecture and open backend choice. Prioritized Windows and physical-device Android export validation. |
 | 0.1 | 2026-11-19 | Initial consolidated design and engineering baseline based on project discussions and the original rules explanation. |
