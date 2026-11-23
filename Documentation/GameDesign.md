@@ -132,6 +132,8 @@ Two opening modes are intended:
 
 Only empty, playable positions designated by the map are eligible. Knights, castles, and graves are unavailable regardless of ownership. Each resolved position becomes occupied and stays unavailable for the rest of the opening.
 
+A local session requires a map with at least two distinct playable starting positions so both players can claim a knight in the same round.
+
 - Different positions give each player one knight and preserve both squares' ground health.
 - Identical positions cause a direct collision. The square becomes an unowned grave and neither player gains a knight.
 

@@ -9,10 +9,20 @@ public sealed class LocalGameSession : IGameSession
     private BoardPosition? _playerTwoPending;
 
     /// <summary>Initializes a fresh draft with the map's starting positions and ground health.</summary>
-    /// <param name="map">The map for the initial draft and any restart. A map with no starts immediately requires a restart.</param>
+    /// <param name="map">The map for the initial draft and any restart. It must have at least two starting positions.</param>
     /// <exception cref="ArgumentNullException">The map is null.</exception>
+    /// <exception cref="ArgumentException">The map has fewer than two starting positions.</exception>
     public LocalGameSession(MapDefinition map)
     {
+        ArgumentNullException.ThrowIfNull(map);
+
+        // A draft needs at least two starts for both players to be able to claim a knight.
+        if (map.StartingPositions.Count < 2)
+        {
+            throw new ArgumentException("Add at least two starting positions to the map before starting a local session.",
+                nameof(map));
+        }
+
         _map = map;
         _draft = new OpeningDraft(map);
         Current = new GameSessionSnapshot(_draft, 1, false, false);

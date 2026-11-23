@@ -259,29 +259,29 @@ public sealed class LocalGameSessionTests
     }
 
     [Fact]
-    public void LastRemainingPositionCanOnlyResolveAsACollision()
+    public void TwoStartingPositionsCanReachMainInOneRound()
     {
-        var session = new LocalGameSession(CreateMap(First));
+        var session = new LocalGameSession(CreateMap(First, Second));
+        Assert.Equal(MatchPhase.Opening, session.Current.Phase);
 
-        Resolve(session, First, First);
+        Resolve(session, First, Second);
 
-        Assert.Equal(MatchPhase.OpeningRestartRequired, session.Current.Phase);
+        Assert.Equal(MatchPhase.Main, session.Current.Phase);
+        Assert.Empty(session.Current.EligiblePositions);
         Assert.Equal(1, session.Current.ResolvedRounds);
-        AssertKnightCounts(session.Current.Board, 0);
+        AssertKnightCounts(session.Current.Board, 1);
     }
 
-    [Fact]
-    public void MapWithNoStartsImmediatelyRequiresRestart()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void MapsWithFewerThanTwoStartingPositionsCanBeDefinedButCannotStartASession(int startingPositionCount)
     {
-        var session = new LocalGameSession(CreateMap());
-        GameSessionSnapshot empty = session.Current;
+        MapDefinition map = CreateMap(startingPositionCount == 0 ? [] : [First]);
 
-        Assert.Equal(MatchPhase.OpeningRestartRequired, empty.Phase);
-        Assert.Equal(0, empty.ResolvedRounds);
-        Assert.Empty(empty.EligiblePositions);
-        Assert.Equal(SessionCommandResult.Accepted, session.RestartDraft(empty.RoundId));
-        Assert.Equal(MatchPhase.OpeningRestartRequired, session.Current.Phase);
-        Assert.Equal(Cells(empty.Board), Cells(session.Current.Board));
+        Assert.Equal(startingPositionCount, map.StartingPositions.Count);
+        var exception = Assert.Throws<ArgumentException>("map", () => new LocalGameSession(map));
+        Assert.Contains("at least two starting positions", exception.Message);
     }
 
     [Fact]

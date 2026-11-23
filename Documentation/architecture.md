@@ -23,9 +23,10 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - The draft computes eligibility and resolves the pair. A resolved position always stays occupied during the draft, so the board also records which starts are spent. Each non-collision places one knight per player, which makes one successful round sufficient to enter Main once eligibility is exhausted.
 - The draft copies the board once per resolved round. A complete snapshot is simple to consume and safe to retain. The tradeoff is a copy of the full cell grid on each resolution. Submissions that are waiting for the opponent reuse the existing board and eligibility list.
 - The local session processes commands serially and publishes state synchronously. The same snapshot contract serves both players with submission flags and resolved results. Round identifiers advance across both resolution and restart, while the visible round count resets. Asynchronous remote acknowledgments and transport are deferred.
+- `MapDefinition` accepts fewer than two starting positions so incomplete maps can be represented. `LocalGameSession` requires at least two starting positions and rejects an incomplete map before initializing a draft. A valid map whose draft ends in all collisions still supports a restart.
 
 ## Planned
 
-The current Main phase status reports successful opening completion. Main-phase selections and combat, scoring, CPU inputs, and a remote session remain future work. A map with no starting positions immediately requires a restart, and restarting the same map leaves it in that state. A map needs at least two starting positions for a draft to be able to reach Main. Ranked map validation remains a separate design decision.
+The current Main phase status reports successful opening completion. Main-phase selections and combat, scoring, CPU inputs, and a remote session remain future work. Ranked map validation remains a separate design decision.
 
 The [Game Design Document](GameDesign.md) records the rules and open design decisions. The [Session Architecture](SessionArchitecture.md) describes the authority and presentation boundaries.
