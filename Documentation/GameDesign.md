@@ -1,12 +1,12 @@
 # Castrum Tactics — Game Design Document
 
 **Document status:** Revised draft  
-**Version:** 0.4  
+**Version:** 0.5\
 **Last updated:** 2026-11-23  
 **Project type:** 2D turn-based grid strategy game  
 **Primary purpose:** Playable game and professional software-engineering portfolio project
 
-> This document records the design and development decisions discussed so far. It is a working baseline, not a claim that every rule or technical choice is final. Items marked **Open decision** require confirmation before the relevant feature is implemented. For the planned main phase, see [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
+> This document records the design and development decisions discussed so far. It is a working baseline, not a claim that every rule or technical choice is final. Items marked **Open decision** require confirmation before the relevant feature is implemented. For the main-phase domain rules and planned integration, see [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
 
 ---
 
@@ -76,9 +76,7 @@ Multiplayer backend selection, hosting, deployment, and distribution still need 
 
 ### 3.3 Objective
 
-The objective is to control more squares than the opponent when the game ends. The original rules describe the final result in terms of occupied squares and note that inaccessible territory can count as belonging conclusively to the player who controls it.
-
-**Open decision:** Define the exact scoring algorithm, including how graves, empty but enclosed territory, and inaccessible regions are counted. The original rules' territory wording should be reconciled with a precise, testable definition before endgame scoring is implemented.
+The objective is to control more secured playable squares than the opponent when the game ends. Empty secured squares count. Inaccessible terrain scores zero. See [final scoring](#63-final-scoring).
 
 ## 4. Board model
 
@@ -169,7 +167,7 @@ A castle is stationary and cannot be conquered under the current rules. It still
 
 **Clarified main-phase selection rule:** Knights and castles influence the **eight immediately adjacent squares** (including diagonals), not chess-knight L-shaped destinations. A player's **own knight is always a potential upgrade target**, even if it has no other friendly piece adjacent to it. This exception does not permit an upgrade on a square already classified as secured. Neither player may select **any** secured square, including an empty square or own knight; secured-square exclusion does not apply during the opening draft.
 
-The planned main-phase domain logic derives each player's legal selection set separately from the resolved board and its territorial analysis. See [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) for details.
+The domain derives each player's legal selection set separately from the resolved board and its territory analysis. The current local session and Godot scene stop at the end of the opening draft. See [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) for details.
 
 ### 5.3 Ground health, direct collisions, and capture
 
@@ -179,7 +177,7 @@ A direct collision occurs when both players legally select the same square in th
 
 A capture occurs when a player legally selects an enemy knight while the opponent selects a different square. The square loses one ground health. While health remains positive, a knight belonging to the attacker occupies the square. At zero, the square becomes an unowned grave.
 
-**Future main-phase tests**
+**Tested main-phase outcomes**
 
 | Pre-turn selections | Expected result on the defender's square |
 |---|---|
@@ -188,7 +186,7 @@ A capture occurs when a player legally selects an enemy knight while the opponen
 | Legal capture at health 1, opponent selects elsewhere | Unowned grave at health 0 |
 | Both players legally select the same square at health 3 | Direct collision creates an unowned grave at health 2 |
 
-Ground health does not regenerate under the currently specified actions; whether a future mechanic restores health remains open. Current main-phase actions do not create a living piece on zero-health ground.
+Ground health does not regenerate under the currently specified actions. Whether a future mechanic restores health remains open. Starting from a normal opening, living pieces never occupy zero-health ground.
 
 ### 5.4 Simultaneous move resolution
 
@@ -203,7 +201,7 @@ When the selections target **different squares**, both legal actions resolve ind
 
 ## 6. Territorial control, end of game and scoring
 
-The main phase derives **strategic territorial control separately from physical piece ownership**. A region may be secured for a player even if some squares are empty. Secured squares receive a subtle player-color overlay and become unavailable as selections **to both players**. The game does not require filling already-secured territory with knights.
+The main phase derives **strategic territorial control separately from physical piece ownership**. A region may be secured for a player even if some squares are empty. Secured squares are unavailable to both players. A player-color overlay is planned for the Godot scene.
 
 ### 6.1 Conservative territorial classification v1
 
@@ -216,19 +214,17 @@ Perform an eight-directional connected-component flood fill through playable emp
 
 Every castle is secured by its own player independently; graves are permanently neutral. The traversal deliberately treats a knight on ground health 1 as traversable even when an actual capture would produce a blocking grave. This may leave an effectively inaccessible region **visually contested**, and is an intentional, understandable simplification for playtesting.
 
-Playably isolated regions with **no connection to any opening starting position**, through the map's fixed accessible terrain using eight-neighbor connectivity, can be classified permanently neutral from match initialization. Additionally, **new neutral regions can appear dynamically**, when graves or castles isolate an area from all remaining pieces. Reanalyze after every resolved turn; initial classification alone is insufficient.
+Regions disconnected from every starting position by fixed inaccessible terrain remain neutral. The current domain analyzes the full board each time. A grave can sever a component's last contact with a piece and make it neutral. Castles split traversable regions, and any component that still borders a castle counts that owner's influence.
 
 ### 6.2 Endgame condition
 
 **The match ends immediately when either player has no legal main-phase selection remaining.** No passing mechanic is needed. Check upon entering Main and after every main-phase resolution. Legal selections exclude secured territory for both players and include the own-knight upgrade exception on contested knights.
 
-With this specified conservative region algorithm, any contested region contains or borders a legal selection for **both** players. Therefore an ended match has no contested playable squares. This is an invariant to verify in domain tests.
+Under this algorithm, each contested component supplies a legal selection to both players, and only contested squares can be selected. Both players run out of selections together under these rules, and an ended match has no contested playable squares.
 
 ### 6.3 Final scoring
 
-At match completion, count **all secured playable squares** for the corresponding player, including secured empty squares, knights, and castles. Neutral playable squares and graves score zero. The greater total wins; equal totals draw.
-
-**Open decision:** The original rules suggest that inaccessible terrain might count toward territory. Whether/how such squares score is **not** settled; do not silently award them. Other endgame scoring rules described above are agreed. The details of the analyzer and invariants are in [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
+At match completion, count **all secured playable squares** for the corresponding player, including secured empty squares, knights, and castles. Neutral playable squares, graves, and inaccessible terrain score zero. The greater total wins. Equal totals draw. The details of the analyzer and invariants are in [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
 
 ## 7. Maps
 
@@ -395,17 +391,16 @@ The following items should be resolved before the corresponding feature is imple
 
 1. **Fixed Draft collision accounting:** Does a collision consume a player's allocated pick, or does that player receive a replacement?
 2. **Ground health lifecycle:** Is health permanently reduced throughout the match, with no restoration?
-3. **Inaccessible terrain scoring:** Decide whether and how unplayable terrain contributes to the otherwise agreed secured-square scoring system.
-4. **Territory v1 playtesting:** Revisit conservative connectivity versus exact reachability only if playtesting demonstrates a need.
-5. **Ground health restoration:** Decide whether any future mechanics can regenerate health; no such mechanic is specified at present.
-6. **Fixed Draft eligibility and completion:** Precisely which map squares are eligible starting positions, and how does Fixed Draft terminate?
-7. **Ranked map validation:** Which checks are mandatory structural rules, and which are optional fairness indicators?
-8. **Map data format:** Confirm the representation and versioning strategy for built-in and user-created maps.
-9. **Multiplayer deployment:** Select a free, maintainable hosting approach and verify its actual cost and operational constraints.
-10. **Licensing and distribution:** Select an appropriate open-source license for the repository and verify third-party asset and platform terms.
-11. **Multiplayer backend:** Evaluate Nakama and other viable options against the shared-rules requirement, Android compatibility, and the €0 budget.
-12. **Android validation baseline:** Confirm the Godot and .NET versions and matching export templates, and choose a physical test device and minimum supported Android version.
-13. **Multiplayer draft restart:** Decide who can initiate or approve a restart after an opening ends without knights.
+3. **Territory v1 playtesting:** Revisit conservative connectivity versus exact reachability only if playtesting demonstrates a need.
+4. **Ground health restoration:** Decide whether any future mechanics can regenerate health; no such mechanic is specified at present.
+5. **Fixed Draft eligibility and completion:** Precisely which map squares are eligible starting positions, and how does Fixed Draft terminate?
+6. **Ranked map validation:** Which checks are mandatory structural rules, and which are optional fairness indicators?
+7. **Map data format:** Confirm the representation and versioning strategy for built-in and user-created maps.
+8. **Multiplayer deployment:** Select a free, maintainable hosting approach and verify its actual cost and operational constraints.
+9. **Licensing and distribution:** Select an appropriate open-source license for the repository and verify third-party asset and platform terms.
+10. **Multiplayer backend:** Evaluate Nakama and other viable options against the shared-rules requirement, Android compatibility, and the €0 budget.
+11. **Android validation baseline:** Confirm the Godot and .NET versions and matching export templates, and choose a physical test device and minimum supported Android version.
+12. **Multiplayer draft restart:** Decide who can initiate or approve a restart after an opening ends without knights.
 
 Do not silently invent answers to these questions during implementation. Record decisions in the design document and decision log when agreed.
 
@@ -428,6 +423,7 @@ A feature should generally be considered complete when:
 
 | Version | Date | Notes |
 |---|---|---|
+| 0.5 | 2026-11-23 | Implemented main-phase domain rules and confirmed zero points for inaccessible terrain. |
 | 0.4 | 2026-11-23 | Clarified eight-adjacent-cell range and own-knight upgrades. Adopted conservative territory flood fill, secured-square move restriction, either-player no-moves endgame, and secured-playable-square scoring; kept inaccessible-terrain scoring open. |
 | 0.3 | 2026-11-23 | Confirmed Unlimited Draft eligibility, simultaneous resolution, and restart. Defined direct collision and capture as separate ground-health transitions. |
 | 0.2 | 2026-11-21 | Adopted Godot 4 .NET, C#, the Compatibility renderer, VS Code with Codex, and xUnit. Clarified the engine-independent rules architecture and open backend choice. Prioritized Windows and physical-device Android export validation. |

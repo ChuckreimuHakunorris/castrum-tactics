@@ -74,8 +74,8 @@ The domain layer is responsible for:
 - Determining legal actions.
 - Resolving simultaneous selections.
 - Applying resulting state transitions.
-- Determining match progression and, eventually, game completion.
-- In the planned main phase, deriving territorial classifications from the resolved board, then legal selections separately for each player; checking the **either-player no-legal-moves** end condition.
+- Determining draft progression and main-phase completion.
+- Deriving territory and each player's legal selections from a resolved board, and scoring the match when either legal set is empty.
 
 The domain must remain independent of Godot, input devices, networking, and AI implementations.
 
@@ -192,11 +192,14 @@ Adopt the architecture incrementally.
 - Connect the existing board-selection UI to the local session.
 - Add automated tests for opening selections, collisions, and simultaneous resolution.
 
+**Milestone 5 — Main-phase domain rules**
+
+- [`MainPhaseState`](xref:CastrumTactics.Domain.MainPhaseState) evaluates a resolved board and validates both selections against that evaluation. The local session and scene continue to stop at opening completion. See [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
+
 **Later milestones**
 
-- Follow the accepted [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) design: domain territory analysis → player-specific legal moves → simultaneous resolution; secured territory cannot be selected and the match finishes when **either** player has no legal moves. Treat these as planned requirements, not implemented behavior.
+- Evaluate the opening board when the session enters Main. If the domain reports a final result, publish it immediately. Otherwise collect private main-phase selections, resolve them, and evaluate the resulting board for the next update.
 - Introduce CPU decision-making through the same command mechanism.
-- Implement main-phase rules in the shared domain.
 - Introduce `RemoteGameSession` when multiplayer development begins.
 - Connect the multiplayer server to the shared domain rules.
 - Expand session status handling, error reporting, and reconnection behavior as required.

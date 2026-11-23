@@ -66,28 +66,41 @@ public sealed class BoardState
     /// <exception cref="ArgumentOutOfRangeException">The position is outside the board.</exception>
     public bool IsPlayable(BoardPosition position) => GetCell(position).IsPlayable;
 
-    // OpeningDraft validates both positions before applying either outcome.
-    internal BoardState WithOpeningRound(BoardPosition playerOne, BoardPosition playerTwo)
+    internal IEnumerable<BoardPosition> NeighborsOf(BoardPosition position)
+    {
+        for (int y = Math.Max(0, position.Y - 1); y <= Math.Min(Height - 1, position.Y + 1); y++)
+        {
+            for (int x = Math.Max(0, position.X - 1); x <= Math.Min(Width - 1, position.X + 1); x++)
+            {
+                var neighbor = new BoardPosition(x, y);
+                if (neighbor != position)
+                {
+                    yield return neighbor;
+                }
+            }
+        }
+    }
+
+    // Only the rules supply outcomes. Apply them to one copy after the full pair has been validated.
+    internal BoardState WithResolvedCells(BoardPosition position, CellState cell,
+        (BoardPosition Position, CellState Cell)? second = null)
     {
         var next = new BoardState(this);
-        if (playerOne == playerTwo)
+        next.SetResolvedCell(position, cell);
+        if (second is { } outcome)
         {
-            CellState cell = GetCell(playerOne);
-            next._cells[playerOne.Y, playerOne.X] =
-                new CellState(cell.Terrain, PieceType.Grave, null, Math.Max(0, cell.GroundHealth - 1));
+            next.SetResolvedCell(outcome.Position, outcome.Cell);
         }
-        else
-        {
-            next.PlaceOpeningKnight(playerOne, PlayerId.PlayerOne);
-            next.PlaceOpeningKnight(playerTwo, PlayerId.PlayerTwo);
-        }
-
         return next;
     }
 
-    private void PlaceOpeningKnight(BoardPosition position, PlayerId player)
+    private void SetResolvedCell(BoardPosition position, CellState cell)
     {
-        CellState cell = GetCell(position);
-        _cells[position.Y, position.X] = new CellState(cell.Terrain, PieceType.Knight, player, cell.GroundHealth);
+        if (GetCell(position).Terrain != cell.Terrain)
+        {
+            throw new ArgumentException("A resolved cell must preserve the map's terrain.", nameof(cell));
+        }
+
+        _cells[position.Y, position.X] = cell;
     }
 }

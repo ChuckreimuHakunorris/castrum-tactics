@@ -40,7 +40,12 @@ internal sealed class OpeningDraft
             throw new InvalidOperationException("Both selections must be eligible on the pre-round board.");
         }
 
-        return new OpeningDraft(_map, Board.WithOpeningRound(playerOne, playerTwo), ResolvedRounds + 1,
-            _hasStartingKnights || playerOne != playerTwo);
+        CellState first = Board.GetCell(playerOne);
+        bool collision = playerOne == playerTwo;
+        BoardState next = collision
+            ? Board.WithResolvedCells(playerOne, first.AfterDirectCollision())
+            : Board.WithResolvedCells(playerOne, first.WithOwnedPiece(PieceType.Knight, PlayerId.PlayerOne),
+                (playerTwo, Board.GetCell(playerTwo).WithOwnedPiece(PieceType.Knight, PlayerId.PlayerTwo)));
+        return new OpeningDraft(_map, next, ResolvedRounds + 1, _hasStartingKnights || !collision);
     }
 }

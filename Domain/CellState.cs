@@ -76,4 +76,10 @@ public readonly record struct CellState
     /// <summary>Gets whether the terrain can participate in gameplay and is free of a grave.</summary>
     /// <remarks>Selection eligibility also depends on the rules of the current match phase.</remarks>
     public bool IsPlayable => Terrain == TerrainType.Playable && Piece != PieceType.Grave;
+
+    internal int GroundHealthAfterBattle => Math.Max(0, GroundHealth - 1);
+
+    internal CellState AfterDirectCollision() => new(Terrain, PieceType.Grave, null, GroundHealthAfterBattle);
+
+    internal CellState WithOwnedPiece(PieceType piece, PlayerId owner) => new(Terrain, piece, owner, GroundHealth);
 }
