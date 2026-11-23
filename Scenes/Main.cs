@@ -34,8 +34,8 @@ public partial class Main : Control
         _restart = GetNode<Button>("%Restart");
         _session = new LocalGameSession(DemonstrationMap.Create());
 
-        SetPlayerColor(_playerOne, BoardRenderer.PlayerOneColor);
-        SetPlayerColor(_playerTwo, BoardRenderer.PlayerTwoColor);
+        SetPlayerColor(_playerOne, FactionPalette.GetColor(PlayerId.PlayerOne));
+        SetPlayerColor(_playerTwo, FactionPalette.GetColor(PlayerId.PlayerTwo));
         _playerOne.Pressed += () => SwitchPlayer(PlayerId.PlayerOne);
         _playerTwo.Pressed += () => SwitchPlayer(PlayerId.PlayerTwo);
         _board.SelectionChanged += UpdateControls;

@@ -24,7 +24,7 @@
 
 **Decision:** Do not author separate complete red/blue spritesheets. Use **faction-neutral base artwork** and apply the player's selected color at runtime in Godot.
 
-**Preferred technique:** A shader-driven **recolor mask / indexed faction palette**, rather than a global hue shift of the whole sprite. Recolor only designated faction-owned regions (e.g., knight plume, cloth, shield insignia, castle banner). Keep metal, stone, wood, outlines, and neutral shading unchanged. Preserve light/dark tonal differences within recolored regions.
+**Preferred technique:** A shader-driven **recolor mask / indexed faction palette**. Recolor designated faction-owned regions such as a knight's plume, cloth, and shield face or a castle's banner. Keep metal, stone, wood, outlines, and neutral shading unchanged. Preserve light/dark tonal differences within recolored regions.
 
 **Asset conventions:**
 
@@ -41,7 +41,7 @@
 - In multiplayer, synchronize the chosen color as presentation metadata; ownership and turn resolution continue to use stable player IDs.
 - Prevent or warn about visually indistinguishable player color choices. Consider accessibility: distinguish factions using optional symbols, outlines, or UI labels as well as color.
 
-**Implementation note:** Prototype the shader with one knight and one castle before generating the full asset set. Godot `canvas_item` shaders are a suitable candidate; exact shader/material architecture remains an implementation decision.
+The [knight and castle sprites](#7-implemented-faction-sprites) share a Godot `canvas_item` recoloring shader.
 
 ## 4. Production asset requirements
 
@@ -51,9 +51,9 @@
 - Separate gameplay overlays (selection, legal moves, ownership, ground health) from decorative artwork so they can change independently.
 - Treat generated images as **concepts until manually checked** for pixel-grid accuracy, consistency, transparency, tileability, and in-engine readability.
 
-## 5. Immediate validation milestone
+## 5. Planned production asset validation
 
-1. Create one 32×32 grass tile, one neutral knight, one neutral castle, and their recolor masks.
+1. Create a 32×32 grass tile and evaluate the neutral knight and castle sprites against it.
 2. Render the same knight and castle in at least four selectable faction colors via one shader/material approach.
 3. Display them on a small board in Godot at typical PC and Android viewing sizes.
 4. Check silhouette clarity, color differentiation, pixel sharpness, and consistency before expanding the tileset.
@@ -61,9 +61,21 @@
 ## 6. Decisions still open
 
 - Final faction-color palette and accessibility options.
-- Exact shader-mask encoding and whether palettes or direct tint values are used.
+- Whether production artwork needs indexed faction palettes beyond the prototype's direct tint.
 - Tile edge treatment and terrain autotiling strategy.
 - Whether 32×32 remains sufficient after the first in-engine readability test.
+
+## 7. Implemented faction sprites
+
+The knight uses `Assets/Sprites/Units/Knight/knight_base.png` and `knight_mask.png` in the same folder. Both PNGs are 756 × 940 pixels and share the same origin and silhouette alignment. The base keeps the original RGBA pixels inside the crop. The common crop removes excess transparent margin and faint stray pixels outside the artwork. The corrected mask follows the base artwork's plume, cape, tunic panels, and shield face. It leaves the armor, spear, white emblem, black outlines, belt, and gold trim untinted.
+
+The castle uses `Assets/Sprites/Units/Castle/castle_base.png` and `castle_mask.png`. Both PNGs are 1234 × 1179 pixels and share the same crop. The castle's banner cloth and front foundation band take the faction tint. The mask preserves the stonework, gate, outlines, gold trim, white heraldic emblem, and bright top edge of the foundation.
+
+`Shaders/faction_recolor.gdshader` samples both textures at the same UV coordinates. In the mask, white applies the full tint, gray blends in part of the tint, and black preserves the base color. Mask alpha scales the strength, so a transparent mask pixel has no effect. The shader multiplies the base RGB by the faction RGB before blending, retaining the artwork's light and dark values. Faction regions should use neutral grayscale for this multiplication. The shader copies the base alpha to the result.
+
+`FactionPalette` maps `PlayerId.PlayerOne` to `#f06c68` and `PlayerId.PlayerTwo` to `#69a4ff`. `FactionPieceArt` shares a base texture and mask for each piece type and reuses one material per owner and piece type. The board centers sprites in their inset tile rectangles and scales them uniformly. The knight fits within 94% of each tile dimension and the broader castle fits within 98%. Both textures use nearest-neighbor sampling, with repeat disabled for the mask. Fine details can alias at small or fractional display sizes.
+
+To add another recolorable piece, place its neutral transparent base and grayscale mask together under `Assets/Sprites`. Align their pixels and apply any crop to both with the same coordinates. Paint the mask on the base canvas and check its protected details against both faction colors. Import the textures losslessly with mipmaps disabled, create a `FactionPieceArt` for the pair, and use the same tile placement with the piece's snapshot owner. Each new texture pair gets its own per-faction materials and can share the shader.
 
 ---
 
