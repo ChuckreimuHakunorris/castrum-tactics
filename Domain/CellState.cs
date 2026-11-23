@@ -14,8 +14,8 @@ public readonly record struct CellState
     /// The piece and owner are inconsistent, or an inaccessible cell has a piece or nonzero ground health.
     /// </exception>
     /// <remarks>
-    /// Snapshot validation accepts any nonnegative health on playable terrain, including zero for a knight
-    /// or castle. The health rules for match state transitions are still to be defined.
+    /// Snapshot validation accepts any nonnegative health on playable terrain. In particular, a grave
+    /// may have positive health and is permanently unplayable regardless of its health.
     /// </remarks>
     public CellState(TerrainType terrain, PieceType piece, PlayerId? owner, int groundHealth)
     {
@@ -74,6 +74,6 @@ public readonly record struct CellState
     public int GroundHealth { get; }
 
     /// <summary>Gets whether the terrain can participate in gameplay and is free of a grave.</summary>
-    /// <remarks>Move eligibility depends on future gameplay rules and is outside this property.</remarks>
+    /// <remarks>Selection eligibility also depends on the rules of the current match phase.</remarks>
     public bool IsPlayable => Terrain == TerrainType.Playable && Piece != PieceType.Grave;
 }

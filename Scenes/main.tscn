@@ -13,12 +13,71 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_jjgbg")
 
-[node name="BoardRenderer" type="Control" parent="." unique_id=291723830]
+[node name="Layout" type="VBoxContainer" parent="." unique_id=386620337]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="BoardRenderer" type="Control" parent="Layout" unique_id=291723830]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
 script = ExtResource("2_board")
+
+[node name="Status" type="Label" parent="Layout" unique_id=755727415]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 19
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="Players" type="HBoxContainer" parent="Layout" unique_id=621845066]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="PlayerOne" type="Button" parent="Layout/Players" unique_id=1514661084]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+toggle_mode = true
+text = "Player One"
+
+[node name="PlayerTwo" type="Button" parent="Layout/Players" unique_id=1729552083]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+toggle_mode = true
+text = "Player Two"
+
+[node name="Submit" type="Button" parent="Layout" unique_id=17009351]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Submit selection"
+
+[node name="Restart" type="Button" parent="Layout" unique_id=771419662]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Restart Draft"

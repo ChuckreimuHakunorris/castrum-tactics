@@ -17,6 +17,10 @@ config/icon="res://icon.svg"
 
 [display]
 
+window/size/viewport_width=480
+window/size/viewport_height=400
+window/size/window_width_override=900
+window/size/window_height_override=650
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
@@ -34,3 +38,4 @@ rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.1, 0.12, 0.15, 1)

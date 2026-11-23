@@ -89,9 +89,9 @@ Conceptual tile data:
 - **Terrain accessibility:** Playable or Inaccessible.
 - **Piece type:** None, Knight, Castle, Grave.
 - **Owner:** Unowned, Player One, or Player Two. Faction color is presentation data.
-- **Ground health:** Starts at 3 where applicable.
+- **Ground health:** Tracks accumulated degradation of the square independently of its occupant. Playable terrain starts at 3 and inaccessible terrain has 0.
 
-This is a conceptual model; the final C# types and invariants should be designed during implementation.
+Terrain artwork should reflect ground health independently of the piece or grave drawn over it. A grave can occupy ground with positive health.
 
 ### 4.1 Terrain
 
@@ -108,7 +108,7 @@ Additional terrain types may be introduced later if they have clear gameplay rul
 
 - **Knight:** A player's basic piece.
 - **Castle:** Created by upgrading one of the player's own knights.
-- **Grave:** A permanently unusable square created by a collision or by ground health reaching zero.
+- **Grave:** An unowned obstacle that makes a square permanently unusable. A direct collision always creates one. A capture creates one when it depletes the ground.
 
 Knights and castles both extend the player's available selection area to the eight surrounding squares, including diagonals. A castle is stationary, but it continues to act as an expansion point just like a knight.
 
@@ -124,19 +124,18 @@ The game has three conceptual phases:
 
 ### 5.1 Opening phase: starting-position draft
 
-Players select their starting positions. Selections are simultaneous in the sense that each player can submit or revise their choice before the opponent has also submitted. Once both have submitted, the selections resolve together.
-
-If both players select the same square, that square becomes a grave and cannot be used.
+Each player selects one starting position per round. Both players use the same pre-round board. A player can submit or revise a choice until the opponent submits. Pending choices stay private and leave the board and eligibility intact. Once both players have submitted, the round resolves immediately.
 
 Two opening modes are intended:
 
 #### Unlimited Draft
 
-- This follows the original rules.
-- There is no predetermined number of starting knights per player.
-- Players select starting positions until no eligible starting positions remain.
-- Collisions create graves.
-- The original explanation describes the opening as ending when all available starting squares have been selected by either player.
+Only empty, playable positions designated by the map are eligible. Knights, castles, and graves are unavailable regardless of ownership. Each resolved position becomes occupied and stays unavailable for the rest of the opening.
+
+- Different positions give each player one knight and preserve both squares' ground health.
+- Identical positions cause a direct collision. The square becomes an unowned grave and neither player gains a knight.
+
+Both players therefore have equal knight counts after every round. There is no fixed knight allocation. The opening continues until all designated starts are resolved. If both players have knights, the match enters the Main phase. If the draft yields zero knights, it requires a restart. In the local testing session, **Restart Draft** restores the same map, initial terrain health and empty board, starting positions, and round progress. Multiplayer restart authority remains open.
 
 #### Fixed Draft
 
@@ -148,7 +147,7 @@ Two opening modes are intended:
 
 The host should be able to choose the opening mode for a multiplayer session, subject to any restrictions imposed by ranked matchmaking or a competitive ruleset.
 
-**Implementation direction:** Implement Unlimited Draft first because it matches the original rules. Add Fixed Draft as a separate mode after the opening system is stable.
+Unlimited Draft is implemented. Fixed Draft is planned.
 
 ### 5.2 Main phase: available selections
 
@@ -163,20 +162,27 @@ The existing pieces remain in place. The selection produces an outcome based on 
 | Own knight | Upgrade it to a castle |
 | Enemy castle | Cannot be conquered |
 | Rock or river | Cannot be selected |
-| Same square selected by both players in the same resolution | Square becomes a grave, regardless of its previous contents |
 
 A castle is stationary and cannot be conquered under the current rules. It still expands the player's selectable area.
 
-### 5.3 Ground health and capture
+### 5.3 Ground health, direct collisions, and capture
 
-- Ground health begins at **3**.
-- When ownership changes due to a successful capture, ground health decreases by 1.
-- When ground health reaches 0, a grave is created instead of the attacker gaining the square.
-- The design clarification so far treats the transition to a grave (neither player owning the square) as a change of ownership for the purpose of this rule.
+Ground health belongs to the square and never becomes negative. Creating a knight on empty ground or upgrading a friendly knight to a castle preserves ground health.
 
-**Open decision:** Confirm whether ground health is stored per square for the entire match and whether it can ever be restored. The current understanding is that it decreases on ownership changes and does not regenerate, but this should be explicitly confirmed and tested.
+A direct collision occurs when both players legally select the same square in the same simultaneous turn. It decreases the square's existing ground health by one, with a floor of zero, preserves the terrain, and always creates an unowned grave. A direct collision at health 3, 2, or 1 therefore produces a grave at health 2, 1, or 0 respectively. The grave remains unusable at any health.
 
-**Open invariant:** Decide what health a collision-created grave should carry and which piece and health combinations can appear in live match state. A capture that reduces health to zero creates a grave. Decide whether zero health can occur on playable terrain without a grave and whether 3 is also a maximum before implementing state transitions.
+A capture occurs when a player legally selects an enemy knight while the opponent selects a different square. The square loses one ground health. While health remains positive, a knight belonging to the attacker occupies the square. At zero, the square becomes an unowned grave.
+
+**Future main-phase tests**
+
+| Pre-turn selections | Expected result on the defender's square |
+|---|---|
+| Legal capture at health 3, opponent selects elsewhere | Attacker's knight at health 2 |
+| Legal capture at health 2, opponent selects elsewhere | Attacker's knight at health 1 |
+| Legal capture at health 1, opponent selects elsewhere | Unowned grave at health 0 |
+| Both players legally select the same square at health 3 | Direct collision creates an unowned grave at health 2 |
+
+Ground health regeneration, the maximum reachable health, and whether other rules can produce a live piece or empty playable square at zero health remain open.
 
 ### 5.4 Simultaneous move resolution
 
@@ -184,7 +190,7 @@ When both players submit a main-phase selection for the same turn:
 
 - Validate both submissions against the same pre-turn game state.
 - Resolve the pair as one logical turn.
-- If both selected the same square, it becomes a grave, regardless of whether the square was empty, held a knight, or otherwise eligible for an upgrade/capture.
+- If both legally selected the same square, direct collision takes precedence over the ordinary placement, capture, or upgrade outcome.
 - The result must not depend on which player's submission happens to be processed first.
 
 The exact ordering for interactions between two different selected squares may require additional rules once edge cases are enumerated. The implementation should make resolution deterministic and test those cases explicitly.
@@ -367,13 +373,14 @@ The following items should be resolved before the corresponding feature is imple
 3. **Scoring:** Precisely how are controlled squares, empty enclosed territory, inaccessible regions, and graves counted?
 4. **Legal-move definition:** What exact conditions determine that a player has no legal moves?
 5. **Simultaneous different-square interactions:** Are there cases where one player's selected square affects the validity or outcome of the opponent's different selected square in the same turn? If so, define a deterministic resolution rule.
-6. **Opening eligibility:** Precisely which map squares are eligible starting positions, and how does the opening terminate in each mode?
+6. **Fixed Draft eligibility and completion:** Precisely which map squares are eligible starting positions, and how does Fixed Draft terminate?
 7. **Ranked map validation:** Which checks are mandatory structural rules, and which are optional fairness indicators?
 8. **Map data format:** Confirm the representation and versioning strategy for built-in and user-created maps.
 9. **Multiplayer deployment:** Select a free, maintainable hosting approach and verify its actual cost and operational constraints.
 10. **Licensing and distribution:** Select an appropriate open-source license for the repository and verify third-party asset and platform terms.
 11. **Multiplayer backend:** Evaluate Nakama and other viable options against the shared-rules requirement, Android compatibility, and the €0 budget.
 12. **Android validation baseline:** Confirm the Godot and .NET versions and matching export templates, and choose a physical test device and minimum supported Android version.
+13. **Multiplayer draft restart:** Decide who can initiate or approve a restart after an opening ends without knights.
 
 Do not silently invent answers to these questions during implementation. Record decisions in the design document and decision log when agreed.
 
@@ -396,5 +403,6 @@ A feature should generally be considered complete when:
 
 | Version | Date | Notes |
 |---|---|---|
+| 0.3 | 2026-11-23 | Confirmed Unlimited Draft eligibility, simultaneous resolution, and restart. Defined direct collision and capture as separate ground-health transitions. |
 | 0.2 | 2026-11-21 | Adopted Godot 4 .NET, C#, the Compatibility renderer, VS Code with Codex, and xUnit. Clarified the engine-independent rules architecture and open backend choice. Prioritized Windows and physical-device Android export validation. |
 | 0.1 | 2026-11-19 | Initial consolidated design and engineering baseline based on project discussions and the original rules explanation. |
