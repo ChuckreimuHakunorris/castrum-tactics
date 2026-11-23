@@ -18,17 +18,17 @@ Use left clicks on Windows or taps on Android.
 
 Choose **Player One** (red) or **Player Two** (blue), select a marked square, and press **Submit selection**. The board updates once both players submit. The first player can choose again and press **Revise selection** while waiting. Switching players clears the pale provisional outline and refreshes the legal targets.
 
-Gold dots mark shared draft targets. The main phase starts automatically after a successful draft and uses gold frames to show the active player's legal targets. Secured cells have a red or blue tint and are unavailable to both players. When the match ends, the board stays visible with both scores and the winner or draw.
+Gold dots mark shared draft targets. When only one start remains, it automatically becomes an unowned grave and loses one ground health. Main uses gold frames for the active player's legal targets. Secured cells have a red or blue tint and are unavailable to both players. At the end of a match, both scores and the winner or draw stay visible. **Restart Match** starts a fresh opening on the same map with the initial terrain, health, and starting positions.
 
 ### Windows and Android walkthrough
 
-Start a fresh match. Count columns A–G from left to right and rows 1–5 from top to bottom. Submit both selections in each row.
+Start a fresh match. Count columns A–G from left to right and rows 1–5 from top to bottom. Submit both selections in each row with coordinates.
 
 | Turn | Player One | Player Two | What to check |
 | --- | --- | --- | --- |
 | Draft 1 | B2 | D3 | Each player gets a knight. Try revising Player One's choice to B2 before Player Two submits. |
 | Draft 2 | E1 | F4 | Each player gets a second knight. |
-| Draft 3 | B5 | B5 | A grave appears and the first main turn starts automatically. |
+| Draft 3 | Automatic | Automatic | B5 becomes a grave immediately after Draft 2, and the first main turn begins. |
 | Main 1 | C3 | E2 | Both players place a knight. |
 | Main 2 | B3 | E1 | Player Two captures the knight at E1 and the ground beneath it degrades. |
 | Main 3 | B1 | G3 | Both players place a knight. |
@@ -38,9 +38,19 @@ Start a fresh match. Count columns A–G from left to right and rows 1–5 from 
 | Main 7 | B3 | D4 | Player One upgrades B3 to a castle. Empty A3 is now tinted red and cannot be selected by either player. |
 | Main 8 | C4 | C4 | The final collision ends the match. Player Two wins **18–8**. The final board stays visible and submission controls disappear. |
 
-- On Windows, resize the window during a provisional selection. Check that tiles remain square and hit testing follows the board. Switch players and verify the old outline clears.
-- On Android, tap near tile edges, in tile gaps, and on the player and submit buttons. A tap on a control should trigger only that control. Check that gold frames, territory tints, and the result remain readable at the device's screen size.
-- To verify the draft retry, relaunch the scene and submit the same dot for both players in all five draft rounds. **Restart Draft** should restore all five dots and the initial ground. Complete a successful draft to confirm normal play resumes.
+- On Windows, resize the window from tall to wide during a provisional selection. Check that tiles remain square, the outline stays selected, and hit testing follows the board. Switch players and verify the outline clears. Finish the walkthrough, click **Restart Match**, and check for an empty board, restored ground, five gold dots, and Player One active at Draft 1.
+- To verify the draft retry, start a fresh match and submit the same dot for both players in four draft rounds. The fifth dot should resolve automatically. **Restart Draft** should restore all five dots and the initial ground. Complete a successful draft to confirm normal play resumes.
+
+### Android rotation checks
+
+The Android build is configured for automatic rotation between portrait and landscape. The same gameplay scene stacks controls beneath the board on narrow screens and puts them beside the board on wide screens. Physical-device rotation verification is pending for Milestone 6.1.
+
+1. Enable Android auto-rotate and launch the game in portrait. Complete Draft 1 from the walkthrough.
+2. For Draft 2, submit Player One's choice, switch to Player Two, and highlight Player Two's square. Rotate to landscape before submitting. Check that the status still shows Player One's submission, Player Two is active, and the provisional outline stayed on the chosen square.
+3. Submit Player Two's selection. Confirm that B5 becomes a grave and Main 1 begins. Select and submit some main turns in landscape.
+4. Rotate back to portrait. Check that the board fits, stays centered in its area, and has square tiles. Tap a tile center, a tile gap, and the player and submit buttons to check hit testing. Confirm targets and status are readable in both orientations.
+5. Finish the walkthrough and verify Player Two's 18–8 win and both visible scores. Tap **Restart Match** in portrait and confirm a fresh draft on the same map.
+6. Enable the device's rotation lock and rotate the phone. Verify that the app follows the locked orientation where Android applies the preference.
 
 ## Android export
 

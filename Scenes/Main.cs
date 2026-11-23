@@ -8,6 +8,8 @@ using Godot;
 public partial class Main : Control
 {
     private IGameSession _session = null!;
+    private BoxContainer _layout = null!;
+    private VBoxContainer _controls = null!;
     private BoardRenderer _board = null!;
     private Label _status = null!;
     private HBoxContainer _players = null!;
@@ -18,9 +20,11 @@ public partial class Main : Control
     private PlayerId _activePlayer = PlayerId.PlayerOne;
     private GameSessionSnapshot _displayed = null!;
 
-    /// <summary>Starts the local demonstration and binds the scene controls to session updates.</summary>
+    /// <summary>Starts the local demonstration and binds the controls to session and layout updates.</summary>
     public override void _Ready()
     {
+        _layout = GetNode<BoxContainer>("Layout");
+        _controls = GetNode<VBoxContainer>("Layout/Controls");
         _board = GetNode<BoardRenderer>("%BoardRenderer");
         _status = GetNode<Label>("%Status");
         _players = GetNode<HBoxContainer>("%Players");
@@ -36,18 +40,29 @@ public partial class Main : Control
         _playerTwo.Pressed += () => SwitchPlayer(PlayerId.PlayerTwo);
         _board.SelectionChanged += UpdateControls;
         _submit.Pressed += SubmitSelection;
-        _restart.Pressed += RestartDraft;
+        _restart.Pressed += RestartMatch;
+        Resized += UpdateLayout;
+        UpdateLayout();
         _session.StateChanged += DisplayState;
         DisplayState(_session.Current);
     }
 
-    /// <summary>Stops observing the session when the scene leaves the tree.</summary>
+    /// <summary>Stops observing session and layout updates when the scene leaves the tree.</summary>
     public override void _ExitTree()
     {
+        Resized -= UpdateLayout;
         if (_session is not null)
         {
             _session.StateChanged -= DisplayState;
         }
+    }
+
+    private void UpdateLayout()
+    {
+        // Give the board more height on wide screens while reserving room for readable controls.
+        bool wide = Size.X >= 600 && Size.X >= Size.Y * 1.5f;
+        _layout.Vertical = !wide;
+        _controls.CustomMinimumSize = new Vector2(wide ? 244 : 0, 0);
     }
 
     private static void SetPlayerColor(Button button, Color color)
@@ -84,7 +99,7 @@ public partial class Main : Control
         }
     }
 
-    private void RestartDraft() => ShowRejection(_session.RestartDraft(_displayed.RoundId));
+    private void RestartMatch() => ShowRejection(_session.RestartDraft(_displayed.RoundId));
 
     private void ShowRejection(SessionCommandResult result)
     {
@@ -103,6 +118,12 @@ public partial class Main : Control
 
     private void DisplayState(GameSessionSnapshot snapshot)
     {
+        if (snapshot.Phase == MatchPhase.Opening &&
+            _displayed?.Phase is MatchPhase.OpeningRestartRequired or MatchPhase.Finished)
+        {
+            _activePlayer = PlayerId.PlayerOne;
+        }
+
         _displayed = snapshot;
         UpdateBoardView();
         UpdateControls();
@@ -126,7 +147,8 @@ public partial class Main : Control
         _submit.Visible = canSubmit;
         _submit.Disabled = !canSubmit || _board.SelectedPosition is null;
         _submit.Text = hasSubmitted ? "Revise selection" : "Submit selection";
-        _restart.Visible = snapshot.Phase == MatchPhase.OpeningRestartRequired;
+        _restart.Visible = snapshot.Phase is MatchPhase.OpeningRestartRequired or MatchPhase.Finished;
+        _restart.Text = snapshot.Phase == MatchPhase.Finished ? "Restart Match" : "Restart Draft";
 
         if (snapshot.FinalResult is { } result)
         {

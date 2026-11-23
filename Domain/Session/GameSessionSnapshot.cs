@@ -32,10 +32,10 @@ public sealed class GameSessionSnapshot
     /// <summary>Gets the shared eligible opening positions, including any privately pending choice. Empty outside Opening.</summary>
     public IReadOnlyList<BoardPosition> EligiblePositions { get; }
 
-    /// <summary>Gets the number of rounds resolved in this draft. Resets on restart.</summary>
+    /// <summary>Gets the number of rounds resolved in this draft, including an automatic final collision. Resets on restart.</summary>
     public int ResolvedRounds { get; }
 
-    /// <summary>Gets the number of main-phase turns resolved so far.</summary>
+    /// <summary>Gets the number of main-phase turns resolved in this match. Resets on restart.</summary>
     public int ResolvedMainTurns { get; }
 
     /// <summary>Gets strategic control on the current board in Main or Finished. Null during the draft.</summary>
@@ -44,7 +44,7 @@ public sealed class GameSessionSnapshot
     /// <summary>Gets the final score and winner in Finished. Null in all other phases.</summary>
     public MainPhaseResult? FinalResult => _mainPhase?.Result;
 
-    /// <summary>Gets the command identifier, which advances on resolution and restart, including terminal updates.</summary>
+    /// <summary>Gets the command identifier, which advances once per resolved round and once per restart.</summary>
     public long RoundId { get; }
 
     /// <summary>Gets the immutable set of legal main-phase selections for the specified player.</summary>

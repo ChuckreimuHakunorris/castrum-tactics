@@ -47,7 +47,8 @@ public sealed class LocalGameSessionTests
         Assert.Equal(new CellState(TerrainType.Playable, PieceType.Grave, null, 2),
             session.Current.Board.GetCell(Second));
         Assert.False(session.Current.Board.IsPlayable(Second));
-        Assert.Equal(PieceType.None, session.Current.Board.GetCell(First).Piece);
+        Assert.Equal(PieceType.Grave, session.Current.Board.GetCell(First).Piece);
+        Assert.Equal(MatchPhase.OpeningRestartRequired, session.Current.Phase);
         Assert.Equal(PieceType.None, pending.Board.GetCell(Second).Piece);
         Assert.False(initial.HasSubmitted(PlayerId.PlayerOne));
         Assert.False(session.Current.HasSubmitted(PlayerId.PlayerOne));
@@ -72,10 +73,10 @@ public sealed class LocalGameSessionTests
 
         Assert.Equal(Cells(forward.Current.Board), Cells(reverse.Current.Board));
         Assert.Equal(forward.Current.EligiblePositions, reverse.Current.EligiblePositions);
-        Assert.Equal(1, forward.Current.ResolvedRounds);
-        Assert.Equal(1, reverse.Current.ResolvedRounds);
-        Assert.Equal(MatchPhase.Opening, forward.Current.Phase);
-        Assert.Equal(MatchPhase.Opening, reverse.Current.Phase);
+        Assert.Equal(collision ? 1 : 2, forward.Current.ResolvedRounds);
+        Assert.Equal(forward.Current.ResolvedRounds, reverse.Current.ResolvedRounds);
+        Assert.Equal(collision ? MatchPhase.Opening : MatchPhase.Main, forward.Current.Phase);
+        Assert.Equal(forward.Current.Phase, reverse.Current.Phase);
         if (collision)
         {
             Assert.Equal(new CellState(TerrainType.Playable, PieceType.Grave, null, 2), forward.Current.Board.GetCell(First));
@@ -88,9 +89,54 @@ public sealed class LocalGameSessionTests
                 forward.Current.Board.GetCell(First));
             Assert.Equal(new CellState(TerrainType.Playable, PieceType.Knight, PlayerId.PlayerTwo, 3),
                 forward.Current.Board.GetCell(Second));
-            Assert.Equal(Third, Assert.Single(forward.Current.EligiblePositions));
+            Assert.Empty(forward.Current.EligiblePositions);
             AssertKnightCounts(forward.Current.Board, 1);
         }
+    }
+
+    [Theory]
+    [InlineData(3, 2, 1)]
+    [InlineData(4, 2, 0)]
+    [InlineData(5, 3, 1)]
+    public void FinalStartResolvesOnlyWhenOneRemains(int startCount, int resolvedRounds, int automaticRounds)
+    {
+        BoardPosition[] starts = [First, Second, Third, Fourth, Fifth];
+        var session = new LocalGameSession(CreateMap(starts[..startCount]));
+        GameSessionSnapshot initial = session.Current;
+        BoardPosition last = starts[startCount - 1];
+        var updates = new List<GameSessionSnapshot>();
+        session.StateChanged += updates.Add;
+
+        for (int i = 0; i < startCount - 1; i += 2)
+        {
+            Assert.Equal(starts[i..startCount], session.Current.EligiblePositions);
+            Resolve(session, starts[i], starts[i + 1]);
+        }
+
+        GameSessionSnapshot main = session.Current;
+        GameSessionSnapshot pending = updates[^2];
+        Assert.Equal(MatchPhase.Main, main.Phase);
+        Assert.Equal(resolvedRounds, main.ResolvedRounds);
+        Assert.Equal(initial.RoundId + resolvedRounds, main.RoundId);
+        Assert.Equal(pending.RoundId + 1 + automaticRounds, main.RoundId);
+        Assert.Equal(2 * (startCount / 2), updates.Count);
+        Assert.DoesNotContain(updates, update => update.EligiblePositions.Count == 1);
+        Assert.Empty(main.EligiblePositions);
+        Assert.False(main.HasSubmitted(PlayerId.PlayerOne));
+        Assert.False(main.HasSubmitted(PlayerId.PlayerTwo));
+        Assert.Equal(new CellState(TerrainType.Playable, PieceType.None, null, 3), pending.Board.GetCell(last));
+        Assert.True(pending.HasSubmitted(PlayerId.PlayerOne));
+        Assert.Equal(initial.Board.GetCell(last), pending.Board.GetCell(last));
+        Assert.Equal(automaticRounds == 1
+            ? new CellState(TerrainType.Playable, PieceType.Grave, null, 2)
+            : new CellState(TerrainType.Playable, PieceType.Knight, PlayerId.PlayerTwo, 3), main.Board.GetCell(last));
+
+        Assert.Equal(SessionCommandResult.StaleRound,
+            session.SubmitOpeningSelection(new(PlayerId.PlayerOne, last, pending.RoundId + automaticRounds)));
+        Assert.Equal(SessionCommandResult.WrongPhase,
+            session.SubmitOpeningSelection(new(PlayerId.PlayerTwo, last, main.RoundId)));
+        Assert.Same(main, session.Current);
+        Assert.Equal(2 * (startCount / 2), updates.Count);
     }
 
     [Theory]
@@ -112,6 +158,7 @@ public sealed class LocalGameSessionTests
             session.SubmitOpeningSelection(new OpeningSelection(PlayerId.PlayerOne, invalid, pending.RoundId)));
         Assert.Equal(SessionCommandResult.IneligiblePosition,
             session.SubmitOpeningSelection(new OpeningSelection(PlayerId.PlayerTwo, invalid, pending.RoundId)));
+        Assert.Equal(SessionCommandResult.WrongPhase, session.RestartDraft(pending.RoundId));
         Assert.Same(pending, session.Current);
         Assert.Equal(0, updates);
 
@@ -210,7 +257,7 @@ public sealed class LocalGameSessionTests
         GameSessionSnapshot initial = session.Current;
         var updates = new List<GameSessionSnapshot>();
         session.StateChanged += updates.Add;
-        foreach (BoardPosition start in initial.EligiblePositions)
+        foreach (BoardPosition start in initial.EligiblePositions.Take(2))
         {
             Assert.Equal(MatchPhase.Opening, session.Current.Phase);
             Resolve(session, start, start);
@@ -222,15 +269,17 @@ public sealed class LocalGameSessionTests
         Assert.Equal(MatchPhase.OpeningRestartRequired, exhausted.Phase);
         Assert.Empty(exhausted.EligiblePositions);
         Assert.Equal(3, exhausted.ResolvedRounds);
+        Assert.Equal(initial.RoundId + 3, exhausted.RoundId);
+        Assert.Equal(new CellState(TerrainType.Playable, PieceType.Grave, null, 2), exhausted.Board.GetCell(Third));
         Assert.Equal(SessionCommandResult.WrongPhase,
             session.SubmitOpeningSelection(new OpeningSelection(PlayerId.PlayerOne, First, exhausted.RoundId)));
         Assert.Equal(SessionCommandResult.StaleRound, session.RestartDraft(initial.RoundId));
-        Assert.Equal(6, updates.Count);
+        Assert.Equal(4, updates.Count);
 
         Assert.Equal(SessionCommandResult.Accepted, session.RestartDraft(exhausted.RoundId));
 
         GameSessionSnapshot restarted = session.Current;
-        Assert.Equal(7, updates.Count);
+        Assert.Equal(5, updates.Count);
         Assert.Same(restarted, updates[^1]);
         Assert.Equal(MatchPhase.Opening, restarted.Phase);
         Assert.Equal(0, restarted.ResolvedRounds);
@@ -250,8 +299,6 @@ public sealed class LocalGameSessionTests
         Assert.Same(restarted.Board, session.Current.Board);
         Assert.Equal(0, session.Current.ResolvedRounds);
         Submit(session, PlayerId.PlayerOne, Second);
-        Assert.Equal(MatchPhase.Opening, session.Current.Phase);
-        Resolve(session, Third, Third);
         Assert.Equal(MatchPhase.Main, session.Current.Phase);
         AssertKnightCounts(session.Current.Board, 1);
         Assert.Equal(PlayerId.PlayerTwo, session.Current.Board.GetCell(First).Owner);

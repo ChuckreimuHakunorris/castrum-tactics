@@ -11,6 +11,7 @@ public interface IGameSession
     event Action<GameSessionSnapshot>? StateChanged;
 
     /// <summary>Submits or revises a choice. The second player's submission resolves the round immediately.</summary>
+    /// <remarks>If one eligible start remains after resolution, it is resolved as a collision before the next snapshot.</remarks>
     /// <param name="selection">The player, position, and round to submit.</param>
     /// <returns>Whether the command was accepted or the reason it was rejected.</returns>
     SessionCommandResult SubmitOpeningSelection(OpeningSelection selection);
@@ -20,8 +21,9 @@ public interface IGameSession
     /// <returns>Whether the command was accepted or the reason it was rejected.</returns>
     SessionCommandResult SubmitMainPhaseSelection(MainPhaseCommand command);
 
-    /// <summary>Starts a fresh draft on the same map when the opening requires a restart.</summary>
-    /// <param name="roundId">The identifier of the snapshot that reported the restart requirement.</param>
-    /// <returns>Whether the command was accepted or the reason it was rejected.</returns>
+    /// <summary>Starts a fresh draft on the same map after a finished match or an opening that produced no knights.</summary>
+    /// <remarks>Restores the initial board, clears match progress, and publishes a snapshot with an advanced round identifier.</remarks>
+    /// <param name="roundId">The identifier of the current Finished or OpeningRestartRequired snapshot.</param>
+    /// <returns>Accepted on restart, StaleRound if the identifier differs, or WrongPhase during active play.</returns>
     SessionCommandResult RestartDraft(long roundId);
 }

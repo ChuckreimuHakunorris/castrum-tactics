@@ -39,7 +39,8 @@ public sealed class LocalMainPhaseTests
     [Fact]
     public void ImmediateEndgamePublishesFinishedWithoutAnInterveningMainSnapshot()
     {
-        var session = CreateSession(".#..#..", 0, 2);
+        var session = CreateSession(".#..#..", 0, 2, 6);
+        GameSessionSnapshot initial = session.Current;
         var updates = new List<GameSessionSnapshot>();
         session.StateChanged += updates.Add;
 
@@ -48,12 +49,19 @@ public sealed class LocalMainPhaseTests
         Assert.Equal(new[] { MatchPhase.Opening, MatchPhase.Finished }, updates.Select(update => update.Phase));
         GameSessionSnapshot finished = session.Current;
         Assert.Same(finished, updates[^1]);
-        Assert.Equal(2, finished.RoundId);
+        Assert.Equal(3, finished.RoundId);
+        Assert.Equal(2, finished.ResolvedRounds);
         Assert.Equal(0, finished.ResolvedMainTurns);
         AssertFinished(finished, 1, 2, Two);
         Assert.Equal(TerritoryControl.SecuredByPlayerTwo, finished.Territory!.GetControl(At(3)));
         Assert.Equal(TerritoryControl.Neutral, finished.Territory!.GetControl(At(5)));
         Assert.Equal(PlayerId.PlayerTwo, finished.Board.GetCell(At(2)).Owner);
+        Assert.Equal(new CellState(TerrainType.Playable, PieceType.Grave, null, 2), finished.Board.GetCell(At(6)));
+
+        Assert.Equal(SessionCommandResult.Accepted, session.RestartDraft(finished.RoundId));
+        Assert.Same(session.Current, updates[2]);
+        AssertFreshDraft(initial, finished, session.Current);
+        AssertFinished(finished, 1, 2, Two);
     }
 
     [Fact]
@@ -158,6 +166,7 @@ public sealed class LocalMainPhaseTests
     public void CompleteMatchRefreshesTerritoryAndTargetsAfterPlacementCaptureUpgradeAndCollision()
     {
         var session = CreateSession("....", 0, 2);
+        GameSessionSnapshot initial = session.Current;
         ResolveOpening(session, 0, 2);
         ResolveMain(session, 1, 3);
         GameSessionSnapshot placed = session.Current;
@@ -189,9 +198,46 @@ public sealed class LocalMainPhaseTests
         session.StateChanged += updates.Add;
         Assert.Equal(SessionCommandResult.WrongPhase, session.SubmitMainPhaseSelection(new(Two, At(1), finished.RoundId)));
         Assert.Equal(SessionCommandResult.WrongPhase, session.SubmitOpeningSelection(new(One, At(0), finished.RoundId)));
-        Assert.Equal(SessionCommandResult.WrongPhase, session.RestartDraft(finished.RoundId));
+        Assert.Equal(SessionCommandResult.StaleRound, session.RestartDraft(captured.RoundId));
         Assert.Same(finished, session.Current);
         Assert.Empty(updates);
+
+        Assert.Equal(SessionCommandResult.Accepted, session.RestartDraft(finished.RoundId));
+        GameSessionSnapshot restarted = session.Current;
+        Assert.Same(restarted, Assert.Single(updates));
+        AssertFreshDraft(initial, finished, restarted);
+        Assert.Equal(SessionCommandResult.StaleRound, session.RestartDraft(finished.RoundId));
+        Assert.Equal(SessionCommandResult.StaleRound, session.SubmitOpeningSelection(new(One, At(0), initial.RoundId)));
+        Assert.Equal(SessionCommandResult.StaleRound, session.SubmitMainPhaseSelection(new(One, At(2), captured.RoundId)));
+        Assert.Same(restarted, session.Current);
+        Assert.Single(updates);
+
+        ResolveOpening(session, 0, 2);
+        ResolveMain(session, 1, 3);
+        ResolveMain(session, 2, 3);
+        ResolveMain(session, 2, 2);
+        AssertFinished(session.Current, 2, 1, One);
+        AssertFinished(finished, 2, 1, One);
+        Assert.Equal(PieceType.Castle, finished.Board.GetCell(At(3)).Piece);
+        Assert.Equal(new CellState(TerrainType.Playable, PieceType.Grave, null, 1), finished.Board.GetCell(At(2)));
+        AssertFreshDraft(initial, finished, restarted);
+    }
+
+    private static void AssertFreshDraft(GameSessionSnapshot initial, GameSessionSnapshot finished, GameSessionSnapshot restarted)
+    {
+        Assert.Equal(MatchPhase.Opening, restarted.Phase);
+        Assert.Equal(finished.RoundId + 1, restarted.RoundId);
+        Assert.Equal(0, restarted.ResolvedRounds);
+        Assert.Equal(0, restarted.ResolvedMainTurns);
+        Assert.Equal(initial.EligiblePositions, restarted.EligiblePositions);
+        Assert.NotSame(finished.Board, restarted.Board);
+        Assert.Equal(initial.Board.Cells(), restarted.Board.Cells());
+        Assert.Null(restarted.Territory);
+        Assert.Null(restarted.FinalResult);
+        Assert.Empty(restarted.GetMainPhaseLegalSelections(One));
+        Assert.Empty(restarted.GetMainPhaseLegalSelections(Two));
+        Assert.False(restarted.HasSubmitted(One));
+        Assert.False(restarted.HasSubmitted(Two));
     }
 
     [Fact]

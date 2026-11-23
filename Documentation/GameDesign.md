@@ -135,7 +135,7 @@ A local session requires a map with at least two distinct playable starting posi
 - Different positions give each player one knight and preserve both squares' ground health.
 - Identical positions cause a direct collision. The square becomes an unowned grave and neither player gains a knight.
 
-Both players therefore have equal knight counts after every round. There is no fixed knight allocation. The opening continues until all designated starts are resolved. If both players have knights, the match enters the Main phase. If the draft yields zero knights, it requires a restart. In the local testing session, **Restart Draft** restores the same map, initial terrain health and empty board, starting positions, and round progress. Multiplayer restart authority remains open.
+Both players therefore have equal knight counts after every round. There is no fixed knight allocation. If one eligible start remains after a round, both players automatically collide there. The usual collision rule creates a permanent unowned grave and reduces ground health by one. That collision counts as a separate resolved round. When the last start is resolved, a draft with knights proceeds to the main-phase endgame check, which determines whether play enters Main or finishes immediately. A draft with zero knights requires a restart. **Restart Draft** and **Restart Match** each restore the same map, initial ground health, an empty board, and the original starting positions. Multiplayer restart authority remains open.
 
 #### Fixed Draft
 

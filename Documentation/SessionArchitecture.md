@@ -110,7 +110,7 @@ The current local sequence is:
 1. The scene displays shared opening positions or the active player's legal main-phase targets and lets the active player highlight a provisional choice.
 2. The scene submits an [`OpeningSelection`](xref:CastrumTactics.Domain.Session.OpeningSelection) or [`MainPhaseCommand`](xref:CastrumTactics.Domain.Session.MainPhaseCommand) with the player, position, and displayed round identifier.
 3. The session checks the player, round identifier, phase, and eligibility from the applicable domain rules. It keeps an accepted choice private and allows revisions until the other player submits.
-4. The second player's submission resolves both selections against the same board. The session clears pending choices and advances the identifier. After a successful draft or main-phase turn, it evaluates the resulting board for the next main-phase turn or final result.
+4. The second player's submission resolves both selections against the same board. If exactly one opening start remains, the session resolves both players selecting it before publishing. The session clears pending choices and advances the identifier once per resolved round. After a successful draft or main-phase turn, it evaluates the resulting board for the next main-phase turn or final result.
 5. The session publishes the new snapshot. The scene clears the provisional highlight and renders the updated board and status. A completed match keeps its board, territory, and final result visible and rejects further gameplay submissions.
 
 CPU decision-making may be asynchronous, but it must not require a separate gameplay implementation.
@@ -164,7 +164,7 @@ A submission acknowledgment and a completed turn are distinct events.
 
 A [`GameSessionSnapshot`](xref:CastrumTactics.Domain.Session.GameSessionSnapshot) publishes an immutable board, phase, round identifier, turn counts, and each player's submission flag. `EligiblePositions` is the shared opening list. `GetMainPhaseLegalSelections` supplies player-specific targets during Main. Main and Finished snapshots include territory, while Finished also includes the final score and winner or draw. Pending coordinates stay private. Rejected commands leave the current snapshot and pending choices intact.
 
-The local scene passes a player identifier chosen by a UI toggle. Changing the active player clears the provisional highlight and refreshes their targets. The session can restart only when the draft requires it, and advances the identifier on restart so commands from earlier rounds cannot affect the new draft.
+The local scene passes a player identifier chosen by a UI toggle. Changing the active player clears the provisional highlight and refreshes their targets. `RestartDraft` accepts the current round identifier in `OpeningRestartRequired` or `Finished`. It restores the original map, clears both pending choices, turn counts, territory and final result, and publishes a fresh Opening snapshot. The identifier advances on restart so commands from the previous match are stale. The scene clears the provisional highlight and makes Player One active.
 
 ## 7. Architectural constraints
 

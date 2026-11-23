@@ -76,10 +76,9 @@ public sealed class LocalGameSession : IGameSession
         if (playerOne is { } first && playerTwo is { } second)
         {
             // Resolve against the same snapshot that validated the submissions before clearing either choice.
-            ResolveRound(first, second);
+            roundId += ResolveRound(first, second);
             playerOne = null;
             playerTwo = null;
-            roundId++;
         }
 
         _playerOnePending = playerOne;
@@ -88,20 +87,29 @@ public sealed class LocalGameSession : IGameSession
         return SessionCommandResult.Accepted;
     }
 
-    private void ResolveRound(BoardPosition first, BoardPosition second)
+    private int ResolveRound(BoardPosition first, BoardPosition second)
     {
         if (_mainPhase is { } mainPhase)
         {
             BoardState board = mainPhase.ResolveTurn(new(PlayerId.PlayerOne, first), new(PlayerId.PlayerTwo, second));
             _mainPhase = MainPhaseState.Evaluate(board);
             _resolvedMainTurns++;
-            return;
+            return 1;
         }
 
         OpeningDraft draft = _draft.Resolve(first, second);
+        // Both players would have to choose the last start. Resolve it before publishing another snapshot.
+        if (draft.EligiblePositions.Count == 1)
+        {
+            BoardPosition last = draft.EligiblePositions[0];
+            draft = draft.Resolve(last, last);
+        }
+
         // Score the actual draft board before publishing any main-phase snapshot.
         _mainPhase = draft.Phase == MatchPhase.Main ? MainPhaseState.Evaluate(draft.Board) : null;
+        int resolvedRounds = draft.ResolvedRounds - _draft.ResolvedRounds;
         _draft = draft;
+        return resolvedRounds;
     }
 
     /// <inheritdoc />
@@ -112,12 +120,14 @@ public sealed class LocalGameSession : IGameSession
             return SessionCommandResult.StaleRound;
         }
 
-        if (Current.Phase != MatchPhase.OpeningRestartRequired)
+        if (Current.Phase is not (MatchPhase.OpeningRestartRequired or MatchPhase.Finished))
         {
             return SessionCommandResult.WrongPhase;
         }
 
         _draft = new OpeningDraft(_map);
+        _mainPhase = null;
+        _resolvedMainTurns = 0;
         _playerOnePending = null;
         _playerTwoPending = null;
         Publish(roundId + 1);

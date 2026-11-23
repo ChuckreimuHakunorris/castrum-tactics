@@ -6,7 +6,7 @@ The Godot project references [CastrumTactics.Domain](xref:CastrumTactics.Domain)
 
 [`Main`](xref:Global.Main) creates a [`LocalGameSession`](xref:CastrumTactics.Domain.Session.LocalGameSession) for the 7-by-5 demonstration map. The scene uses [`IGameSession`](xref:CastrumTactics.Domain.Session.IGameSession) to issue commands and read state from the opening draft through final scoring. It passes the board, current targets for the active player, and territory analysis to [`BoardRenderer`](xref:Global.BoardRenderer).
 
-`BoardRenderer` is a Godot `Control` that draws terrain in ground-health shades with subtle faction tints on secured cells. Opening targets use gold dots and main-phase targets use gold frames, with a separate pale outline for the provisional selection. Knights are round, castles have battlements, and graves are marked with a cross. The board stays centered with square cells above the controls.
+`BoardRenderer` is a Godot `Control` that draws terrain in ground-health shades with subtle faction tints on secured cells. Opening targets use gold dots and main-phase targets use gold frames, with a separate pale outline for the provisional selection. Knights are round, castles have battlements, and graves are marked with a cross. The board stays centered with square cells in its allotted space.
 
 Drawing and hit testing share `BoardGeometry`, which uses the control's current size and derives each inset tile rectangle. Hit testing rejects the outer margins and the gaps between tiles. Tile rectangles include their top and left edges and exclude their bottom and right edges. The presentation xUnit project tests this geometry without launching Godot.
 
@@ -37,6 +37,12 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - The local session shares command validation, pending selections, round identifiers, and publication across phases. The opening and main-phase rules still own each phase's validation and resolution.
 - Opening completion evaluates the existing draft board before publishing Main or Finished. Later pairs resolve against the retained pre-turn evaluation and publish the next evaluation. The final board, territory, and scores stay available for inspection.
 - The scene keeps its player toggle and submission controls. Switching players updates the displayed targets and clears the provisional outline. Published snapshots expose submission status without pending coordinates.
+
+## Milestone 6.1 decisions
+
+- The session feeds the last remaining start into the ordinary collision rule and publishes only the resulting stable state. The identifier advances for each resolved round, including the automatic collision.
+- Both terminal phases use the same restart command. The new draft restores the original map and clears the previous main-phase evaluation and pending choices. The scene returns to Player One and clears the provisional outline through the ordinary snapshot update.
+- The existing scene switches its box container between a vertical stack and a wide layout. Resizing changes container geometry while the session and provisional selection stay in place. Godot 4.7.2 maps Sensor mode to Android's `fullUser` orientation, which lets Android apply the user's rotation preference.
 
 ## Planned
 
