@@ -1,7 +1,6 @@
 namespace CastrumTactics.Domain;
 
-/// <summary>Holds the cell state for a match initialized from a map definition.</summary>
-/// <remarks>Cell state is available through immutable snapshots.</remarks>
+/// <summary>An immutable view of a match board at a particular point in time.</summary>
 public sealed class BoardState
 {
     private const int InitialPlayableGroundHealth = 3;
@@ -28,6 +27,12 @@ public sealed class BoardState
                 _cells[y, x] = new CellState(terrain, PieceType.None, null, groundHealth);
             }
         }
+    }
+
+    private BoardState(BoardState previous)
+    {
+        _map = previous._map;
+        _cells = (CellState[,])previous._cells.Clone();
     }
 
     /// <summary>Gets the number of columns on the board.</summary>
@@ -60,4 +65,29 @@ public sealed class BoardState
     /// <returns>True if the cell is playable.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The position is outside the board.</exception>
     public bool IsPlayable(BoardPosition position) => GetCell(position).IsPlayable;
+
+    // OpeningDraft validates both positions before applying either outcome.
+    internal BoardState WithOpeningRound(BoardPosition playerOne, BoardPosition playerTwo)
+    {
+        var next = new BoardState(this);
+        if (playerOne == playerTwo)
+        {
+            CellState cell = GetCell(playerOne);
+            next._cells[playerOne.Y, playerOne.X] =
+                new CellState(cell.Terrain, PieceType.Grave, null, Math.Max(0, cell.GroundHealth - 1));
+        }
+        else
+        {
+            next.PlaceOpeningKnight(playerOne, PlayerId.PlayerOne);
+            next.PlaceOpeningKnight(playerTwo, PlayerId.PlayerTwo);
+        }
+
+        return next;
+    }
+
+    private void PlaceOpeningKnight(BoardPosition position, PlayerId player)
+    {
+        CellState cell = GetCell(position);
+        _cells[position.Y, position.X] = new CellState(cell.Terrain, PieceType.Knight, player, cell.GroundHealth);
+    }
 }

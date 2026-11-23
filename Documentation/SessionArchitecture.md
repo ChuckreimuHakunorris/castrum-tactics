@@ -43,11 +43,11 @@ A session abstraction provides the interface between the gameplay scene and the 
 
 The session is responsible for coordinating command submission, match progress, and state updates.
 
-Two implementations are planned:
+The architecture defines two kinds of session:
 
 **LocalGameSession**
 
-- Used for local matches, initially human versus CPU.
+- Implemented for local two-human testing on one device. Human versus CPU is a later input mode.
 - Coordinates selections from both participants.
 - Invokes the shared domain rules locally.
 - Maintains the authoritative local match state.
@@ -63,7 +63,7 @@ Two implementations are planned:
 
 Both implementations must expose a consistent interface to the gameplay scene.
 
-An `IGameSession` interface is the proposed abstraction. Its exact members and asynchronous behavior will be designed when implementing the session layer.
+[`IGameSession`](xref:CastrumTactics.Domain.Session.IGameSession) is the presentation contract. In the local implementation, commands return acceptance or a rejection reason synchronously and accepted commands publish a snapshot on the caller's thread.
 
 ### 2.3 Domain layer — Shared game rules
 
@@ -104,15 +104,13 @@ A future player-agent abstraction, such as `IPlayerAgent`, may be useful for enc
 
 For local matches, the local session is authoritative.
 
-The expected sequence is:
+The current local sequence is:
 
-1. The gameplay scene receives the human player's selection.
-2. The selection is submitted to `LocalGameSession`.
-3. The CPU produces its selection.
-4. The local session coordinates both selections.
-5. The shared domain rules validate and resolve the turn.
-6. The session publishes the resulting game state.
-7. The gameplay scene renders the updated state.
+1. The scene displays the session's eligible positions and lets the active player highlight a provisional choice.
+2. The scene submits an [`OpeningSelection`](xref:CastrumTactics.Domain.Session.OpeningSelection) with the player, position, and displayed round identifier.
+3. The session validates the choice through the draft rules and keeps it private. A player may replace their own pending choice before the other player submits.
+4. The second player's submission resolves both selections against the same board. The session clears pending choices and advances the identifier.
+5. The session publishes the new snapshot. The scene clears the provisional highlight and renders the updated board and status.
 
 CPU decision-making may be asynchronous, but it must not require a separate gameplay implementation.
 
@@ -163,7 +161,9 @@ Possible presentation states include:
 
 A submission acknowledgment and a completed turn are distinct events.
 
-The exact state model remains to be designed.
+Milestone 4 publishes a [`GameSessionSnapshot`](xref:CastrumTactics.Domain.Session.GameSessionSnapshot) with an immutable board, eligible positions, resolved-round count, round identifier, phase, and each player's submission flag. No coordinate from a pending command is published. Rejected commands leave the current snapshot and pending choices intact.
+
+The local demonstration passes a player identifier chosen by a UI toggle. Changing the active player clears the provisional highlight. The session can restart only when the draft requires it, and advances the identifier on restart so commands from earlier rounds cannot affect the new draft.
 
 ## 7. Architectural constraints
 
@@ -205,13 +205,13 @@ Do not build a speculative networking or player-agent framework before it is nee
 
 The following remain undecided:
 
-- The exact `IGameSession` API and asynchronous communication model.
-- Whether session implementations belong in separate assemblies.
-- How game-state snapshots and updates are represented.
+- Asynchronous acknowledgments, transport snapshots, and thread dispatch for a remote `IGameSession`.
+- Whether to move session coordination into a separate assembly as more implementations are added.
 - How CPU decision-making is scheduled and canceled.
 - The multiplayer backend, network protocol, and server hosting model.
 - Timeout, disconnection, reconnection, and forfeiture behavior.
-- The precise session status and error-reporting model.
+- Network-specific session status and error reporting.
+- Multiplayer restart authority.
 
 These decisions should be made when the corresponding functionality is implemented.
 

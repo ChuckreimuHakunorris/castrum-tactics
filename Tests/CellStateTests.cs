@@ -34,12 +34,16 @@ public sealed class CellStateTests
         Assert.Throws<ArgumentException>("owner", () => new CellState(TerrainType.Playable, piece, PlayerId.PlayerOne, 3));
     }
 
-    [Fact]
-    public void AGraveMakesPlayableTerrainUnusable()
+    [Theory]
+    [InlineData(2)]
+    [InlineData(1)]
+    [InlineData(0)]
+    public void AGraveMakesPlayableTerrainUnusableRegardlessOfItsHealth(int health)
     {
-        var cell = new CellState(TerrainType.Playable, PieceType.Grave, null, 0);
+        var cell = new CellState(TerrainType.Playable, PieceType.Grave, null, health);
 
         Assert.Equal(TerrainType.Playable, cell.Terrain);
+        Assert.Equal(health, cell.GroundHealth);
         Assert.Null(cell.Owner);
         Assert.False(cell.IsPlayable);
     }
