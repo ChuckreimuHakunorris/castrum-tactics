@@ -5,13 +5,10 @@ using System.Collections.Generic;
 using CastrumTactics.Domain;
 using Godot;
 
-/// <summary>Draws physical cells, strategic territory, and selection highlights supplied by the match view.</summary>
-/// <remarks>Centers the board in the control and keeps its cells square as the control resizes.</remarks>
+/// <summary>Presents the board snapshot, including terrain, territory, pieces, and selection highlights.</summary>
+/// <remarks>Centers the board and fits its piece sprites to the same square cells used for hit testing.</remarks>
 public partial class BoardRenderer : Control
 {
-    internal static readonly Color PlayerOneColor = new("#f06c68");
-    internal static readonly Color PlayerTwoColor = new("#69a4ff");
-
     private static readonly Color HealthyColor = new("#829661");
     private static readonly Color SlightlyDegradedColor = new("#9c875c");
     private static readonly Color HeavilyDegradedColor = new("#765b47");
@@ -19,12 +16,14 @@ public partial class BoardRenderer : Control
     private static readonly Color InaccessibleColor = new("#343a49");
     private static readonly Color LegalTargetColor = new("#f8d47b");
     private static readonly Color SelectionColor = new("#defaff");
-    private static readonly Color PieceOutline = new("#252630");
     private static readonly Color GraveColor = new("#ccc4bd");
 
     private BoardState? _board;
     private TerritoryAnalysis? _territory;
     private HashSet<BoardPosition> _eligiblePositions = [];
+    private readonly List<(BoardPosition Position, Sprite2D Sprite, FactionPieceArt Art)> _pieceSprites = [];
+    private FactionPieceArt? _knightArt;
+    private FactionPieceArt? _castleArt;
 
     /// <summary>Gets the provisional selection for the current view, if any.</summary>
     public BoardPosition? SelectedPosition { get; private set; }
@@ -32,7 +31,7 @@ public partial class BoardRenderer : Control
     /// <summary>Reports that a player highlighted a different eligible board position.</summary>
     public event Action? SelectionChanged;
 
-    /// <summary>Displays the supplied board, clears the selection, and schedules a redraw.</summary>
+    /// <summary>Displays the supplied board, updates its pieces, and clears the provisional selection.</summary>
     /// <param name="board">The snapshot providing the board's dimensions, terrain, and pieces.</param>
     /// <param name="eligiblePositions">
     /// The targets for the active player. Pass an empty collection or null to disable selection.
@@ -44,8 +43,14 @@ public partial class BoardRenderer : Control
         ArgumentNullException.ThrowIfNull(board);
 
         _eligiblePositions = eligiblePositions is null ? [] : new HashSet<BoardPosition>(eligiblePositions);
+        bool piecesMayHaveChanged = !ReferenceEquals(_board, board);
         _board = board;
         _territory = territory;
+        if (piecesMayHaveChanged)
+        {
+            UpdatePieceSprites(board);
+        }
+
         ClearSelection();
     }
 
@@ -56,10 +61,10 @@ public partial class BoardRenderer : Control
         QueueRedraw();
     }
 
-    /// <summary>Schedules a redraw whenever the control's available size changes.</summary>
+    /// <summary>Keeps sprite placement and board drawing in sync with the control's size.</summary>
     public override void _Ready()
     {
-        Resized += QueueRedraw;
+        Resized += RefreshLayout;
     }
 
     /// <summary>Handles left-button and touch presses that reach the board after GUI input.</summary>
@@ -101,7 +106,7 @@ public partial class BoardRenderer : Control
         GetViewport().SetInputAsHandled();
     }
 
-    /// <summary>Draws the board in local coordinates using the control's current size.</summary>
+    /// <summary>Draws terrain, indicators, and graves in the control's local coordinates.</summary>
     public override void _Draw()
     {
         if (_board is not { } board || Size.X <= 0 || Size.Y <= 0)
@@ -134,7 +139,11 @@ public partial class BoardRenderer : Control
                     }
                 }
 
-                DrawPiece(tile, cell);
+                if (cell.Piece == PieceType.Grave)
+                {
+                    DrawGrave(tile);
+                }
+
                 if (SelectedPosition == position)
                 {
                     // Godot centers the stroke on its path, so inset it to preserve the gap.
@@ -145,12 +154,71 @@ public partial class BoardRenderer : Control
         }
     }
 
+    private void UpdatePieceSprites(BoardState board)
+    {
+        foreach (var (_, sprite, _) in _pieceSprites)
+        {
+            RemoveChild(sprite);
+            sprite.QueueFree();
+        }
+
+        _pieceSprites.Clear();
+        for (int y = 0; y < board.Height; y++)
+        {
+            for (int x = 0; x < board.Width; x++)
+            {
+                var position = new BoardPosition(x, y);
+                CellState cell = board.GetCell(position);
+                if (cell.Owner is { } owner && GetPieceArt(cell.Piece) is { } art)
+                {
+                    Sprite2D sprite = art.CreateSprite(owner);
+                    AddChild(sprite);
+                    _pieceSprites.Add((position, sprite, art));
+                }
+            }
+        }
+
+        LayoutPieceSprites(board);
+    }
+
+    private FactionPieceArt? GetPieceArt(PieceType piece) => piece switch
+    {
+        PieceType.Knight => _knightArt ??= new FactionPieceArt(
+            GD.Load<Texture2D>("res://Assets/Sprites/Units/Knight/knight_base.png"),
+            GD.Load<Texture2D>("res://Assets/Sprites/Units/Knight/knight_mask.png"),
+            0.94f),
+        PieceType.Castle => _castleArt ??= new FactionPieceArt(
+            GD.Load<Texture2D>("res://Assets/Sprites/Units/Castle/castle_base.png"),
+            GD.Load<Texture2D>("res://Assets/Sprites/Units/Castle/castle_mask.png"),
+            0.98f),
+        _ => null,
+    };
+
+    private void RefreshLayout()
+    {
+        if (_board is { } board)
+        {
+            LayoutPieceSprites(board);
+        }
+
+        QueueRedraw();
+    }
+
+    private void LayoutPieceSprites(BoardState board)
+    {
+        var geometry = new BoardGeometry(Size, board.Width, board.Height);
+        foreach (var (position, sprite, art) in _pieceSprites)
+        {
+            art.Place(sprite, geometry.GetCellRect(position));
+        }
+    }
+
     private void DrawTerritory(Rect2 tile, BoardPosition position)
     {
         Color? factionColor = _territory?.GetControl(position) switch
         {
-            TerritoryControl.SecuredByPlayerOne => PlayerOneColor,
-            TerritoryControl.SecuredByPlayerTwo => PlayerTwoColor,
+            TerritoryControl.SecuredByPlayerOne => FactionPalette.GetColor(PlayerId.PlayerOne),
+            TerritoryControl.SecuredByPlayerTwo => FactionPalette.GetColor(PlayerId.PlayerTwo),
             _ => null
         };
         if (factionColor is { } color)
@@ -178,45 +246,13 @@ public partial class BoardRenderer : Control
         };
     }
 
-    private void DrawPiece(Rect2 tile, CellState cell)
+    private void DrawGrave(Rect2 tile)
     {
         Vector2 center = tile.GetCenter();
         float size = tile.Size.X;
-        if (cell.Piece == PieceType.Knight)
-        {
-            Color color = cell.Owner == PlayerId.PlayerOne ? PlayerOneColor : PlayerTwoColor;
-            DrawCircle(center, size * 0.32f, PieceOutline, antialiased: true);
-            DrawCircle(center, size * 0.26f, color, antialiased: true);
-        }
-        else if (cell.Piece == PieceType.Castle)
-        {
-            DrawCastle(center, size, cell.Owner == PlayerId.PlayerOne ? PlayerOneColor : PlayerTwoColor);
-        }
-        else if (cell.Piece == PieceType.Grave)
-        {
-            Vector2 arm = Vector2.One * (size * 0.19f);
-            Vector2 otherArm = new(arm.X, -arm.Y);
-            DrawLine(center - arm, center + arm, GraveColor, size * 0.09f, antialiased: true);
-            DrawLine(center - otherArm, center + otherArm, GraveColor, size * 0.09f, antialiased: true);
-        }
-    }
-
-    private void DrawCastle(Vector2 center, float size, Color color)
-    {
-        float unit = size / 10;
-        Vector2 topLeft = center - new Vector2(3, 3) * unit;
-        var keep = new Rect2(topLeft + new Vector2(0, 1.5f) * unit, new Vector2(6, 4.5f) * unit);
-        DrawRect(keep, PieceOutline);
-
-        // Three battlements and a central doorway give the castle a different silhouette from the knight.
-        for (int i = 0; i < 3; i++)
-        {
-            var battlement = new Rect2(topLeft + new Vector2(2.25f * i, 0) * unit, new Vector2(1.5f, 2) * unit);
-            DrawRect(battlement, PieceOutline);
-            DrawRect(battlement.Grow(-0.25f * unit), color);
-        }
-
-        DrawRect(keep.Grow(-0.45f * unit), color);
-        DrawRect(new Rect2(center + new Vector2(-0.75f, 0.75f) * unit, new Vector2(1.5f, 2.25f) * unit), PieceOutline);
+        Vector2 arm = Vector2.One * (size * 0.19f);
+        Vector2 otherArm = new(arm.X, -arm.Y);
+        DrawLine(center - arm, center + arm, GraveColor, size * 0.09f, antialiased: true);
+        DrawLine(center - otherArm, center + otherArm, GraveColor, size * 0.09f, antialiased: true);
     }
 }
