@@ -6,9 +6,9 @@ The Godot project references [CastrumTactics.Domain](xref:CastrumTactics.Domain)
 
 [`Main`](xref:Global.Main) creates a [`LocalGameSession`](xref:CastrumTactics.Domain.Session.LocalGameSession) for the 7-by-5 demonstration map. The scene uses [`IGameSession`](xref:CastrumTactics.Domain.Session.IGameSession) to issue commands and read state from the opening draft through final scoring. It passes the board, current targets for the active player, and territory analysis to [`BoardRenderer`](xref:Global.BoardRenderer).
 
-`BoardRenderer` is a Godot `Control` that draws terrain in ground-health shades with subtle faction tints on secured cells. Opening targets use gold dots and main-phase targets use gold frames, with a separate pale outline for the provisional selection. Knights and castles use [sprites with faction recoloring](ArtDirection.md#7-implemented-faction-sprites). Graves are marked with a cross. The board stays centered with square cells in its allotted space.
+`BoardRenderer` is a Godot `Control` that draws [textured terrain and secured territory](ArtDirection.md#8-placeholder-board-art), [knight and castle sprites with faction recoloring](ArtDirection.md#7-implemented-faction-sprites), and neutral gravestones. Opening targets use gold dots. Main-phase targets use gold tile-edge outlines with inward fades, and a brighter pale cyan version marks the provisional selection in either phase. The board stays centered with square cells in its allotted space.
 
-Drawing, sprite placement, and hit testing share `BoardGeometry`, which uses the control's current size and derives each inset tile rectangle. Hit testing rejects the outer margins and the gaps between tiles. Tile rectangles include their top and left edges and exclude their bottom and right edges. The presentation xUnit project tests this geometry, sprite fitting, and the faction palette without launching Godot.
+Drawing, sprite placement, indicator placement, and hit testing share `BoardGeometry`, which derives a continuous grid of square tiles from the control's current size. Hit testing rejects the outer margins. At a shared edge, the tile on the right or below receives the hit. The presentation xUnit project tests this geometry, sprite fitting, terrain texture mapping, and the faction palette without launching Godot.
 
 The renderer handles physical left-button and touch presses after GUI input, converts viewport coordinates into control-local coordinates, and ignores Godot's emulated pointer events so one press selects at most once. A hit on a position the session marks eligible moves the outline. Misses preserve it. The outline persists through resize and clears when the view changes players or receives a new snapshot. The session validates every submitted command independently.
 
@@ -49,6 +49,12 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - The board renderer positions child sprites from immutable board snapshots. A different board snapshot rebuilds the knight and castle visuals from piece type and ownership. Player switches and pending submissions can reuse the same board, and resizing repositions the existing sprites using current geometry.
 - Knights and castles use the same shader, each with its own base texture, mask, and footprint. Each board renderer reuses one material per piece type and faction so the tint and mask stay specific to that combination.
 - The shared presentation palette maps player IDs to sprite colors, territory accents, and player buttons. A piece's tint comes from its physical owner independently of the territory overlay.
+
+## Milestone 7B decisions
+
+- The board draws each terrain rectangle followed by its secured-territory tint. A child canvas at Z index 1 draws translucent tile edges with the indicator shader and a zero-opacity gradient. Piece sprites sit above the grid at Z index 2. Legal and provisional indicators use separate child canvases at Z indices 3 and 4. Godot uses those indices for stacking even when the piece nodes are rebuilt.
+- A terrain texture depends on accessibility and ground health. The piece sprite comes from the same snapshot and is chosen independently, so a collision can show a gravestone over ground with health remaining.
+- The main-phase legal canvas skips the provisional square so only one edge gradient covers it. Both canvases reuse materials and draw quads that match the tile bounds. The opening legal canvas draws the existing dots.
 
 ## Planned
 

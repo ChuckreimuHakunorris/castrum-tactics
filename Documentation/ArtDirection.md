@@ -73,9 +73,32 @@ The castle uses `Assets/Sprites/Units/Castle/castle_base.png` and `castle_mask.p
 
 `Shaders/faction_recolor.gdshader` samples both textures at the same UV coordinates. In the mask, white applies the full tint, gray blends in part of the tint, and black preserves the base color. Mask alpha scales the strength, so a transparent mask pixel has no effect. The shader multiplies the base RGB by the faction RGB before blending, retaining the artwork's light and dark values. Faction regions should use neutral grayscale for this multiplication. The shader copies the base alpha to the result.
 
-`FactionPalette` maps `PlayerId.PlayerOne` to `#f06c68` and `PlayerId.PlayerTwo` to `#69a4ff`. `FactionPieceArt` shares a base texture and mask for each piece type and reuses one material per owner and piece type. The board centers sprites in their inset tile rectangles and scales them uniformly. The knight fits within 94% of each tile dimension and the broader castle fits within 98%. Both textures use nearest-neighbor sampling, with repeat disabled for the mask. Fine details can alias at small or fractional display sizes.
+`FactionPalette` maps `PlayerId.PlayerOne` to `#f06c68` and `PlayerId.PlayerTwo` to `#69a4ff`. `FactionPieceArt` shares a base texture and mask for each piece type and reuses one material per owner and piece type. The board centers sprites in their tile rectangles and scales them uniformly. The knight fits within 94% of each tile dimension and the broader castle fits within 98%. Both textures use nearest-neighbor sampling, with repeat disabled for the mask. Fine details can alias at small or fractional display sizes.
 
 To add another recolorable piece, place its neutral transparent base and grayscale mask together under `Assets/Sprites`. Align their pixels and apply any crop to both with the same coordinates. Paint the mask on the base canvas and check its protected details against both faction colors. Import the textures losslessly with mipmaps disabled, create a `FactionPieceArt` for the pair, and use the same tile placement with the piece's snapshot owner. Each new texture pair gets its own per-faction materials and can share the shader.
+
+## 8. Placeholder board art
+
+The ImageGen placeholders use stepped shapes and limited palettes to stay readable at board size. They are temporary pseudo-pixel artwork. The source textures are larger than the planned production pixel grid.
+
+Terrain textures meet at shared tile edges. A translucent dark olive line marks the inside perimeter of each tile. The line is 2% of the tile width at one-third opacity, with a hard edge and a transparent interior. The board keeps its outer margin.
+
+| Tile or piece | Asset | Appearance |
+| --- | --- | --- |
+| Ground health 3 | `Assets/Sprites/Terrain/ground_health_3.png` | Healthy green grass |
+| Ground health 2 | `Assets/Sprites/Terrain/ground_health_2.png` | Medium-brown soil with remnants of grass |
+| Ground health 1 | `Assets/Sprites/Terrain/ground_health_1.png` | Dark barren soil |
+| Ground health 0 | `Assets/Sprites/Terrain/ground_health_0.png` | Purplish-brown soil with small bones |
+| Inaccessible | `Assets/Sprites/Terrain/rock.png` | Gray boulders |
+| Grave | `Assets/Sprites/Objects/Grave/grave.png` | Stone headstone, engraved cross, and brown mound on a transparent background |
+
+Inaccessible terrain always shows rock. Playable health above 3 uses the healthy texture. The grave has no faction material and can sit above ground of any playable health. The renderer fits the entire grave frame to the tile width at its original aspect ratio. The transparent space above the headstone keeps the mound low in the square.
+
+ImageGen generated each terrain tile separately. The five opaque square sources were reduced from 1254 × 1254 to 256 × 256 with nearest-neighbor sampling. The grave uses the supplied 166 × 161 pixel reference frame. A connected color mask removes the surrounding grass, leaving the brown mound and its small attached tufts together with the headstone. The capture cursor was removed using adjacent soil pixels where it crossed the mound. The original canvas placement and remaining artwork pixels were preserved.
+
+To replace the placeholders, keep the filenames and use full-bleed opaque squares for terrain and a near-square RGBA frame for the grave. Keep borders, territory accents, and selection markers out of the artwork. Import losslessly with mipmaps disabled and verify the replacements at several board sizes with nearest-neighbor filtering.
+
+The rendering order is terrain, secured-territory tint and edge, the grid, pieces, legal targets, then the provisional selection. `Shaders/selection_indicator.gdshader` measures the distance to the nearest edge in tile UV coordinates. Its uniforms control color (`indicator_color`), border thickness (`border_width`), gradient depth (`fade_depth`), and gradient opacity (`fade_opacity`). The grid material sets gradient opacity to zero. The gold legal border uses 4.5% of the tile width and the pale cyan provisional border uses 6.5%. The selection fades extend 20% inward from their solid borders and start at 42% opacity. The tile center remains clear. A provisional selection replaces the legal gradient on that tile. Opening dots remain visible.
 
 ---
 
