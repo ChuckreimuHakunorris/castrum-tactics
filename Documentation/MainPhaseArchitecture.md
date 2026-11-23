@@ -1,11 +1,11 @@
 # Castrum Tactics — Main-Phase Rules and Architecture
 
-**Status:** Domain implemented. Session and Godot integration planned.\
-**Version:** 0.4\
+**Status:** Domain, local session, and Godot integration implemented.\
+**Version:** 0.5\
 **Date:** 2026-11-23  
 **Scope:** Main-phase moves, simultaneous resolution, territory classification, legal selections, endgame and scoring
 
-This specification expands the [Game Design Document](GameDesign.md) and follows the [Session Architecture](SessionArchitecture.md). The domain can evaluate the board from the Unlimited Draft and resolve main-phase turns. The local session and Godot scene still stop at opening completion.
+This specification expands the [Game Design Document](GameDesign.md) and follows the [Session Architecture](SessionArchitecture.md). The local session evaluates the board from the Unlimited Draft and runs main-phase turns through final scoring. Godot displays the board, each player's targets, and the final result.
 
 ## 1. Core architecture
 
@@ -13,7 +13,7 @@ The physical board and derived territorial control are **different kinds of stat
 
 The rules remain in engine-independent C#, shared by local sessions and future authoritative multiplayer servers. Godot renders snapshots and submits commands; it does not implement rules. Avoid speculative infrastructure or unnecessary interfaces.
 
-Evaluation and future session flow:
+Local match flow
 
 1. Read the resolved physical board.
 2. Analyze territorial regions (independent of legal moves).
@@ -45,7 +45,7 @@ Ground health never becomes negative. Regular placement and upgrade do not chang
 
 ## 3. Simultaneous resolution and command authority
 
-In the planned integration, the session privately retains one command per player for the current round. A player may revise their choice before the other player submits, consistent with the opening session. Public snapshots may report submission flags while keeping coordinates private.
+The local session privately retains one choice per player for the current round. A player may revise their choice before the other player submits, as in the opening. Public snapshots report submission flags while keeping coordinates private.
 
 Validate identity, phase, round identifier, and per-player legal selection before accepting a command. Reject invalid or stale commands without altering state.
 
@@ -91,7 +91,7 @@ The algorithm uses each traversable cell once and checks up to eight neighbors, 
 
 **Dynamic unreachable regions:** A grave can cut off a traversable component from all remaining pieces, making it neutral. A castle can separate components but still supplies its owner to each component touching it. Any newly separated component that touches a castle therefore has that player's influence. Recalculate classifications after every resolved turn.
 
-**Planned presentation:** Tint secured squares with the securing player's color while keeping ground health, pieces, graves, and selection outlines visible.
+The scene tints secured squares with the securing player's color while preserving ground-health shades. Gold frames identify the active player's main-phase targets. A pale outline identifies the provisional selection.
 
 **Movement versus traversal:** Graves, castles, and inaccessible terrain are flood-fill boundaries for **territory analysis**. An individual knight/castle can still influence its other eight adjacent squares regardless of blockers elsewhere; there is no line-of-sight/pathfinding requirement for legal moves.
 
@@ -109,8 +109,8 @@ At the end, count every **secured playable square** for its controlling player, 
 - Territory analysis: pure domain component returning derived per-cell classifications without mutating BoardState.
 - Legal selections: pure domain logic receiving resolved board, territory analysis, and player identity; supply separate sets for each player.
 - Resolution: pure domain simultaneous pair transition, preserving existing health and ownership invariants.
-- Planned session work coordinates private main-phase commands and revisions, tracks round IDs, publishes derived state, and transitions to a finished match when the domain reports a final result.
-- Planned Godot work displays per-player selection highlights, castles, secured-color overlays, progress, and final score. Command resolution remains in the domain.
+- The local session coordinates private commands and revisions, tracks round IDs, and publishes Main or Finished after each evaluation.
+- Godot uses session snapshots to display legal targets, castles, secured-color overlays, and final scores. Finished hides the submission controls and keeps the board visible.
 
 The opening phase is intentionally unchanged; do not conflate opening eligible starting positions with main-phase per-player legal selections. Use focused types and extensions rather than a large generalized framework.
 
@@ -123,7 +123,7 @@ The opening phase is intentionally unchanged; do not conflate opening eligible s
 - Same-square collisions at health 3, 2, 1 always produce a grave at health 2, 1, 0.
 - Distinct-square simultaneous captures both succeed; swapping submission order preserves result.
 - One action destroying a piece that supplied the other action's initial range does not invalidate the latter.
-- Existing opening session tests cover pending-choice privacy, revision, rejection, stale rounds, and immutable snapshots. Add main-phase session coverage when it is wired in.
+- Session tests cover private choices, revisions, stale rounds, invalid commands, immutable snapshots, and final results from both the opening and main-phase turns.
 - Connected components with one owner, two owners, or no owners; castles as terminal sources; graves/inaccessible terrain as barriers; diagonal connectivity.
 - Health-1 knight deliberately remains traversable for territory classification.
 - Static map regions inaccessible from every start; dynamically isolated regions created by graves or castles.
@@ -132,8 +132,6 @@ The opening phase is intentionally unchanged; do not conflate opening eligible s
 - Finished domain evaluations have no contested squares. Secured empty squares and secured pieces earn points. Neutral cells, graves, and inaccessible terrain score zero. Ties draw.
 - Analyzer does not mutate physical board; no Godot dependency in domain tests.
 
-## 8. Open questions and implementation order
+## 8. Open questions
 
 Open design questions include ground-health regeneration, overlay styling, and whether playtesting warrants a more precise reachability algorithm. Future Fixed Draft, AI, networking, multiplayer restart authority, and backend choices remain out of scope.
-
-The next milestone can connect the evaluated state and turn resolution to the existing session and scene, including castle drawing, overlays, and result presentation.

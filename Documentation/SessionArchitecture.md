@@ -47,7 +47,7 @@ The architecture defines two kinds of session:
 
 **LocalGameSession**
 
-- Implemented for local two-human testing on one device. Human versus CPU is a later input mode.
+- Runs a complete local match between two people sharing one device. Human versus CPU is a later input mode.
 - Coordinates selections from both participants.
 - Invokes the shared domain rules locally.
 - Maintains the authoritative local match state.
@@ -107,11 +107,11 @@ For local matches, the local session is authoritative.
 
 The current local sequence is:
 
-1. The scene displays the session's eligible positions and lets the active player highlight a provisional choice.
-2. The scene submits an [`OpeningSelection`](xref:CastrumTactics.Domain.Session.OpeningSelection) with the player, position, and displayed round identifier.
-3. The session validates the choice through the draft rules and keeps it private. A player may replace their own pending choice before the other player submits.
-4. The second player's submission resolves both selections against the same board. The session clears pending choices and advances the identifier.
-5. The session publishes the new snapshot. The scene clears the provisional highlight and renders the updated board and status.
+1. The scene displays shared opening positions or the active player's legal main-phase targets and lets the active player highlight a provisional choice.
+2. The scene submits an [`OpeningSelection`](xref:CastrumTactics.Domain.Session.OpeningSelection) or [`MainPhaseCommand`](xref:CastrumTactics.Domain.Session.MainPhaseCommand) with the player, position, and displayed round identifier.
+3. The session checks the player, round identifier, phase, and eligibility from the applicable domain rules. It keeps an accepted choice private and allows revisions until the other player submits.
+4. The second player's submission resolves both selections against the same board. If exactly one opening start remains, the session resolves both players selecting it before publishing. The session clears pending choices and advances the identifier once per resolved round. After a successful draft or main-phase turn, it evaluates the resulting board for the next main-phase turn or final result.
+5. The session publishes the new snapshot. The scene clears the provisional highlight and renders the updated board and status. A completed match keeps its board, territory, and final result visible and rejects further gameplay submissions.
 
 CPU decision-making may be asynchronous, but it must not require a separate gameplay implementation.
 
@@ -162,9 +162,9 @@ Possible presentation states include:
 
 A submission acknowledgment and a completed turn are distinct events.
 
-Milestone 4 publishes a [`GameSessionSnapshot`](xref:CastrumTactics.Domain.Session.GameSessionSnapshot) with an immutable board, opening eligible positions, resolved-round count, round identifier, phase, and each player's submission flag. No coordinate from a pending command is published. Rejected commands leave the current snapshot and pending choices intact.
+A [`GameSessionSnapshot`](xref:CastrumTactics.Domain.Session.GameSessionSnapshot) publishes an immutable board, phase, round identifier, turn counts, and each player's submission flag. `EligiblePositions` is the shared opening list. `GetMainPhaseLegalSelections` supplies player-specific targets during Main. Main and Finished snapshots include territory, while Finished also includes the final score and winner or draw. Pending coordinates stay private. Rejected commands leave the current snapshot and pending choices intact.
 
-The local demonstration passes a player identifier chosen by a UI toggle. Changing the active player clears the provisional highlight. The session can restart only when the draft requires it, and advances the identifier on restart so commands from earlier rounds cannot affect the new draft.
+The local scene passes a player identifier chosen by a UI toggle. Changing the active player clears the provisional highlight and refreshes their targets. `RestartDraft` accepts the current round identifier in `OpeningRestartRequired` or `Finished`. It restores the original map, clears both pending choices, turn counts, territory and final result, and publishes a fresh Opening snapshot. The identifier advances on restart so commands from the previous match are stale. The scene clears the provisional highlight and makes Player One active.
 
 ## 7. Architectural constraints
 
@@ -194,11 +194,14 @@ Adopt the architecture incrementally.
 
 **Milestone 5 — Main-phase domain rules**
 
-- [`MainPhaseState`](xref:CastrumTactics.Domain.MainPhaseState) evaluates a resolved board and validates both selections against that evaluation. The local session and scene continue to stop at opening completion. See [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
+- [`MainPhaseState`](xref:CastrumTactics.Domain.MainPhaseState) evaluates a resolved board and validates both selections against that evaluation. See [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
+
+**Milestone 6 — Local match integration**
+
+- The session evaluates the successful opening board and publishes Main or Finished in the same update. It then coordinates simultaneous main-phase submissions through final scoring. Godot renders the published targets, territory, and result.
 
 **Later milestones**
 
-- Evaluate the opening board when the session enters Main. If the domain reports a final result, publish it immediately. Otherwise collect private main-phase selections, resolve them, and evaluate the resulting board for the next update.
 - Introduce CPU decision-making through the same command mechanism.
 - Introduce `RemoteGameSession` when multiplayer development begins.
 - Connect the multiplayer server to the shared domain rules.

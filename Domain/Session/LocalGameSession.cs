@@ -1,10 +1,12 @@
 namespace CastrumTactics.Domain.Session;
 
-/// <summary>Coordinates the two participants and owns the authoritative state for a local Unlimited Draft.</summary>
+/// <summary>Coordinates both players in a local match from the Unlimited Draft through final scoring.</summary>
 public sealed class LocalGameSession : IGameSession
 {
     private readonly MapDefinition _map;
     private OpeningDraft _draft;
+    private MainPhaseState? _mainPhase;
+    private int _resolvedMainTurns;
     private BoardPosition? _playerOnePending;
     private BoardPosition? _playerTwoPending;
 
@@ -25,7 +27,7 @@ public sealed class LocalGameSession : IGameSession
 
         _map = map;
         _draft = new OpeningDraft(map);
-        Current = new GameSessionSnapshot(_draft, 1, false, false);
+        Current = CreateSnapshot(1);
     }
 
     /// <inheritdoc />
@@ -35,45 +37,79 @@ public sealed class LocalGameSession : IGameSession
     public event Action<GameSessionSnapshot>? StateChanged;
 
     /// <inheritdoc />
-    public SessionCommandResult SubmitOpeningSelection(OpeningSelection selection)
+    public SessionCommandResult SubmitOpeningSelection(OpeningSelection selection) =>
+        SubmitSelection(selection.Player, selection.Position, selection.RoundId, MatchPhase.Opening);
+
+    /// <inheritdoc />
+    public SessionCommandResult SubmitMainPhaseSelection(MainPhaseCommand command) =>
+        SubmitSelection(command.Player, command.Position, command.RoundId, MatchPhase.Main);
+
+    private SessionCommandResult SubmitSelection(PlayerId player, BoardPosition position, long roundId, MatchPhase phase)
     {
-        if (selection.Player is not (PlayerId.PlayerOne or PlayerId.PlayerTwo))
+        if (player is not (PlayerId.PlayerOne or PlayerId.PlayerTwo))
         {
             return SessionCommandResult.InvalidPlayer;
         }
 
-        if (selection.RoundId != Current.RoundId)
+        if (roundId != Current.RoundId)
         {
             return SessionCommandResult.StaleRound;
         }
 
-        if (_draft.Phase != MatchPhase.Opening)
+        if (Current.Phase != phase)
         {
             return SessionCommandResult.WrongPhase;
         }
 
-        if (!_draft.CanSelect(selection.Position))
+        MainPhaseState? mainPhase = _mainPhase;
+        bool canSelect = mainPhase is null
+            ? _draft.CanSelect(position)
+            : mainPhase.GetLegalSelections(player).Contains(position);
+        if (!canSelect)
         {
             return SessionCommandResult.IneligiblePosition;
         }
 
-        BoardPosition? playerOne = selection.Player == PlayerId.PlayerOne ? selection.Position : _playerOnePending;
-        BoardPosition? playerTwo = selection.Player == PlayerId.PlayerTwo ? selection.Position : _playerTwoPending;
-        long roundId = Current.RoundId;
+        BoardPosition? playerOne = player == PlayerId.PlayerOne ? position : _playerOnePending;
+        BoardPosition? playerTwo = player == PlayerId.PlayerTwo ? position : _playerTwoPending;
 
         if (playerOne is { } first && playerTwo is { } second)
         {
-            // Resolve in player order against the unchanged board before discarding the pending choices.
-            _draft = _draft.Resolve(first, second);
+            // Resolve against the same snapshot that validated the submissions before clearing either choice.
+            roundId += ResolveRound(first, second);
             playerOne = null;
             playerTwo = null;
-            roundId++;
         }
 
         _playerOnePending = playerOne;
         _playerTwoPending = playerTwo;
         Publish(roundId);
         return SessionCommandResult.Accepted;
+    }
+
+    private int ResolveRound(BoardPosition first, BoardPosition second)
+    {
+        if (_mainPhase is { } mainPhase)
+        {
+            BoardState board = mainPhase.ResolveTurn(new(PlayerId.PlayerOne, first), new(PlayerId.PlayerTwo, second));
+            _mainPhase = MainPhaseState.Evaluate(board);
+            _resolvedMainTurns++;
+            return 1;
+        }
+
+        OpeningDraft draft = _draft.Resolve(first, second);
+        // Both players would have to choose the last start. Resolve it before publishing another snapshot.
+        if (draft.EligiblePositions.Count == 1)
+        {
+            BoardPosition last = draft.EligiblePositions[0];
+            draft = draft.Resolve(last, last);
+        }
+
+        // Score the actual draft board before publishing any main-phase snapshot.
+        _mainPhase = draft.Phase == MatchPhase.Main ? MainPhaseState.Evaluate(draft.Board) : null;
+        int resolvedRounds = draft.ResolvedRounds - _draft.ResolvedRounds;
+        _draft = draft;
+        return resolvedRounds;
     }
 
     /// <inheritdoc />
@@ -84,12 +120,14 @@ public sealed class LocalGameSession : IGameSession
             return SessionCommandResult.StaleRound;
         }
 
-        if (_draft.Phase != MatchPhase.OpeningRestartRequired)
+        if (Current.Phase is not (MatchPhase.OpeningRestartRequired or MatchPhase.Finished))
         {
             return SessionCommandResult.WrongPhase;
         }
 
         _draft = new OpeningDraft(_map);
+        _mainPhase = null;
+        _resolvedMainTurns = 0;
         _playerOnePending = null;
         _playerTwoPending = null;
         Publish(roundId + 1);
@@ -98,7 +136,10 @@ public sealed class LocalGameSession : IGameSession
 
     private void Publish(long roundId)
     {
-        Current = new GameSessionSnapshot(_draft, roundId, _playerOnePending.HasValue, _playerTwoPending.HasValue);
+        Current = CreateSnapshot(roundId);
         StateChanged?.Invoke(Current);
     }
+
+    private GameSessionSnapshot CreateSnapshot(long roundId) =>
+        new(_draft, _mainPhase, _resolvedMainTurns, roundId, _playerOnePending.HasValue, _playerTwoPending.HasValue);
 }
