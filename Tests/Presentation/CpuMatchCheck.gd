@@ -114,11 +114,86 @@ func run() -> void:
 	await settle()
 	expect(phase.text == "Draft · Round 1" and "Monster" in two.text, "Draft restart lost the selected profile.")
 	check_banner(board, SMALL_BOARD, ["0", "0"])
+	await check_knight_support_cpu(game)
 	game.queue_free()
 	await process_frame
 	if not failed:
-		print("Verified seeded Normal CPU play on Pocket Meadow (11 main turns, 2–2 draw), restart, confirmed replacement, failed draft, and banner alignment.")
+		print("Verified the seeded Classic CPU match (11 main turns, 2–2 draw), Knight Support play, ruleset replacement, restarts, and banner alignment.")
 		quit()
+
+func check_knight_support_cpu(game: Control) -> void:
+	var two: Button = game.get_node("%PlayerTwo")
+	var phase: Label = game.get_node("%Phase")
+	var badge: Label = game.get_node("%RuleSetBadge")
+	var board: Control = game.get_node("%BoardRenderer")
+	var difficulty: OptionButton = game.get_node("%DifficultyChoice")
+	var rules: OptionButton = game.get_node("%RuleSetChoice")
+	var description: Label = game.get_node("%RuleSetDescription")
+	var new_match: Button = game.get_node("%NewMatch")
+	var dialog: ConfirmationDialog = game.get_node("ConfirmNewMatch")
+	game.set_process(false)
+	for window_size: Vector2i in [Vector2i(410, 720), Vector2i(1000, 690)]:
+		root.size = window_size
+		await settle()
+		click(new_match.get_global_rect().get_center())
+		await settle()
+		expect(dialog.visible and rules.selected == 0 and difficulty.selected == 4,
+			"Dialog did not initialize from the Classic Monster match.")
+		rules.select(1)
+		rules.item_selected.emit(1)
+		difficulty.select(2)
+		await settle()
+		expect("Start with castles." in description.text and description.size.y >= description.get_minimum_size().y,
+			"The Knight Support description did not fit.")
+		expect(dialog.size.x <= root.size.x and dialog.size.y <= root.size.y,
+			"The New Match dialog %s exceeded the viewport %s." % [dialog.size, root.size])
+		expect(badge.text == "Classic" and "Monster" in two.text, "Editing selectors modified the active match.")
+		dialog.get_cancel_button().pressed.emit()
+		await settle()
+		expect(not dialog.visible and badge.text == "Classic" and "Monster" in two.text, "Cancel changed the match.")
+
+	click(new_match.get_global_rect().get_center())
+	rules.select(1)
+	difficulty.select(3)
+	dialog.get_ok_button().pressed.emit()
+	game.set_process(false)
+	await settle()
+	expect(badge.text == "Knight Support" and "Very Hard" in two.text and "Thinking" in two.text,
+		"Replacement ignored the ruleset or difficulty, or submitted stale CPU work.")
+	expect(piece_count(board) == 0 and phase.text == "Draft · Round 1", "Replacement retained an old board or round.")
+	game.set_process(true)
+	if not await wait_until(func(): return "Submitted" in two.text):
+		return
+	# With the fixed seed and symmetric starts, this choice collides with the CPU.
+	choose(board, Vector2(2, 2), SMALL_BOARD)
+	choose(board, Vector2(2, 2), SMALL_BOARD)
+	expect(phase.text == "Draft ended", "Seeded Knight Support collision did not fail the draft.")
+	expect(game.get_node("%Detail").text == "No starting castles were placed.", "Failed draft named the wrong starting piece.")
+	click(game.get_node("%Restart").get_global_rect().get_center())
+	if not await wait_until(func(): return "Submitted" in two.text):
+		return
+	expect(badge.text == "Knight Support" and "Very Hard" in two.text, "Restart lost the ruleset or difficulty.")
+	# Restart advances the seed stream. This time the CPU selects the opposite corner.
+	choose(board, Vector2(2, 2), SMALL_BOARD)
+	choose(board, Vector2(2, 2), SMALL_BOARD)
+	expect(phase.text == "Main · Turn 1", "Seeded Knight Support restart did not reach Main.")
+	expect(piece_art_at(board, Vector2.ZERO, SMALL_BOARD) == "castle_base.png" and
+		piece_art_at(board, Vector2(2, 2), SMALL_BOARD) == "castle_base.png", "CPU match did not render starting castles.")
+	check_banner(board, SMALL_BOARD, ["1", "1"])
+	var first_placement := Vector2(1, 2)
+	choose(board, first_placement, SMALL_BOARD)
+	choose(board, first_placement, SMALL_BOARD)
+	if not await wait_until(func(): return phase.text == "Main · Turn 2"):
+		return
+	expect(piece_art_at(board, first_placement, SMALL_BOARD) == "knight_base.png",
+		"A castle-supported placement did not survive the first CPU turn.")
+	click(new_match.get_global_rect().get_center())
+	expect(rules.selected == 1 and difficulty.selected == 3, "Dialog did not remember the live Knight Support configuration.")
+	rules.select(0)
+	dialog.get_ok_button().pressed.emit()
+	await settle()
+	expect(badge.text == "Classic" and "Very Hard" in two.text and phase.text == "Draft · Round 1" and piece_count(board) == 0,
+		"Switching back to Classic did not replace the match.")
 
 func spawn(map_id: String) -> Control:
 	var game: Control = MATCH_SCENE.instantiate()

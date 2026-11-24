@@ -21,7 +21,7 @@ The renderer handles physical left-button and touch presses after GUI input, con
 ## Milestone 4 decisions
 
 - Session coordination lives in the `CastrumTactics.Domain.Session` namespace of the engine-independent assembly. This keeps the rules and board transitions internal and avoids another assembly for the single local coordinator.
-- The draft computes eligibility and resolves the pair. A resolved position always stays occupied during the draft, so the board also records which starts are spent. Each non-collision places one knight per player, which makes one successful round sufficient to enter Main once eligibility is exhausted.
+- The draft computes eligibility and resolves the pair. A resolved position always stays occupied during the draft, so the board also records which starts are spent. Each distinct pair places one starting piece per player, which makes one successful round sufficient to reach the main-phase endgame check once eligibility is exhausted.
 - The draft copies the board once per resolved round. A complete snapshot is simple to consume and safe to retain. The tradeoff is a copy of the full cell grid on each resolution. Submissions that are waiting for the opponent reuse the existing board and eligibility list.
 - The local session processes commands serially and publishes state synchronously. The same snapshot contract serves both players with submission flags and resolved results. Round identifiers advance across both resolution and restart, while the visible round count resets. Asynchronous remote acknowledgments and transport are deferred.
 - `MapDefinition` accepts fewer than two starting positions so incomplete maps can be represented. `LocalGameSession` requires at least two starting positions and rejects an incomplete map before initializing a draft. A valid map whose draft ends in all collisions still supports a restart.
@@ -77,6 +77,12 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - A match configuration fixes input ownership and difficulty independently of match phase. Versus CPU is the startup default. Local Multiplayer keeps its two-human player toggle and uses the same session and battlefield.
 - The application coordinator starts one CPU work item per playable round. It owns request cancellation and validates the originating session and round. The engine evaluates snapshots on a worker, and the Godot scene consumes completions from its process callback so commands stay serial and non-reentrant.
 - The domain analysis stores secured territory totals alongside the cell classifications. Snapshots and final results share those totals. The renderer reserves up to 36 canvas units for the banner and computes one square-cell geometry for drawing, sprites, hit testing, and banner placement. The display-only banner takes its width from the resulting grid rectangle and discards a long label before compromising that alignment.
+
+## Milestone 8B.1 decisions
+
+- A domain [`RuleSet`](xref:CastrumTactics.Domain.RuleSet) fixes gameplay independently of the input mode and difficulty. Classic remains the default. Both rulesets share opening eligibility, main-phase selection generation, turn resolution, and final scoring.
+- The draft chooses the starting piece type. The main-phase resolver applies Knight Support once against the complete post-action board and keeps the territory analyzer independent of piece removal. The snapshot records the ruleset so future search can evaluate hypothetical pairs with the authoritative resolver.
+- New Match is available in either mode. Confirmation replaces the session, and Versus CPU replaces the coordinator with it. In-session restarts keep the existing configuration.
 
 ## Planned
 

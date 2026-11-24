@@ -1,6 +1,6 @@
 # Predefined maps
 
-The library contains 50 hand-authored battlefields in `Maps/`. Normal startup draws one uniformly at random. The local session retains that definition through the opening, main phase, and final scoring. **Restart Draft** and **Restart Match** restore the same battlefield. **New Match** in Versus CPU draws again unless a map override is active.
+The library contains 50 hand-authored battlefields in `Maps/`. Normal startup draws one uniformly at random. The local session retains that definition through the opening, main phase, and final scoring. **Restart Draft** and **Restart Match** restore the same battlefield. **New Match** draws again in either mode unless a map override is active.
 
 ## File format
 
@@ -31,13 +31,15 @@ Design barriers for eight-neighbor traversal. Diagonally adjacent playable squar
 
 Lantern Lane uses a single tile to link two rows of open ground. Island Keep encloses central starts in a separate region. Banner Plain leaves room for independent expansion, while the starts on Pocket Meadow bring players into contact quickly.
 
-`PredefinedMapCatalog` rejects unsupported characters, invalid dimensions, malformed rows, insufficient starts, duplicate identifiers, and duplicate layouts. It constructs an immutable `MapDefinition` and initializes a local session for each entry. A failure names the source file or identifier and stops catalog loading. The automated suite also looks for an opening on each map that reaches Main by placing a pair of knights and resolving the other starts as collisions. The catalog imposes no competitive fairness restrictions.
+`PredefinedMapCatalog` rejects unsupported characters, invalid dimensions, malformed rows, insufficient starts, duplicate identifiers, and duplicate layouts. It constructs an immutable `MapDefinition` and initializes a local session for each entry. A failure names the source file or identifier and stops catalog loading. The automated suite checks that each map has a playable opening under both rulesets and tests legal CPU decisions for both players and all five difficulties. The catalog imposes no competitive fairness restrictions.
+
+The Knight Support survey found that **Island Keep** can finish immediately after a successful draft. Eight of its 15 distinct start pairs do so when the other starts become graves. The remaining seven pairs reach Main. Starts that become castles and those that become graves both block traversal. Replacing surplus castles with graves only removes regional sources, so a terminal layout with several castles has a terminal witness with one castle per faction. All 50 maps admit a playable Knight Support opening.
 
 The domain project embeds the JSON files in its assembly. Godot loads the same library from .NET on Windows and Android, including exported builds. The export has no loose map-path dependency.
 
 ## Reproduce a match
 
-Use `godot --path . -- --mode local --map demonstration` with Godot .NET to replay the README walkthrough. In the editor, set **Mode** to **Local Multiplayer** for the walkthrough and **Map Id Override** to a particular catalog ID. Leave the map override blank for random startup. The game logs the selected ID and board size and shows the display name and dimensions in the desktop window title and phase tooltip.
+Use `godot --path . -- --mode local --ruleset classic --map demonstration` with Godot .NET to replay the README walkthrough. In the editor, set **Mode** to **Local Multiplayer**, **Rules** to **Classic**, and **Map Id Override** to a catalog ID. Use `--ruleset knight-support` or choose **Knight Support** in the Inspector to draft castles on any map. Leave the map override blank for random startup. The game logs the selected ID and board size and shows the display name and dimensions in the desktop window title and phase tooltip.
 
 Engine-independent tests and simulation tools can call `PredefinedMapCatalog.BuiltIn.Get("demonstration")` or enumerate `.Maps`. Pass `new Random(seed)` to `SelectRandom` for a reproducible sequence with the same catalog and .NET implementation.
 

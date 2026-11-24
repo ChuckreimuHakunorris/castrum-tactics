@@ -20,19 +20,32 @@ Use left clicks on Windows or taps on Android.
 
 Select a marked square, then click or tap it again or press **Submit selection**. Selecting a different square moves the highlight. You can choose while the CPU is thinking and revise a submission until the CPU submits. The board shows both outcomes together when the round resolves.
 
-The CPU card shows the active difficulty. Open **New Match**, choose Easy, Normal, Hard, Very Hard, or Monster, then confirm. New Match draws a map at random unless a map override is active. **Restart Draft** and **Restart Match** keep the current map and difficulty.
+The CPU card shows the active difficulty. Open **New Match**, choose a ruleset and Easy, Normal, Hard, Very Hard, or Monster, then confirm. The dialog starts with your current settings. Cancel returns to the active match. New Match draws a map at random unless a map override is active. **Restart Draft** and **Restart Match** keep the current map, ruleset, and difficulty.
 
 The **Secured Territory** banner starts at 0–0 and updates when the board resolves. It counts secured squares, including empty ones, and keeps the final totals above the board. The left and right scores always represent Player One and Player Two.
+
+## Choose a ruleset
+
+**Classic** is the default and starts with knights. **Knight Support** starts with castles. At the end of each main turn, a knight survives if at least one friendly knight or castle is adjacent, including diagonally. Unsupported knights become neutral graves and lose one ground health. The header shows the active ruleset in both input modes. [Complete rules and design rationale](Documentation/GameDesign.md#55-knight-support-ruleset)
+
+Set **Rules** in the main scene Inspector, or override it on launch with `--ruleset classic` or `--ruleset knight-support`.
+
+```sh
+godot --path . -- --mode cpu --ruleset knight-support --map demonstration --seed 42
+godot --path . -- --mode local --ruleset knight-support --map pocket-meadow
+```
 
 ## Play a local two-human match
 
 Choose **Player One** (red) or **Player Two** (blue) and select a marked square. Click or tap it again or press **Submit selection**. The board updates once both players submit. While waiting, select your revised square and confirm it the same way or use **Revise selection**. Switching players clears the pale provisional outline and refreshes the legal targets.
 
+**New Match** offers both rulesets in Local Multiplayer.
+
 Gold dots mark shared draft targets. When only one start remains, it automatically becomes an unowned grave and loses one ground health. Main uses gold frames for the active player's legal targets. Secured cells have a red or blue tint and are unavailable to both players. At the end of a match, both scores and the winner or draw stay visible. **Restart Match** starts a fresh opening on the same map with the initial terrain, health, and starting positions.
 
 ### Windows and Android walkthrough
 
-Start on the demonstration map with `godot --path . -- --mode local --map demonstration`. For an editor run or a deterministic Android debug export, set **Mode** to **Local Multiplayer** and **Map Id Override** to `demonstration` on the main scene. Leave the map override blank for random startup. Count columns A–G from left to right and rows 1–5 from top to bottom. Submit both selections in each row with coordinates.
+Start on the demonstration map with `godot --path . -- --mode local --ruleset classic --map demonstration`. For an editor run or a deterministic Android debug export, set **Mode** to **Local Multiplayer**, **Rules** to **Classic**, and **Map Id Override** to `demonstration` on the main scene. Leave the map override blank for random startup. Count columns A–G from left to right and rows 1–5 from top to bottom. Submit both selections in each row with coordinates.
 
 | Turn | Player One | Player Two | What to check |
 | --- | --- | --- | --- |
@@ -84,6 +97,6 @@ godot --headless --path . --script Tests/Presentation/DraftLayoutCheck.gd
 godot --headless --path . --script Tests/Presentation/CpuMatchCheck.gd -- --seed 42
 ```
 
-The tests replay complete local and CPU matches and exercise responsive layout, scores, and restarts. For development launches, use `--mode cpu` or `--mode local`, `--map <id>`, and an optional `--seed <int>` after the Godot `--` separator. The seed controls CPU randomness, while the map override fixes the map.
+The tests replay complete local and CPU matches and exercise ruleset switching, responsive layout, scores, and restarts. For development launches, use `--mode cpu` or `--mode local`, `--ruleset classic` or `--ruleset knight-support`, `--map <id>`, and an optional `--seed <int>` after the Godot `--` separator. The seed controls CPU randomness, while the map override fixes the map.
 
 See the [documentation homepage source](Documentation/index.md) for architecture and API reference navigation, and the [documentation contributor guide](Documentation/contributing.md) for local builds, writing conventions, and GitHub Pages setup.

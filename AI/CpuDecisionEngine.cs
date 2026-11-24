@@ -14,7 +14,7 @@ public sealed class CpuDecisionEngine
     // Scores combine a bounded set of weighted features. This absolute margin covers arithmetic roundoff.
     private const double ScoreEquivalenceTolerance = 1e-12;
 
-    private const double OpeningFirstKnightUrgency = 1.0;
+    private const double OpeningFirstPieceUrgency = 1.0;
     private const double OpeningEarlyCollisionCost = 0.7;
     private const double OpeningEstablishedCollisionCost = 0.4;
     private const double OpeningDenialCredit = 0.2;
@@ -31,6 +31,13 @@ public sealed class CpuDecisionEngine
     private const double RetainedKnightCollisionCost = 0.25;
     private const double GraveCaptureCollisionCost = 0.05;
     private const double MaximumNewKnightExposure = 0.35;
+    private const double StartingCastleGateValue = 0.25;
+    private const double MultipleSupportValue = 0.25;
+    private const double CastleSupportValue = 0.35;
+    private const double DependentKnightValue = 0.25;
+    private const double GroundExhaustionFactor = 0.5;
+    private const double SoleSupportThreatRisk = 0.5;
+    private const double OpponentResponseDiscount = 0.5;
 
     /// <summary>Chooses one selection without writing to the snapshot or submitting a command.</summary>
     /// <param name="snapshot">The public snapshot supplying the board and legal selections.</param>
@@ -94,12 +101,13 @@ public sealed class CpuDecisionEngine
             return (null, []);
         }
 
-        var board = new TacticalBoard(snapshot.Board, opening, token);
-        bool noKnights = board.OneKnights == 0 && board.TwoKnights == 0;
+        bool knightSupport = snapshot.RuleSet == RuleSet.KnightSupport;
+        var board = new TacticalBoard(snapshot.Board, opening, token, snapshot.RuleSet);
+        bool noStartingPieces = board.StartingPieceCount == 0;
         var candidates = new CpuCandidate[positions.Length];
         if (opening)
         {
-            RankOpening(board, positions, player, opponent, noKnights, profile, candidates, token);
+            RankOpening(board, positions, player, opponent, noStartingPieces, knightSupport, profile, candidates, token);
         }
         else
         {
@@ -107,7 +115,8 @@ public sealed class CpuDecisionEngine
             for (int i = 0; i < positions.Length; i++)
             {
                 token.ThrowIfCancellationRequested();
-                CpuFeatures features = MainFeatures(board, positions[i], player, opponent, snapshot.Territory!, ownLegal!, enemyLegal);
+                CpuFeatures features = MainFeatures(board, positions[i], player, opponent, snapshot.Territory!, ownLegal!,
+                    enemyLegal, knightSupport);
                 candidates[i] = new CpuCandidate(positions[i], features, features.Score(profile.Weights), 0);
             }
         }
@@ -126,14 +135,14 @@ public sealed class CpuDecisionEngine
         double? maximumGap = opening ? profile.OpeningMaximumScoreDifference : profile.MainMaximumScoreDifference;
         int poolSize = temperature == 0 ? 1 : GetPoolSize(candidates, limit, opening ? 2 : 1, maximumGap);
         double diversity = opening
-            ? (noKnights && candidates.Length == 2 ? profile.UrgentOpeningDiversity : profile.OpeningDiversity)
+            ? (noStartingPieces && candidates.Length == 2 ? profile.UrgentOpeningDiversity : profile.OpeningDiversity)
             : 0;
         int selected = Sample(candidates, poolSize, temperature, diversity, random);
         return (new CpuDecision(player, candidates[selected].Position, snapshot.Phase, snapshot.RoundId), candidates);
     }
 
     private static void RankOpening(TacticalBoard board, BoardPosition[] positions, PlayerId player, PlayerId opponent,
-        bool noKnights, CpuProfile profile, CpuCandidate[] candidates, CancellationToken token)
+        bool noStartingPieces, bool knightSupport, CpuProfile profile, CpuCandidate[] candidates, CancellationToken token)
     {
         var opponentAppeal = new double[positions.Length];
         double mostAppealing = 0;
@@ -141,24 +150,24 @@ public sealed class CpuDecisionEngine
         {
             token.ThrowIfCancellationRequested();
             int index = board.Index(positions[i]);
-            CpuFeatures ours = OpeningFeatures(board, index, player, opponent);
-            CpuFeatures theirs = OpeningFeatures(board, index, opponent, player);
+            CpuFeatures ours = OpeningFeatures(board, index, player, opponent, knightSupport);
+            CpuFeatures theirs = OpeningFeatures(board, index, opponent, player, knightSupport);
             // Use a public, profile-independent model of opponent appeal, with no submission flags.
             opponentAppeal[i] = (theirs.Expansion + theirs.Territory + theirs.Spread) / 3;
             mostAppealing = Math.Max(mostAppealing, opponentAppeal[i]);
             candidates[i] = new CpuCandidate(positions[i], ours, 0, 0);
         }
 
-        double urgency = noKnights
-            ? (positions.Length <= 3 ? OpeningFirstKnightUrgency : OpeningEarlyCollisionCost)
+        double urgency = noStartingPieces
+            ? (positions.Length <= 3 ? OpeningFirstPieceUrgency : OpeningEarlyCollisionCost)
             : OpeningEstablishedCollisionCost;
         for (int i = 0; i < candidates.Length; i++)
         {
             token.ThrowIfCancellationRequested();
             CpuFeatures features = candidates[i].Features;
             double appeal = mostAppealing > 0 ? opponentAppeal[i] / mostAppealing : 1;
-            // Denying a prized start can be worthwhile after knights are established. A blocked gate adds cost.
-            double denial = noKnights ? 0 : opponentAppeal[i] * OpeningDenialCredit;
+            // Denying a prized start can be worthwhile after footholds are established. A blocked gate adds cost.
+            double denial = noStartingPieces ? 0 : opponentAppeal[i] * OpeningDenialCredit;
             double risk = Math.Clamp(appeal * (urgency + features.Bottleneck * OpeningGateCollisionCost - denial) /
                 Math.Sqrt(positions.Length / 2.0), 0, 1);
             features = features with { Risk = risk };
@@ -166,7 +175,8 @@ public sealed class CpuDecisionEngine
         }
     }
 
-    internal static CpuFeatures OpeningFeatures(TacticalBoard board, int index, PlayerId player, PlayerId opponent)
+    internal static CpuFeatures OpeningFeatures(TacticalBoard board, int index, PlayerId player, PlayerId opponent,
+        bool knightSupport = false)
     {
         int free = board.Neighbors(index).Count(neighbor => board.Cells[neighbor].IsPlayable &&
             board.Cells[neighbor].Piece == PieceType.None);
@@ -175,11 +185,16 @@ public sealed class CpuDecisionEngine
         double spread = 1.0 / (1 + region.Count(player) + board.Support(index, player));
         double territory = extent * (region.Count(opponent) > region.Count(player) ? 1.0 : OpeningBalancedRegionFactor);
         double gate = board.Bottleneck(index);
+        if (knightSupport)
+        {
+            territory = Math.Min(1, territory + gate * StartingCastleGateValue);
+        }
         return new CpuFeatures(free / 8.0, territory, 0, 0, 0, gate, spread * extent, 0);
     }
 
     internal static CpuFeatures MainFeatures(TacticalBoard board, BoardPosition position, PlayerId player, PlayerId opponent,
-        TerritoryAnalysis territory, IReadOnlySet<BoardPosition> ownLegal, IReadOnlySet<BoardPosition> enemyLegal)
+        TerritoryAnalysis territory, IReadOnlySet<BoardPosition> ownLegal, IReadOnlySet<BoardPosition> enemyLegal,
+        bool knightSupport = false)
     {
         int index = board.Index(position);
         CellState cell = board.Cells[index];
@@ -214,7 +229,7 @@ public sealed class CpuDecisionEngine
         }
 
         double captureValue = capture ? CaptureRemovalValue : 0;
-        if (capture && !lethal)
+        if (capture && gainsReach)
         {
             captureValue += CaptureRetainedKnightValue +
                 CaptureValuePerAdditionalHealth * Math.Min(cell.GroundHealth - 2, 2);
@@ -228,8 +243,50 @@ public sealed class CpuDecisionEngine
             : 0;
         if (gainsReach) risk += MaximumNewKnightExposure * nearbyThreats / 8.0;
 
-        return new CpuFeatures(newReach / 8.0, contestedInfluence / 8, captureValue, fortification,
+        var features = new CpuFeatures(newReach / 8.0, contestedInfluence / 8, captureValue, fortification,
             denied / 8.0, gate, 0, risk);
+        return knightSupport ? AddSupportFeatures(features, board, index, player, opponent, enemyLegal,
+            gainsReach, upgrade, capture, shared) : features;
+    }
+
+    private static CpuFeatures AddSupportFeatures(CpuFeatures features, TacticalBoard board, int index,
+        PlayerId player, PlayerId opponent, IReadOnlySet<BoardPosition> enemyLegal, bool gainsReach, bool upgrade,
+        bool capture, bool shared)
+    {
+        int friendlyNeighbors = board.Support(index, player);
+        double formation = gainsReach && friendlyNeighbors > 1 ? MultipleSupportValue : 0;
+        double supportRisk = 0;
+
+        foreach (int neighbor in board.Neighbors(index))
+        {
+            CellState piece = board.Cells[neighbor];
+            if (piece.Owner == player)
+            {
+                if (gainsReach && piece.Piece == PieceType.Castle) formation += CastleSupportValue;
+                if (gainsReach && friendlyNeighbors == 1 && enemyLegal.Contains(board.Position(neighbor)))
+                {
+                    // A legal placement or capture starts in friendly range. The opponent can remove its only source.
+                    bool exhaustsGround = board.Cells[index].GroundHealth <= (capture ? 2 : 1);
+                    supportRisk += SoleSupportThreatRisk * (exhaustsGround ? 1 + GroundExhaustionFactor : 1);
+                }
+
+                // An upgrade anchors a dependent knight; a placement gives a knight another neighbor.
+                if ((upgrade || gainsReach) && piece.Piece == PieceType.Knight && board.Support(neighbor, player) == 1)
+                {
+                    formation += DependentKnightValue;
+                    if (upgrade && shared) supportRisk += DependentKnightValue * OpponentResponseDiscount;
+                }
+            }
+            else if (capture && piece.Owner == opponent && piece.Piece == PieceType.Knight && board.Support(neighbor, opponent) == 1)
+            {
+                // The opponent can add a supporter or upgrade the dependent knight in the same turn.
+                double groundValue = piece.GroundHealth <= 1 ? 1 + GroundExhaustionFactor : 1;
+                formation += DependentKnightValue * groundValue * OpponentResponseDiscount;
+            }
+        }
+
+        if (shared) formation *= OpponentResponseDiscount;
+        return features with { Formation = Math.Min(1, formation), SupportRisk = Math.Min(1, supportRisk) };
     }
 
     internal static int GetPoolSize(CpuCandidate[] candidates, int nominalLimit, int minimum, double? maximumGap)

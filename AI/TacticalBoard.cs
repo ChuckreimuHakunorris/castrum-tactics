@@ -10,10 +10,12 @@ internal sealed class TacticalBoard
     private readonly byte[] _oneSupport;
     private readonly byte[] _twoSupport;
     private readonly int[] _regions;
+    private readonly bool _countCastleBorders;
     private readonly List<Region> _regionDetails = [];
 
-    internal TacticalBoard(BoardState board, bool opening, CancellationToken cancellationToken)
+    internal TacticalBoard(BoardState board, bool opening, CancellationToken cancellationToken, RuleSet ruleSet = RuleSet.Classic)
     {
+        _countCastleBorders = opening && ruleSet == RuleSet.KnightSupport;
         _width = board.Width;
         _height = board.Height;
         Cells = new CellState[checked(_width * _height)];
@@ -33,8 +35,7 @@ internal sealed class TacticalBoard
 
             if (cell.Owner is { } owner)
             {
-                if (cell.Piece == PieceType.Knight && owner == PlayerId.PlayerOne) OneKnights++;
-                if (cell.Piece == PieceType.Knight && owner == PlayerId.PlayerTwo) TwoKnights++;
+                if (cell.Piece == PieceType.Knight || _countCastleBorders) StartingPieceCount++;
                 byte[] support = owner == PlayerId.PlayerOne ? _oneSupport : _twoSupport;
                 foreach (int neighbor in Neighbors(index))
                 {
@@ -51,8 +52,7 @@ internal sealed class TacticalBoard
 
     internal CellState[] Cells { get; }
     internal int PlayableCount { get; }
-    internal int OneKnights { get; }
-    internal int TwoKnights { get; }
+    internal int StartingPieceCount { get; }
     internal int Index(BoardPosition position) => position.Y * _width + position.X;
     internal BoardPosition Position(int index) => new(index % _width, index / _width);
     internal int Support(int index, PlayerId player) => (player == PlayerId.PlayerOne ? _oneSupport : _twoSupport)[index];
@@ -116,12 +116,14 @@ internal sealed class TacticalBoard
     private void FindOpeningRegions(CancellationToken token)
     {
         var queue = new List<int>();
+        var castleBorders = new HashSet<int>();
         for (int start = 0; start < Cells.Length; start++)
         {
             token.ThrowIfCancellationRequested();
             if (_regions[start] != -1 || !Traversable(Cells[start])) continue;
 
             queue.Clear();
+            castleBorders.Clear();
             queue.Add(start);
             _regions[start] = _regionDetails.Count;
             int one = 0;
@@ -134,6 +136,13 @@ internal sealed class TacticalBoard
                 if (Cells[index].Owner == PlayerId.PlayerTwo) two++;
                 foreach (int neighbor in Neighbors(index))
                 {
+                    // A castle supplies influence to each component it borders without joining those components.
+                    if (_countCastleBorders && Cells[neighbor].Piece == PieceType.Castle && castleBorders.Add(neighbor))
+                    {
+                        if (Cells[neighbor].Owner == PlayerId.PlayerOne) one++;
+                        if (Cells[neighbor].Owner == PlayerId.PlayerTwo) two++;
+                    }
+
                     if (_regions[neighbor] == -1 && Traversable(Cells[neighbor]))
                     {
                         _regions[neighbor] = _regions[start];

@@ -10,15 +10,26 @@ public sealed class LocalGameSession : IGameSession
     private BoardPosition? _playerOnePending;
     private BoardPosition? _playerTwoPending;
 
-    /// <summary>Initializes a fresh draft with the map's starting positions and ground health.</summary>
+    /// <summary>Initializes a fresh Classic draft with the map's starting positions and ground health.</summary>
     /// <param name="map">The map for the initial draft and any restart. It must have at least two starting positions.</param>
     /// <exception cref="ArgumentNullException">The map is null.</exception>
     /// <exception cref="ArgumentException">The map has fewer than two starting positions.</exception>
-    public LocalGameSession(MapDefinition map)
+    public LocalGameSession(MapDefinition map) : this(map, RuleSet.Classic)
+    {
+    }
+
+    /// <summary>Initializes a fresh draft with rules that remain fixed through resolution and restart.</summary>
+    /// <param name="map">The map for the initial draft and any restart. It must have at least two starting positions.</param>
+    /// <param name="ruleSet">The gameplay rules to apply for the entire session.</param>
+    /// <exception cref="ArgumentNullException">The map is null.</exception>
+    /// <exception cref="ArgumentException">The map has fewer than two starting positions.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The ruleset is undefined.</exception>
+    public LocalGameSession(MapDefinition map, RuleSet ruleSet)
     {
         ArgumentNullException.ThrowIfNull(map);
+        if (!Enum.IsDefined(ruleSet)) throw new ArgumentOutOfRangeException(nameof(ruleSet));
 
-        // A draft needs at least two starts for both players to be able to claim a knight.
+        // A draft needs at least two starts for both players to be able to claim a starting piece.
         if (map.StartingPositions.Count < 2)
         {
             throw new ArgumentException("Add at least two starting positions to the map before starting a local session.",
@@ -26,7 +37,7 @@ public sealed class LocalGameSession : IGameSession
         }
 
         _map = map;
-        _draft = new OpeningDraft(map);
+        _draft = new OpeningDraft(map, ruleSet);
         Current = CreateSnapshot(1);
     }
 
@@ -92,7 +103,7 @@ public sealed class LocalGameSession : IGameSession
         if (_mainPhase is { } mainPhase)
         {
             BoardState board = mainPhase.ResolveTurn(new(PlayerId.PlayerOne, first), new(PlayerId.PlayerTwo, second));
-            _mainPhase = MainPhaseState.Evaluate(board);
+            _mainPhase = MainPhaseState.Evaluate(board, mainPhase.RuleSet);
             _resolvedMainTurns++;
             return 1;
         }
@@ -106,7 +117,7 @@ public sealed class LocalGameSession : IGameSession
         }
 
         // Score the actual draft board before publishing any main-phase snapshot.
-        _mainPhase = draft.Phase == MatchPhase.Main ? MainPhaseState.Evaluate(draft.Board) : null;
+        _mainPhase = draft.Phase == MatchPhase.Main ? MainPhaseState.Evaluate(draft.Board, draft.RuleSet) : null;
         int resolvedRounds = draft.ResolvedRounds - _draft.ResolvedRounds;
         _draft = draft;
         return resolvedRounds;
@@ -125,7 +136,7 @@ public sealed class LocalGameSession : IGameSession
             return SessionCommandResult.WrongPhase;
         }
 
-        _draft = new OpeningDraft(_map);
+        _draft = new OpeningDraft(_map, _draft.RuleSet);
         _mainPhase = null;
         _resolvedMainTurns = 0;
         _playerOnePending = null;

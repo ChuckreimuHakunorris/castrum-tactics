@@ -23,6 +23,7 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
         var defaults = new MatchConfiguration();
         Assert.Equal(GameMode.VersusCpu, defaults.Mode);
         Assert.Equal(CpuDifficulty.Normal, defaults.Difficulty);
+        Assert.Equal(RuleSet.Classic, defaults.RuleSet);
         Assert.True(defaults.AllowsHumanInput(Human));
         Assert.False(defaults.AllowsHumanInput(Cpu));
         var swapped = new MatchConfiguration(humanPlayer: Cpu);
@@ -36,15 +37,21 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
         Assert.Throws<ArgumentOutOfRangeException>(() => new MatchConfiguration((GameMode)99));
         Assert.Throws<ArgumentOutOfRangeException>(() => new MatchConfiguration(humanPlayer: (PlayerId)99));
         Assert.Throws<ArgumentOutOfRangeException>(() => new MatchConfiguration(difficulty: (CpuDifficulty)99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new MatchConfiguration(ruleSet: (RuleSet)99));
     }
 
     [Fact]
     public void LaunchOverridesComposeAndInvalidArgumentsAreRejected()
     {
         var editor = new MatchConfiguration(difficulty: CpuDifficulty.Hard);
-        var launch = MatchLaunchOptions.Parse(["--map", "pocket-meadow", "--mode", "local", "--seed", "-5"],
+        var launch = MatchLaunchOptions.Parse(["--map", "pocket-meadow", "--mode", "local", "--seed", "-5",
+            "--ruleset", "knight-support"],
             editor, "demonstration", 1);
         Assert.Equal((GameMode.LocalMultiplayer, CpuDifficulty.Hard), (launch.Configuration.Mode, launch.Configuration.Difficulty));
+        Assert.Equal(RuleSet.KnightSupport, launch.Configuration.RuleSet);
+        Assert.Equal(RuleSet.KnightSupport, MatchLaunchOptions.Parse([], launch.Configuration, null, null).Configuration.RuleSet);
+        Assert.Equal(RuleSet.Classic, MatchLaunchOptions.Parse(["--ruleset", "classic"], launch.Configuration, null, null)
+            .Configuration.RuleSet);
         Assert.Equal("pocket-meadow", launch.SelectMap().Id);
         Assert.Equal(-5, launch.Seed);
         Assert.Equal("demonstration", MatchLaunchOptions.Parse([], editor, "demonstration", null).SelectMap().Id);
@@ -52,7 +59,8 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
         string[][] invalid =
         [
             ["--mode", "unknown"], ["--mode"], ["--map", "--mode", "local"], ["--seed", "2147483648"],
-            ["--map", "pocket-meadow", "--map", "demonstration"], ["--unknown"]
+            ["--map", "pocket-meadow", "--map", "demonstration"], ["--unknown"], ["--ruleset"],
+            ["--ruleset", "unsupported"], ["--ruleset", "classic", "--ruleset", "knight-support"]
         ];
         Assert.All(invalid, args => Assert.Throws<ArgumentException>(() => MatchLaunchOptions.Parse(args, editor, null, null)));
     }
@@ -137,7 +145,7 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
     public async Task ReplacementWithTheSameRoundAndSceneExitDiscardOutstandingWork()
     {
         var old = CreateSession();
-        var replacement = CreateSession();
+        var replacement = CreateSession(RuleSet.KnightSupport);
         var source = new ControlledCpu();
         using var previous = Start(old, source);
         var obsolete = await source.Next();
@@ -148,6 +156,7 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
         Assert.Null(previous.PendingWork);
         using var current = Start(replacement, source);
         var live = await source.Next();
+        Assert.Equal(RuleSet.KnightSupport, live.Snapshot.RuleSet);
         Assert.NotSame(obsolete.Random, live.Random);
         obsolete.Choose(TopLeft);
         await obsoleteWork.WaitAsync(DeadlockLimit);
@@ -236,14 +245,19 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData(CpuDifficulty.Easy)]
-    [InlineData(CpuDifficulty.Normal)]
-    [InlineData(CpuDifficulty.Hard)]
-    [InlineData(CpuDifficulty.VeryHard)]
-    [InlineData(CpuDifficulty.Monster)]
-    public async Task RealCpuCanPlayACompleteSeededMatch(CpuDifficulty difficulty)
+    [InlineData(CpuDifficulty.Easy, RuleSet.Classic)]
+    [InlineData(CpuDifficulty.Normal, RuleSet.Classic)]
+    [InlineData(CpuDifficulty.Hard, RuleSet.Classic)]
+    [InlineData(CpuDifficulty.VeryHard, RuleSet.Classic)]
+    [InlineData(CpuDifficulty.Monster, RuleSet.Classic)]
+    [InlineData(CpuDifficulty.Easy, RuleSet.KnightSupport)]
+    [InlineData(CpuDifficulty.Normal, RuleSet.KnightSupport)]
+    [InlineData(CpuDifficulty.Hard, RuleSet.KnightSupport)]
+    [InlineData(CpuDifficulty.VeryHard, RuleSet.KnightSupport)]
+    [InlineData(CpuDifficulty.Monster, RuleSet.KnightSupport)]
+    public async Task RealCpuCanPlayACompleteSeededMatch(CpuDifficulty difficulty, RuleSet ruleSet)
     {
-        var session = CreateSession();
+        var session = CreateSession(ruleSet);
         using var coordinator = new CpuMatchCoordinator(session, Cpu, CpuDifficultyProfiles.Get(difficulty), new Random(42));
         session.StateChanged += coordinator.Observe;
         coordinator.Observe(session.Current);
@@ -267,11 +281,12 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
         Assert.Null(coordinator.PendingWork);
         var result = session.Current.FinalResult!.Value;
         Assert.Equal((result.PlayerOneScore, result.PlayerTwoScore), (session.Current.PlayerOneScore, session.Current.PlayerTwoScore));
-        output.WriteLine($"{difficulty}: {session.Current.ResolvedRounds} opening round(s), {session.Current.ResolvedMainTurns} main turn(s), " +
+        output.WriteLine($"{ruleSet} {difficulty}: {session.Current.ResolvedRounds} opening round(s), {session.Current.ResolvedMainTurns} main turn(s), " +
             $"{result.PlayerOneScore}/{result.PlayerTwoScore}, {result.Winner?.ToString() ?? "draw"}");
     }
 
-    private static LocalGameSession CreateSession() => new(PredefinedMapCatalog.BuiltIn.Get("pocket-meadow").Definition);
+    private static LocalGameSession CreateSession(RuleSet ruleSet = RuleSet.Classic) =>
+        new(PredefinedMapCatalog.BuiltIn.Get("pocket-meadow").Definition, ruleSet);
 
     private static CpuMatchCoordinator Start(LocalGameSession session, ControlledCpu source)
     {

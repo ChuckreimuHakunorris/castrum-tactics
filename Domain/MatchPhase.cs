@@ -9,7 +9,7 @@ public enum MatchPhase
     /// <summary>Both players can submit actions for the current main-phase turn.</summary>
     Main,
 
-    /// <summary>The opening ended without starting knights and can be restarted locally.</summary>
+    /// <summary>The opening ended without any starting pieces and can be restarted locally.</summary>
     OpeningRestartRequired,
 
     /// <summary>The match ended because a player has no legal main-phase selections.</summary>

@@ -42,8 +42,75 @@ func run() -> void:
 	if not failed:
 		await check_board_extremes()
 	if not failed:
-		print("Verified draft revision, resize, main turns, final scores, restart, and both board size extremes.")
+		await check_knight_support_local()
+	if not failed:
+		print("Verified the Classic walkthrough, Knight Support eliminations and scores, draft revision, resize, restarts, and board size extremes.")
 		quit()
+
+func check_knight_support_local() -> void:
+	var dimensions := Vector2(3, 3)
+	root.size = Vector2i(410, 720)
+	var game := MATCH_SCENE.instantiate()
+	game.set("Mode", 1)
+	game.set("MapIdOverride", "pocket-meadow")
+	root.add_child(game)
+	await settle()
+	var board: Control = game.get_node("%BoardRenderer")
+	var phase: Label = game.get_node("%Phase")
+	var badge: Label = game.get_node("%RuleSetBadge")
+	var one: Button = game.get_node("%PlayerOne")
+	var two: Button = game.get_node("%PlayerTwo")
+	var submit: Button = game.get_node("%Submit")
+	var dialog: ConfirmationDialog = game.get_node("ConfirmNewMatch")
+	var rules: OptionButton = game.get_node("%RuleSetChoice")
+	click(game.get_node("%NewMatch").get_global_rect().get_center())
+	await settle()
+	expect(dialog.visible and not game.get_node("%DifficultyChoice").visible and rules.selected == 0,
+		"Local New Match did not offer the current ruleset without CPU difficulty.")
+	rules.select(1)
+	rules.item_selected.emit(1)
+	expect(badge.text == "Classic", "Editing rules changed the active local match.")
+	dialog.get_ok_button().pressed.emit()
+	await settle()
+	expect(badge.text == "Knight Support", "Local New Match ignored Knight Support.")
+	await play(board, one, submit, Vector2.ZERO, dimensions)
+	await play(board, two, submit, Vector2(2, 2), dimensions)
+	expect(phase.text == "Main · Turn 1", "Knight Support did not enter Main after the draft.")
+	expect(piece_art_at(board, Vector2.ZERO, dimensions) == "castle_base.png" and
+		piece_art_at(board, Vector2(2, 2), dimensions) == "castle_base.png", "Starting castles were not rendered.")
+	check_banner(board, dimensions, ["1", "1"])
+	await play(board, one, submit, Vector2(1, 0), dimensions)
+	await play(board, two, submit, Vector2(2, 1), dimensions)
+	expect(piece_art_at(board, Vector2(1, 0), dimensions) == "knight_base.png", "First-turn castle support failed.")
+	await play(board, one, submit, Vector2(2, 0), dimensions)
+	expect(piece_art_at(board, Vector2(2, 0), dimensions).is_empty(), "Pending placement was rendered.")
+	await play(board, two, submit, Vector2(1, 0), dimensions)
+	expect(piece_art_at(board, Vector2(2, 0), dimensions) == "grave.png", "Unsupported placement did not render a grave.")
+	expect(piece_art_at(board, Vector2(1, 0), dimensions) == "knight_base.png", "Supported capture did not survive.")
+	check_banner(board, dimensions, ["1", "1"])
+
+	root.size = Vector2i(1000, 690)
+	await settle()
+	for collision: Vector2 in [Vector2(1, 1), Vector2(0, 1), Vector2(1, 0)]:
+		await play(board, one, submit, collision, dimensions)
+		await play(board, two, submit, collision, dimensions)
+	expect(phase.text == "Match complete" and game.get_node("%Status").text == "Player Two wins",
+		"Knight Support showed the wrong final outcome.")
+	check_banner(board, dimensions, ["1", "4"])
+	click(game.get_node("%Restart").get_global_rect().get_center())
+	await settle()
+	expect(phase.text == "Draft · Round 1" and badge.text == "Knight Support", "Restart lost the active ruleset.")
+	check_banner(board, dimensions, ["0", "0"])
+	game.queue_free()
+	await process_frame
+
+func piece_art_at(board: Control, coordinate: Vector2, dimensions: Vector2) -> String:
+	var grid: Rect2 = board.call("GetRenderedGridBounds")
+	var center := grid.position + (coordinate + Vector2(0.5, 0.5)) * grid.size / dimensions
+	for child in board.get_children():
+		if child is Sprite2D and child.position.is_equal_approx(center):
+			return child.texture.resource_path.get_file()
+	return ""
 
 func check_board_extremes() -> void:
 	for sample in [["pocket-meadow", 3, Vector2(2, 2)], ["twelve-towers", 12, Vector2(11, 11)]]:
@@ -227,7 +294,8 @@ func check_draft_submission(game: Node, player: String) -> bool:
 		board, panel, detail.get_parent(), game.get_node("%PlayerOne"), game.get_node("%PlayerTwo"), submit
 	]
 	await settle()
-	expect(not game.get_node("%NewMatch").visible, "Local mode displayed CPU controls.")
+	expect(game.get_node("%NewMatch").visible and not game.get_node("%DifficultyChoice").visible,
+		"Local mode must offer New Match without CPU difficulty.")
 	check_banner(board, Vector2(7, 5), ["0", "0"])
 	var banner: Control = board.get_node("TerritoryScoreBanner")
 	var banner_rect := banner.get_global_rect()

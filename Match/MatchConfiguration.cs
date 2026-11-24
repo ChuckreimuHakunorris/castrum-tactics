@@ -17,23 +17,26 @@ public enum GameMode
     LocalMultiplayer
 }
 
-/// <summary>Defines immutable input ownership and CPU difficulty for one match.</summary>
+/// <summary>Defines immutable input ownership, CPU difficulty, and gameplay rules for one match.</summary>
 public sealed class MatchConfiguration
 {
-    /// <summary>Creates a match configuration, defaulting to Player One against a Normal CPU.</summary>
+    /// <summary>Creates a match configuration, defaulting to Classic with Player One against a Normal CPU.</summary>
     /// <param name="mode">The input mode for the match.</param>
     /// <param name="humanPlayer">The sole human player in Versus CPU.</param>
     /// <param name="difficulty">The CPU profile selected at match creation.</param>
+    /// <param name="ruleSet">The gameplay rules selected independently of input mode and difficulty.</param>
     /// <exception cref="ArgumentOutOfRangeException">A supplied value is undefined.</exception>
     public MatchConfiguration(GameMode mode = GameMode.VersusCpu, PlayerId humanPlayer = PlayerId.PlayerOne,
-        CpuDifficulty difficulty = CpuDifficulty.Normal)
+        CpuDifficulty difficulty = CpuDifficulty.Normal, RuleSet ruleSet = RuleSet.Classic)
     {
         if (!Enum.IsDefined(mode)) throw new ArgumentOutOfRangeException(nameof(mode));
         if (!Enum.IsDefined(humanPlayer)) throw new ArgumentOutOfRangeException(nameof(humanPlayer));
         if (!Enum.IsDefined(difficulty)) throw new ArgumentOutOfRangeException(nameof(difficulty));
+        if (!Enum.IsDefined(ruleSet)) throw new ArgumentOutOfRangeException(nameof(ruleSet));
         Mode = mode;
         HumanPlayer = humanPlayer;
         Difficulty = difficulty;
+        RuleSet = ruleSet;
     }
 
     /// <summary>Gets the mode controlling which players accept human input.</summary>
@@ -48,6 +51,9 @@ public sealed class MatchConfiguration
 
     /// <summary>Gets the selected CPU difficulty for this match.</summary>
     public CpuDifficulty Difficulty { get; }
+
+    /// <summary>Gets the gameplay rules used for this match and its restarts.</summary>
+    public RuleSet RuleSet { get; }
 
     /// <summary>Checks whether the human interface owns the supplied player.</summary>
     /// <param name="player">The player attempting to use the human interface.</param>
@@ -70,11 +76,12 @@ internal sealed record MatchLaunchOptions(MatchConfiguration Configuration, stri
     internal static MatchLaunchOptions Parse(string[] args, MatchConfiguration configuration, string? mapId, int? seed)
     {
         GameMode mode = configuration.Mode;
+        RuleSet ruleSet = configuration.RuleSet;
         var used = new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < args.Length; i++)
         {
             string option = args[i];
-            if (option is not ("--mode" or "--map" or "--seed"))
+            if (option is not ("--mode" or "--map" or "--seed" or "--ruleset"))
                 throw new ArgumentException($"Unknown match option '{option}'.");
             if (!used.Add(option))
                 throw new ArgumentException($"Specify {option} only once.");
@@ -94,6 +101,14 @@ internal sealed record MatchLaunchOptions(MatchConfiguration Configuration, stri
                 case "--map":
                     mapId = args[i];
                     break;
+                case "--ruleset":
+                    ruleSet = args[i] switch
+                    {
+                        "classic" => RuleSet.Classic,
+                        "knight-support" => RuleSet.KnightSupport,
+                        _ => throw new ArgumentException("Pass 'classic' or 'knight-support' after --ruleset.")
+                    };
+                    break;
                 case "--seed":
                     if (!int.TryParse(args[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
                         throw new ArgumentException("Pass a signed 32-bit CPU seed after --seed.");
@@ -104,7 +119,7 @@ internal sealed record MatchLaunchOptions(MatchConfiguration Configuration, stri
 
         if (string.IsNullOrEmpty(mapId)) mapId = null;
         if (mapId is not null) PredefinedMapCatalog.BuiltIn.Get(mapId);
-        return new(new(mode, configuration.HumanPlayer, configuration.Difficulty), mapId, seed);
+        return new(new(mode, configuration.HumanPlayer, configuration.Difficulty, ruleSet), mapId, seed);
     }
 
     internal PredefinedMap SelectMap() => MapId is { } id

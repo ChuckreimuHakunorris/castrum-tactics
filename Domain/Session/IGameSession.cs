@@ -21,7 +21,7 @@ public interface IGameSession
     /// <returns>Whether the command was accepted or the reason it was rejected.</returns>
     SessionCommandResult SubmitMainPhaseSelection(MainPhaseCommand command);
 
-    /// <summary>Starts a fresh draft on the same map after a finished match or an opening that produced no knights.</summary>
+    /// <summary>Starts a fresh draft under the same map and ruleset after a finished match or an opening without starting pieces.</summary>
     /// <remarks>Restores the initial board, clears match progress, and publishes a snapshot with an advanced round identifier.</remarks>
     /// <param name="roundId">The identifier of the current Finished or OpeningRestartRequired snapshot.</param>
     /// <returns>Accepted on restart, StaleRound if the identifier differs, or WrongPhase during active play.</returns>

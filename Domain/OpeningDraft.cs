@@ -3,18 +3,20 @@ namespace CastrumTactics.Domain;
 internal sealed class OpeningDraft
 {
     private readonly MapDefinition _map;
-    private readonly bool _hasStartingKnights;
+    private readonly bool _hasStartingPieces;
 
-    internal OpeningDraft(MapDefinition map) : this(map, new BoardState(map), 0, false)
+    internal OpeningDraft(MapDefinition map, RuleSet ruleSet = RuleSet.Classic)
+        : this(map, ruleSet, new BoardState(map), 0, false)
     {
     }
 
-    private OpeningDraft(MapDefinition map, BoardState board, int resolvedRounds, bool hasStartingKnights)
+    private OpeningDraft(MapDefinition map, RuleSet ruleSet, BoardState board, int resolvedRounds, bool hasStartingPieces)
     {
         _map = map;
+        RuleSet = ruleSet;
         Board = board;
         ResolvedRounds = resolvedRounds;
-        _hasStartingKnights = hasStartingKnights;
+        _hasStartingPieces = hasStartingPieces;
         EligiblePositions = Array.AsReadOnly(map.StartingPositions.Where(position =>
         {
             CellState cell = board.GetCell(position);
@@ -23,10 +25,11 @@ internal sealed class OpeningDraft
         }).ToArray());
 
         Phase = EligiblePositions.Count > 0 ? MatchPhase.Opening
-            : hasStartingKnights ? MatchPhase.Main : MatchPhase.OpeningRestartRequired;
+            : hasStartingPieces ? MatchPhase.Main : MatchPhase.OpeningRestartRequired;
     }
 
     internal BoardState Board { get; }
+    internal RuleSet RuleSet { get; }
     internal int ResolvedRounds { get; }
     internal IReadOnlyList<BoardPosition> EligiblePositions { get; }
     internal MatchPhase Phase { get; }
@@ -42,10 +45,11 @@ internal sealed class OpeningDraft
 
         CellState first = Board.GetCell(playerOne);
         bool collision = playerOne == playerTwo;
+        PieceType startingPiece = RuleSet == RuleSet.KnightSupport ? PieceType.Castle : PieceType.Knight;
         BoardState next = collision
-            ? Board.WithResolvedCells(playerOne, first.AfterDirectCollision())
-            : Board.WithResolvedCells(playerOne, first.WithOwnedPiece(PieceType.Knight, PlayerId.PlayerOne),
-                (playerTwo, Board.GetCell(playerTwo).WithOwnedPiece(PieceType.Knight, PlayerId.PlayerTwo)));
-        return new OpeningDraft(_map, next, ResolvedRounds + 1, _hasStartingKnights || !collision);
+            ? Board.WithResolvedCells(playerOne, first.AfterGraveConversion())
+            : Board.WithResolvedCells(playerOne, first.WithOwnedPiece(startingPiece, PlayerId.PlayerOne),
+                (playerTwo, Board.GetCell(playerTwo).WithOwnedPiece(startingPiece, PlayerId.PlayerTwo)));
+        return new OpeningDraft(_map, RuleSet, next, ResolvedRounds + 1, _hasStartingPieces || !collision);
     }
 }

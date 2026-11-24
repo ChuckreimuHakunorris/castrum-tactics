@@ -1,8 +1,8 @@
 # Castrum Tactics — Game Design Document
 
 **Document status:** Revised draft  
-**Version:** 0.6\
-**Last updated:** 2026-11-24\
+**Version:** 0.7\
+**Last updated:** 2026-11-25\
 **Project type:** 2D turn-based grid strategy game  
 **Primary purpose:** Playable game and professional software-engineering portfolio project
 
@@ -105,7 +105,7 @@ Additional terrain types may be introduced later if they have clear gameplay rul
 ### 4.2 Pieces
 
 - **Knight:** A player's basic piece.
-- **Castle:** Created by upgrading one of the player's own knights.
+- **Castle:** Created by upgrading one of the player's own knights or placed in the Knight Support draft.
 - **Grave:** An unowned obstacle that makes a square permanently unusable. A direct collision always creates one. A capture creates one when it depletes the ground.
 
 Knights and castles both extend the player's available selection area to the eight surrounding squares, including diagonals. A castle is stationary, but it continues to act as an expansion point just like a knight.
@@ -130,12 +130,12 @@ Two opening modes are intended:
 
 Only empty, playable positions designated by the map are eligible. Knights, castles, and graves are unavailable regardless of ownership. Each resolved position becomes occupied and stays unavailable for the rest of the opening.
 
-A local session requires a map with at least two distinct playable starting positions so both players can claim a knight in the same round.
+A local session requires a map with at least two distinct playable starting positions so both players can claim a starting piece in the same round.
 
-- Different positions give each player one knight and preserve both squares' ground health.
-- Identical positions cause a direct collision. The square becomes an unowned grave and neither player gains a knight.
+- Different positions give each player one knight in Classic or one castle in Knight Support and preserve both squares' ground health.
+- Identical positions cause a direct collision. The square becomes an unowned grave, loses one ground health, and neither player gains a starting piece.
 
-Both players therefore have equal knight counts after every round. There is no fixed knight allocation. If one eligible start remains after a round, both players automatically collide there. The usual collision rule creates a permanent unowned grave and reduces ground health by one. That collision counts as a separate resolved round. When the last start is resolved, a draft with knights proceeds to the main-phase endgame check, which determines whether play enters Main or finishes immediately. A draft with zero knights requires a restart. **Restart Draft** and **Restart Match** each restore the same map, initial ground health, an empty board, and the original starting positions. Multiplayer restart authority remains open.
+Both players therefore have equal starting piece counts after every round. There is no fixed allocation. If one eligible start remains after a round, it resolves as a separate automatic collision. When the last start is resolved, a draft with starting pieces proceeds to the main-phase endgame check, which determines whether play enters Main or finishes immediately. A draft with zero starting pieces requires a restart. **Restart Draft** and **Restart Match** each restore the same map, initial ground health, an empty board, and the original starting positions under the same ruleset. Multiplayer restart authority remains open.
 
 #### Fixed Draft
 
@@ -199,6 +199,17 @@ When both players submit a main-phase selection for the same turn:
 
 When the selections target **different squares**, both legal actions resolve independently using the pre-turn board. An action that removes a piece does not retroactively invalidate the other player's different-square selection. A same-square direct collision takes precedence over both ordinary actions. Resolution must remain independent of submission order.
 
+### 5.5 Knight Support ruleset
+
+Classic is the default. Knight Support is experimental and changes starting pieces and knight survival in either input mode. The ruleset is fixed when the match starts.
+
+1. A distinct pair of draft selections places two castles. They are stationary, invulnerable to ordinary capture, and reach all eight neighbors. Their normal territorial influence can cause a successful draft to finish immediately.
+2. A knight survives a main turn only if a friendly knight or castle occupies one of its eight adjacent squares on the post-action board. Castles always survive and supply permanent support. Two adjacent friendly knights can support each other anywhere on the board. Enemy pieces, graves, empty squares, inaccessible terrain, and the knight's own square supply no support.
+
+Validate both selections on the resolved pre-turn board and resolve the ordinary collision, placements, captures, or upgrades simultaneously. Inspect the entire resulting board and convert all unsupported knights, including newly placed and captured knights, to neutral graves at once. Each conversion subtracts one ground health, clamped at zero. A surviving ordinary capture that then loses support pays both health reductions. Analyze territory, legal targets, and live or final scores from the resulting board. Apply this sequence from the first main turn. A legal selection remains available even when its outcome can cost support.
+
+Human playtesting found a repetitive tactic called the **Runaway Knight**. The invader creates a knight deeper in an opponent's territory while the opponent captures the preceding knight. Repeated captures can exhaust the ground and deny the defender territory. The `RunawayKnightPursuitRequiresSurvivingSupport` fixture captures the lead knight at `(2, 1)` while the invader places at `(3, 1)`. Classic can continue to `(4, 1)`. Knight Support leaves a grave at `(3, 1)` and removes that reach. With a surviving ally at `(3, 0)`, the invasion survives as a mutually supporting pair. [Main-phase resolution and regression coverage](MainPhaseArchitecture.md#31-knight-support)
+
 ## 6. Territorial control, end of game and scoring
 
 The main phase derives **strategic territorial control separately from physical piece ownership**. A region may be secured for a player even if some squares are empty. Secured squares are unavailable to both players. The Godot scene displays their control with a faction-colored tint.
@@ -224,11 +235,11 @@ Under this algorithm, each contested component supplies a legal selection to bot
 
 ### 6.3 Final scoring
 
-The match banner displays **all secured playable squares** for the corresponding player, including secured empty squares, knights, and castles. Contested and neutral playable squares, graves, and inaccessible terrain score zero. Both scores are zero during the draft and after a failed draft. During Main they reflect the last resolved board, so a pending or revised selection has no effect. The final banner uses the same totals. The greater total wins and equal totals draw. See [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
+The match banner displays **all secured playable squares** for the corresponding player, including secured empty squares, knights, and castles. Contested and neutral playable squares, graves, and inaccessible terrain score zero. Both scores are zero during the draft and after a failed draft. During Main they reflect the last resolved board, so a pending or revised selection has no effect. The final banner uses the same totals. The greater total wins and equal totals draw. [Main-Phase Rules and Architecture](MainPhaseArchitecture.md)
 
 ## 7. Maps
 
-Local play starts on one of 50 uniformly selected [predefined maps](MapFormat.md). The maps range from 3 × 3 to 12 × 12 and vary in terrain and candidate starts. Either restart action reuses the current map. New Match in Versus CPU draws again unless an explicit map override is active.
+Local play starts on one of 50 uniformly selected predefined maps. The maps range from 3 × 3 to 12 × 12 and vary in terrain and candidate starts. Either restart action reuses the current map. New Match draws again unless an explicit map override is active. [Predefined maps](MapFormat.md)
 
 Maps are data-driven and should not be hard-coded into board logic.
 
@@ -241,7 +252,7 @@ A map should support at least:
 - Optional fixed starting allocation for Fixed Draft.
 - Metadata needed for map selection, classification, and validation.
 
-Starting positions and the number of starting knights are separate concepts and must not be conflated.
+Starting positions describe candidate squares. The draft determines the number of starting pieces.
 
 ### 7.1 Map categories
 
@@ -287,7 +298,7 @@ Procedural map generation is a possible later feature. Multiplayer procedural ma
 - The game is designed for two players.
 - Normal startup on Windows and Android starts a Versus CPU match with the human as Player One and the CPU as Player Two at Normal difficulty. Both participants submit through the same simultaneous rules.
 - Two humans can share one device in Local Multiplayer. This mode is available in the scene configuration, from code, and through the development command line.
-- The CPU difficulty chosen in the New Match dialog applies to that match. Restarting the draft or match preserves the current difficulty.
+- The ruleset and CPU difficulty chosen in the New Match dialog apply to the new match after confirmation. Restarting the draft or match preserves both settings.
 - The host selects the opening mode for a session, unless a ranked ruleset fixes it.
 - Casual/custom sessions should allow more flexibility.
 - Ranked play may enforce standardized rules and map eligibility.
@@ -407,7 +418,7 @@ The following items should be resolved before the corresponding feature is imple
 9. **Licensing and distribution:** Select an appropriate open-source license for the repository and verify third-party asset and platform terms.
 10. **Multiplayer backend:** Evaluate Nakama and other viable options against the shared-rules requirement, Android compatibility, and the €0 budget.
 11. **Android validation baseline:** Confirm the Godot and .NET versions and matching export templates, and choose a physical test device and minimum supported Android version.
-12. **Multiplayer draft restart:** Decide who can initiate or approve a restart after an opening ends without knights.
+12. **Multiplayer draft restart:** Decide who can initiate or approve a restart after an opening ends without starting pieces.
 
 Do not silently invent answers to these questions during implementation. Record decisions in the design document and decision log when agreed.
 
@@ -430,6 +441,7 @@ A feature should generally be considered complete when:
 
 | Version | Date | Notes |
 |---|---|---|
+| 0.7 | 2026-11-25 | Added the experimental Knight Support ruleset with starting castles and post-turn support checks. |
 | 0.6 | 2026-11-24 | Added Versus CPU as the default input mode and documented live secured-territory scores in both local modes. |
 | 0.5 | 2026-11-23 | Implemented main-phase domain rules and confirmed zero points for inaccessible terrain. |
 | 0.4 | 2026-11-23 | Clarified eight-adjacent-cell range and own-knight upgrades. Adopted conservative territory flood fill, secured-square move restriction, either-player no-moves endgame, and secured-playable-square scoring; kept inaccessible-terrain scoring open. |

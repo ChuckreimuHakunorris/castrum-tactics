@@ -13,6 +13,7 @@ public sealed class GameSessionSnapshot
         bool playerOneSubmitted, bool playerTwoSubmitted)
     {
         _mainPhase = mainPhase;
+        RuleSet = draft.RuleSet;
         Board = mainPhase?.Board ?? draft.Board;
         Phase = mainPhase?.IsFinished == true ? MatchPhase.Finished : draft.Phase;
         EligiblePositions = draft.EligiblePositions;
@@ -25,6 +26,9 @@ public sealed class GameSessionSnapshot
 
     /// <summary>Gets the immutable board after the last resolution, or the initial board.</summary>
     public BoardState Board { get; }
+
+    /// <summary>Gets the gameplay rules fixed for this match and its restarts.</summary>
+    public RuleSet RuleSet { get; }
 
     /// <summary>Gets the current match phase, including whether a restart is required.</summary>
     public MatchPhase Phase { get; }
