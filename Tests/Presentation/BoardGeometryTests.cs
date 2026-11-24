@@ -18,7 +18,7 @@ public sealed class BoardGeometryTests
 
         Assert.Equal(first.Position.X, width - last.End.X, 3);
         Assert.Equal(first.Position.Y, height - last.End.Y, 3);
-        Assert.Equal(0.9f * Math.Min(width / 7f, height / 5f), geometry.CellPitch, 3);
+        Assert.Equal(0.96f * Math.Min(width / 7f, height / 5f), geometry.CellPitch, 3);
         for (int y = 0; y < 5; y++)
         {
             for (int x = 0; x < 7; x++)
@@ -37,10 +37,10 @@ public sealed class BoardGeometryTests
     [InlineData(700, 70)]
     [InlineData(80, -1)]
     [InlineData(80, 500)]
-    [InlineData(20, 70)]
-    [InlineData(80, 10)]
-    [InlineData(665, 70)]
-    [InlineData(80, 475)]
+    [InlineData(5, 70)]
+    [InlineData(80, 5)]
+    [InlineData(695, 70)]
+    [InlineData(80, 495)]
     public void OutsidePointsAndMarginsMiss(float x, float y)
     {
         var geometry = new BoardGeometry(new Vector2(700, 500), 7, 5);

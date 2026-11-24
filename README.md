@@ -12,6 +12,8 @@ When running inside Godot's embedded Game view, select **Input** in the Game too
 
 The project uses C# and Godot's Compatibility renderer. Android export uses Godot's Gradle build template.
 
+The modern interface uses a shared Godot theme around the pixel-art board. To preview reduced motion, open `Scenes/main.tscn` and turn off **Motion Enabled** on the **AnimatedBackground** instance in the Inspector. See the [art direction](Documentation/ArtDirection.md#9-interface-and-typography) for theme reuse, font licensing, and background customization.
+
 ## Play a local match
 
 Use left clicks on Windows or taps on Android.
@@ -43,7 +45,7 @@ Start a fresh match. Count columns A–G from left to right and rows 1–5 from 
 
 ### Android rotation checks
 
-The Android build is configured for automatic rotation between portrait and landscape. The same gameplay scene stacks controls beneath the board on narrow screens and puts them beside the board on wide screens. Physical-device rotation verification is pending for Milestone 6.1.
+The Android build is configured for automatic rotation between portrait and landscape. The gameplay scene fits its controls inside the available safe area, stacks them beneath the board on narrow screens, and puts them beside the board on wide screens.
 
 1. Enable Android auto-rotate and launch the game in portrait. Complete Draft 1 from the walkthrough.
 2. For Draft 2, submit Player One's choice, switch to Player Two, and highlight Player Two's square. Rotate to landscape before submitting. Check that the status still shows Player One's submission, Player Two is active, and the provisional outline stayed on the chosen square.
@@ -65,6 +67,8 @@ See the [game design](Documentation/GameDesign.md) and [art direction](Documenta
 
 ## Developer documentation
 
-With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain, local session, and board geometry tests. The tests run without the Godot editor or runtime.
+With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain, local session, and presentation tests. The tests run without the Godot editor or runtime.
+
+After building and importing assets with `godot --headless --path . --import`, run `godot --headless --path . --script Tests/Presentation/DraftLayoutCheck.gd` with Godot 4.7.2 .NET. The test checks both players at three window sizes and replays a full match through revision, resize, final scoring, and restart. GitHub Actions runs it in a separate presentation job.
 
 See the [documentation homepage source](Documentation/index.md) for architecture and API reference navigation, and the [documentation contributor guide](Documentation/contributing.md) for local builds, writing conventions, and GitHub Pages setup.

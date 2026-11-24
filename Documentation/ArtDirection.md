@@ -1,9 +1,9 @@
 # Castrum Tactics — Art Direction Reference
 
-**Version:** 0.1  
-**Status:** Initial visual direction; concept artwork, not production assets  
-**Engine:** Godot (C#)  
-**Target platforms:** PC and Android
+- **Version:** 0.2
+- **Status:** Implemented UI direction with placeholder board art
+- **Engine:** Godot (C#)
+- **Target platforms:** PC and Android
 
 ## 1. Visual reference
 
@@ -99,6 +99,29 @@ ImageGen generated each terrain tile separately. The five opaque square sources 
 To replace the placeholders, keep the filenames and use full-bleed opaque squares for terrain and a near-square RGBA frame for the grave. Keep borders, territory accents, and selection markers out of the artwork. Import losslessly with mipmaps disabled and verify the replacements at several board sizes with nearest-neighbor filtering.
 
 The rendering order is terrain, secured-territory tint and edge, the grid, pieces, legal targets, then the provisional selection. `Shaders/selection_indicator.gdshader` measures the distance to the nearest edge in tile UV coordinates. Its uniforms control color (`indicator_color`), border thickness (`border_width`), gradient depth (`fade_depth`), and gradient opacity (`fade_opacity`). The grid material sets gradient opacity to zero. The gold legal border uses 4.5% of the tile width and the pale cyan provisional border uses 6.5%. The selection fades extend 20% inward from their solid borders and start at 42% opacity. The tile center remains clear. A provisional selection replaces the legal gradient on that tile. Opening dots remain visible.
+
+## 9. Interface and typography
+
+The interface pairs smooth, rounded controls with the stepped medieval board art. Pale blue panels, navy text, soft shadows, and a blue gradient frame the battlefield. A compact header identifies the phase and round or turn. The selection panel uses one short instruction or waiting message and keeps player state on the player buttons. The final score cards sit alongside or beneath the final board. Player and action buttons keep a minimum target of 48 × 48 dp on Android. [Android accessibility guidance](https://developer.android.com/guide/topics/ui/accessibility/views/apps-views#touch-targets)
+
+Assign `Themes/castrum_theme.tres` to the root `Control` of a screen so its descendants inherit the styles. Use the default `Button` for secondary actions and `PrimaryButton` for submit, revise, and restart. Use `PlayerButton` for the faction toggle cards. Their borders and explicit Active and Submitted text communicate state, while the markers and score card borders take their colors from `FactionPalette`. The base buttons provide distinct hover, pressed, focused, disabled, and hover-while-pressed states. Use `Heading`, `SecondaryLabel`, and `RejectionLabel` to distinguish instructions, supporting text, and feedback.
+
+The theme uses the regular variable face of Nunito at weights 600 and 800. The font is bundled for offline use under the SIL Open Font License 1.1. The binary and license come from the same [Nunito upstream revision](https://github.com/googlefonts/nunito/tree/8c6a9bb9732545b9ed53f29ec5e1ab0ff53c4e6f). The license is stored at `Assets/Fonts/Nunito/OFL.txt` and included by the Windows and Android export presets.
+
+## 10. Blue background
+
+Instance `Scenes/UI/AnimatedBackground.tscn` as the first child of a viewport-filling screen control. Its full-rectangle anchors follow the parent and its mouse filter lets clicks and taps pass through. It uses one Compatibility canvas draw with a gradient and five diffuse lights. The lights vary between circles and rounded diamonds and use smooth distance falloff.
+
+| Shader parameter | Effect |
+| --- | --- |
+| `deep_blue`, `royal_blue`, `bright_blue` | Set the navy base, royal midtone, and luminous blue. These colors have shared defaults for both materials. |
+| `shape_color` | Tints the drifting lights. |
+| `animation_speed` | Sets the rate of the drift and base gradient. The default is 1.0. |
+| `shape_opacity` | Scales the lights' contribution. The default is 0.21 and overlap is capped at a 0.27 blend. |
+
+Each light has a separate phase and a lifetime of roughly 8–15 seconds at the default speed. It fades in over about the first quarter of the cycle and fades out in the final third. It gets a new origin, drift, and size while transparent. Four lights start near different edges, where their fades remain visible around the board, and the fifth can start anywhere. Whole cycle counts and wrapped seeds join the animation across Godot's default 3,600-second shader clock rollover. The higher-contrast base glow sweeps horizontally and vertically on slower cycles of about 45 and 58 seconds.
+
+Turn off **Motion Enabled** on a background instance in the Inspector or set `MotionEnabled` to `false` in C#. The background then uses a static gradient shader with no clock or shape pass. It still fills the viewport and can serve a future reduced-motion or battery-saving preference.
 
 ---
 

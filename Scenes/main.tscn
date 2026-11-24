@@ -2,6 +2,18 @@
 
 [ext_resource type="Script" uid="uid://518vam5k38rh" path="res://Scenes/Main.cs" id="1_jjgbg"]
 [ext_resource type="Script" uid="uid://bsl2tgt1di66w" path="res://Scenes/BoardRenderer.cs" id="2_board"]
+[ext_resource type="Theme" path="res://Themes/castrum_theme.tres" id="3_theme"]
+[ext_resource type="PackedScene" path="res://Scenes/UI/AnimatedBackground.tscn" id="4_background"]
+[ext_resource type="Shader" uid="uid://bdaiyenmrri88" path="res://Shaders/animated_background.gdshader" id="4_kry3j"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_animated"]
+shader = ExtResource("4_kry3j")
+shader_parameter/deep_blue = Color(0.051, 0.098, 0.22, 1)
+shader_parameter/royal_blue = Color(0.141, 0.353, 0.68, 1)
+shader_parameter/bright_blue = Color(0.29, 0.61, 0.98, 1)
+shader_parameter/shape_color = Color(0.62, 0.88, 1, 1)
+shader_parameter/animation_speed = 1.0
+shader_parameter/shape_opacity = 0.21
 
 [node name="Main" type="Control" unique_id=384432117]
 layout_mode = 3
@@ -11,24 +23,57 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("3_theme")
 script = ExtResource("1_jjgbg")
 
-[node name="Layout" type="BoxContainer" parent="." unique_id=386620337]
+[node name="AnimatedBackground" parent="." unique_id=945611296 instance=ExtResource("4_background")]
+material = SubResource("ShaderMaterial_animated")
+layout_mode = 1
+
+[node name="Frame" type="VBoxContainer" parent="." unique_id=596647337]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = 12.0
-offset_right = -12.0
-offset_bottom = -12.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="Header" type="HBoxContainer" parent="Frame" unique_id=1998573536]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="Frame/Header" unique_id=155419634]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Title"
+text = "Castrum Tactics"
+
+[node name="PhaseBadge" type="PanelContainer" parent="Frame/Header" unique_id=1357744430]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"BadgePanel"
+
+[node name="Phase" type="Label" parent="Frame/Header/PhaseBadge" unique_id=21552953]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"PhaseLabel"
+text = "Draft · Round 1"
+
+[node name="Layout" type="BoxContainer" parent="Frame" unique_id=386620337]
+layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 2
 theme_override_constants/separation = 8
 vertical = true
 
-[node name="BoardRenderer" type="Control" parent="Layout" unique_id=291723830]
+[node name="BoardRenderer" type="Control" parent="Frame/Layout" unique_id=291723830]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -36,56 +81,130 @@ size_flags_vertical = 3
 mouse_filter = 2
 script = ExtResource("2_board")
 
-[node name="Controls" type="VBoxContainer" parent="Layout"]
+[node name="Controls" type="PanelContainer" parent="Frame/Layout" unique_id=1798260627]
 layout_mode = 2
 size_flags_vertical = 4
-mouse_filter = 2
-theme_override_constants/separation = 8
 
-[node name="Status" type="Label" parent="Layout/Controls" unique_id=755727415]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 52)
-layout_mode = 2
-theme_override_font_sizes/font_size = 19
-horizontal_alignment = 1
-vertical_alignment = 1
-autowrap_mode = 2
-
-[node name="Players" type="HBoxContainer" parent="Layout/Controls" unique_id=621845066]
-unique_name_in_owner = true
+[node name="Content" type="VBoxContainer" parent="Frame/Layout/Controls" unique_id=1702917469]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 5
 
-[node name="PlayerOne" type="Button" parent="Layout/Controls/Players" unique_id=1514661084]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 54)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 20
-toggle_mode = true
-text = "Player One"
-
-[node name="PlayerTwo" type="Button" parent="Layout/Controls/Players" unique_id=1729552083]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 54)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 20
-toggle_mode = true
-text = "Player Two"
-
-[node name="Submit" type="Button" parent="Layout/Controls" unique_id=17009351]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 54)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Submit selection"
-
-[node name="Restart" type="Button" parent="Layout/Controls" unique_id=771419662]
+[node name="Status" type="Label" parent="Frame/Layout/Controls/Content" unique_id=755727415]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(0, 54)
+custom_maximum_size = Vector2(440, -1)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_type_variation = &"Heading"
+autowrap_mode = 3
+
+[node name="Detail" type="Label" parent="Frame/Layout/Controls/Content" unique_id=1141920689]
+unique_name_in_owner = true
+custom_maximum_size = Vector2(440, -1)
+layout_mode = 2
+theme_type_variation = &"SecondaryLabel"
+text = "Select a gold dot, then submit."
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="Players" type="BoxContainer" parent="Frame/Layout/Controls/Content" unique_id=621845066]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 7
+
+[node name="PlayerOne" type="Button" parent="Frame/Layout/Controls/Content/Players" unique_id=1514661084]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PlayerButton"
+toggle_mode = true
+text = "Player One
+Active · Choosing"
+alignment = 0
+
+[node name="PlayerTwo" type="Button" parent="Frame/Layout/Controls/Content/Players" unique_id=1729552083]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"PlayerButton"
+toggle_mode = true
+text = "Player Two
+Choosing"
+alignment = 0
+
+[node name="Scores" type="HBoxContainer" parent="Frame/Layout/Controls/Content" unique_id=1326685867]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ScoreOne" type="PanelContainer" parent="Frame/Layout/Controls/Content/Scores" unique_id=260601327]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"ScorePanel"
+
+[node name="Content" type="VBoxContainer" parent="Frame/Layout/Controls/Content/Scores/ScoreOne" unique_id=1767249165]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="PlayerOneName" type="Label" parent="Frame/Layout/Controls/Content/Scores/ScoreOne/Content" unique_id=1785651405]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"ScoreName"
+text = "Player One"
+horizontal_alignment = 1
+
+[node name="PlayerOneScore" type="Label" parent="Frame/Layout/Controls/Content/Scores/ScoreOne/Content" unique_id=847639048]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"ScoreNumber"
+text = "0"
+horizontal_alignment = 1
+
+[node name="ScoreTwo" type="PanelContainer" parent="Frame/Layout/Controls/Content/Scores" unique_id=1536999814]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"ScorePanel"
+
+[node name="Content" type="VBoxContainer" parent="Frame/Layout/Controls/Content/Scores/ScoreTwo" unique_id=1398286334]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="PlayerTwoName" type="Label" parent="Frame/Layout/Controls/Content/Scores/ScoreTwo/Content" unique_id=1613773407]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"ScoreName"
+text = "Player Two"
+horizontal_alignment = 1
+
+[node name="PlayerTwoScore" type="Label" parent="Frame/Layout/Controls/Content/Scores/ScoreTwo/Content" unique_id=1759629172]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"ScoreNumber"
+text = "0"
+horizontal_alignment = 1
+
+[node name="Submit" type="Button" parent="Frame/Layout/Controls/Content" unique_id=17009351]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+disabled = true
+text = "Submit selection"
+
+[node name="Restart" type="Button" parent="Frame/Layout/Controls/Content" unique_id=771419662]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
 text = "Restart Draft"
