@@ -4,16 +4,6 @@
 [ext_resource type="Script" uid="uid://bsl2tgt1di66w" path="res://Scenes/BoardRenderer.cs" id="2_board"]
 [ext_resource type="Theme" path="res://Themes/castrum_theme.tres" id="3_theme"]
 [ext_resource type="PackedScene" path="res://Scenes/UI/AnimatedBackground.tscn" id="4_background"]
-[ext_resource type="Shader" uid="uid://bdaiyenmrri88" path="res://Shaders/animated_background.gdshader" id="4_kry3j"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_animated"]
-shader = ExtResource("4_kry3j")
-shader_parameter/deep_blue = Color(0.051, 0.098, 0.22, 1)
-shader_parameter/royal_blue = Color(0.141, 0.353, 0.68, 1)
-shader_parameter/bright_blue = Color(0.29, 0.61, 0.98, 1)
-shader_parameter/shape_color = Color(0.62, 0.88, 1, 1)
-shader_parameter/animation_speed = 1.0
-shader_parameter/shape_opacity = 0.21
 
 [node name="Main" type="Control" unique_id=384432117]
 layout_mode = 3
@@ -27,7 +17,6 @@ theme = ExtResource("3_theme")
 script = ExtResource("1_jjgbg")
 
 [node name="AnimatedBackground" parent="." unique_id=945611296 instance=ExtResource("4_background")]
-material = SubResource("ShaderMaterial_animated")
 layout_mode = 1
 
 [node name="Frame" type="VBoxContainer" parent="." unique_id=596647337]
