@@ -29,3 +29,41 @@ jobs:
         env:
           VSTEST_ARTIFACTS_BASE_DIRECTORY: ${{ runner.temp }}
         run: dotnet test CastrumTactics.sln --no-build
+
+  godot-presentation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+      - name: Install Godot 4.7.2 .NET
+        timeout-minutes: 5
+        run: |
+          release=4.7.2-stable
+          binary="Godot_v${release}_mono_linux"
+          asset="${binary}_x86_64"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/$asset.zip" \
+            "https://github.com/godotengine/godot-builds/releases/download/$release/$asset.zip"
+          echo "129f82db7bafd54ae14bb5bb284041c73860e8c7a009a3a026ca5e946cbff247  $RUNNER_TEMP/$asset.zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/$asset.zip" -d "$RUNNER_TEMP"
+          executable="$RUNNER_TEMP/$asset/$binary.x86_64"
+          test -x "$executable"
+          echo "GODOT=$executable" >> "$GITHUB_ENV"
+      - name: Restore and build game
+        run: |
+          dotnet restore CastrumTactics.csproj
+          dotnet build CastrumTactics.csproj --no-restore
+      - name: Import project assets
+        timeout-minutes: 5
+        run: '"$GODOT" --headless --path . --import'
+      - name: Run match presentation regression
+        timeout-minutes: 2
+        run: '"$GODOT" --headless --path . --script Tests/Presentation/DraftLayoutCheck.gd'

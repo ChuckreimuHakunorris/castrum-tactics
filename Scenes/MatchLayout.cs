@@ -4,6 +4,8 @@ using Godot;
 internal static class MatchLayout
 {
     internal const float SidebarWidth = 184f;
+    internal const int PanelSeparation = 8;
+    private const float MinimumBoardWidth = 286f;
     private const float Inset = 10f;
     private const float TapTargetDp = 48f;
     private const float BaselineDensity = 160f;
@@ -20,10 +22,9 @@ internal static class MatchLayout
         return new Rect2(usable.Position + margin, usable.Size - 2 * margin);
     }
 
-    internal static bool UseSidebar(Vector2 size)
+    internal static bool UseSidebar(Vector2 size, float panelWidth)
     {
-        // Keep enough room for the board beside the fixed-width control panel.
-        return size.X >= SidebarWidth + 286f && size.X >= size.Y * 1.15f;
+        return size.X >= panelWidth + PanelSeparation + MinimumBoardWidth && size.X >= size.Y * 1.15f;
     }
 
     internal static Vector2 GetTapTarget(Vector2 pixelsPerUnit, int densityDpi)

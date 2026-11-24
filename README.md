@@ -69,6 +69,6 @@ See the [game design](Documentation/GameDesign.md) and [art direction](Documenta
 
 With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain, local session, and presentation tests. The tests run without the Godot editor or runtime.
 
-After building, use the Godot .NET executable to check that a draft submission keeps the board and controls stationary. Run `godot --headless --path . --script Tests/Presentation/DraftLayoutCheck.gd` from the project root.
+After building and importing assets with `godot --headless --path . --import`, run `godot --headless --path . --script Tests/Presentation/DraftLayoutCheck.gd` with Godot 4.7.2 .NET. The test checks both players at three window sizes and replays a full match through revision, resize, final scoring, and restart. GitHub Actions runs it in a separate presentation job.
 
 See the [documentation homepage source](Documentation/index.md) for architecture and API reference navigation, and the [documentation contributor guide](Documentation/contributing.md) for local builds, writing conventions, and GitHub Pages setup.
