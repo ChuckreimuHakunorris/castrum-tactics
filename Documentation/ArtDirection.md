@@ -88,7 +88,7 @@ Terrain textures meet at shared tile edges. A translucent dark olive line marks 
 | Ground health 3 | `Assets/Sprites/Terrain/ground_health_3.png` | Healthy green grass |
 | Ground health 2 | `Assets/Sprites/Terrain/ground_health_2.png` | Medium-brown soil with remnants of grass |
 | Ground health 1 | `Assets/Sprites/Terrain/ground_health_1.png` | Dark barren soil |
-| Ground health 0 | `Assets/Sprites/Terrain/ground_health_0.png` | Purplish-brown soil with small bones |
+| Ground health 0 | `Assets/Sprites/Terrain/ground_health_0.png` | Purplish-brown soil with a skull and loose bones flanking the grave |
 | Inaccessible | `Assets/Sprites/Terrain/rock.png` | Gray boulders |
 | Grave | `Assets/Sprites/Objects/Grave/grave.png` | Stone headstone, engraved cross, and brown mound on a transparent background |
 
