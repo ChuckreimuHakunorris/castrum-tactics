@@ -110,24 +110,26 @@ The current local sequence is:
 1. The scene displays shared opening positions or the active player's legal main-phase targets and lets the active player highlight a provisional choice.
 2. A second press on the highlighted square and the Submit or Revise button use the same command path. The scene submits an [`OpeningSelection`](xref:CastrumTactics.Domain.Session.OpeningSelection) or [`MainPhaseCommand`](xref:CastrumTactics.Domain.Session.MainPhaseCommand) with the player, position, and displayed round identifier.
 3. The session checks the player, round identifier, phase, and eligibility from the applicable domain rules. It keeps an accepted choice private and allows revisions until the other player submits.
-4. The second player's submission resolves both selections against the same board. If exactly one opening start remains, the session resolves both players selecting it before publishing. The session clears pending choices and advances the identifier once per resolved round. After a successful draft or main-phase turn, it evaluates the resulting board for the next main-phase turn or final result.
+4. The second player's submission resolves both selections against the same board with the session's ruleset. If exactly one opening start remains, the session resolves both players selecting it before publishing. Knight Support applies any support eliminations after both main-phase actions. The session clears pending choices and advances the identifier once per resolved round. After a successful draft or main-phase turn, it evaluates the resulting board for the next main-phase turn or final result.
 5. The session publishes the new snapshot. The scene clears the provisional highlight and renders the updated board and status. A completed match keeps its board, territory, and final result visible and rejects further gameplay submissions.
 
 Versus CPU uses a separate coordinator in the application. It starts work against the public snapshot and consumes completion on the scene's process callback, after any current session publication has returned. Session identity, phase, round, player, and submission status are checked before issuing the same commands as human input. Human submissions and revisions within that round leave the decision valid. See the [Milestone 8B integration lifecycle](CpuArchitecture.md#milestone-8b-integration-lifecycle).
 
 ### Match configuration
 
-An immutable [`MatchConfiguration`](xref:CastrumTactics.Match.MatchConfiguration) captures mode, human faction, and CPU profile choice. Normal startup uses Versus CPU, with Player One as human and Normal difficulty. In Local Multiplayer either player can use the toggle. Versus CPU keeps the configured human active and shows passive **You** and **CPU** status cards.
+An immutable [`MatchConfiguration`](xref:CastrumTactics.Match.MatchConfiguration) captures mode, human faction, CPU profile choice, and the domain ruleset. Normal startup uses Classic Versus CPU, with Player One as human and Normal difficulty. In Local Multiplayer either player can use the toggle. Versus CPU keeps the configured human active and shows passive **You** and **CPU** status cards.
 
 Call `Configure` on the scene before adding it to the tree. In this example `matchScene` is the instantiated [`Main`](xref:Global.Main) scene.
 
 ```csharp
+using CastrumTactics.Domain;
 using CastrumTactics.Match;
 
-matchScene.Configure(new MatchConfiguration(GameMode.LocalMultiplayer), mapId: "demonstration");
+matchScene.Configure(new MatchConfiguration(GameMode.LocalMultiplayer, ruleSet: RuleSet.KnightSupport),
+    mapId: "demonstration");
 ```
 
-The editor also exposes **Mode**, **Human Player**, **Difficulty**, and **Map Id Override**. Command-line overrides after `--` accept `--mode cpu` or `--mode local`, `--map <id>`, and `--seed <int>`. Mode, map, and seed flags take precedence over their startup defaults. Unknown options and invalid values fail startup with a diagnostic.
+The editor exposes **Mode**, **Human Player**, **Difficulty**, **Rules**, and **Map Id Override**. Command-line overrides after `--` accept `--mode cpu` or `--mode local`, `--ruleset classic` or `--ruleset knight-support`, `--map <id>`, and `--seed <int>`. These flags take precedence over startup defaults. Unknown options and invalid values fail startup with a diagnostic.
 
 ### 4.2 Online multiplayer
 
@@ -176,9 +178,9 @@ Possible presentation states include:
 
 A submission acknowledgment and a completed turn are distinct events.
 
-A [`GameSessionSnapshot`](xref:CastrumTactics.Domain.Session.GameSessionSnapshot) publishes an immutable board, phase, round identifier, turn counts, and each player's submission flag. `EligiblePositions` is the shared opening list. `GetMainPhaseLegalSelections` supplies player-specific targets during Main. Main and Finished snapshots include territory and its secured totals. Draft snapshots expose zero scores. Finished also includes the final outcome. Pending coordinates stay private. Rejected commands leave the current snapshot and pending choices intact.
+A [`GameSessionSnapshot`](xref:CastrumTactics.Domain.Session.GameSessionSnapshot) publishes the fixed ruleset, immutable board, phase, round identifier, turn counts, and each player's submission flag. `EligiblePositions` is the shared opening list. `GetMainPhaseLegalSelections` supplies player-specific targets during Main. Main and Finished snapshots include territory and its secured totals. Draft snapshots expose zero scores. Finished also includes the final outcome. Pending coordinates stay private. Rejected commands leave the current snapshot and pending choices intact.
 
-Changing the active player in Local Multiplayer clears the provisional highlight and refreshes their targets. In Versus CPU a CPU submission preserves the human highlight until the round advances. `RestartDraft` accepts the current round identifier in `OpeningRestartRequired` or `Finished`. It restores the original map and clears pending choices, turn counts, territory, and final result. The identifier advances, and the scene restores the starting human input owner with the same difficulty. Versus CPU's confirmed New Match creates a different session with the selected difficulty and a fresh map draw unless an override is active.
+Changing the active player in Local Multiplayer clears the provisional highlight and refreshes their targets. In Versus CPU a CPU submission preserves the human highlight until the round advances. `RestartDraft` accepts the current round identifier in `OpeningRestartRequired` or `Finished`. It restores the original map and clears pending choices, turn counts, territory, and final result. The identifier advances, and the scene restores the starting human input owner with the same ruleset and difficulty. In both modes, confirming New Match creates a new session under the selected ruleset and draws a fresh map unless an override is active. Versus CPU also applies the selected difficulty and disposes the previous coordinator. Dialog changes take effect on confirmation.
 
 ## 7. Architectural constraints
 

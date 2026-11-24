@@ -10,17 +10,21 @@ public sealed class MainPhaseState
     private readonly FrozenSet<BoardPosition> _playerTwoSelections;
 
     private MainPhaseState(BoardState board, TerritoryAnalysis territory, FrozenSet<BoardPosition> playerOneSelections,
-        FrozenSet<BoardPosition> playerTwoSelections, MainPhaseResult? result)
+        FrozenSet<BoardPosition> playerTwoSelections, MainPhaseResult? result, RuleSet ruleSet)
     {
         Board = board;
         Territory = territory;
         _playerOneSelections = playerOneSelections;
         _playerTwoSelections = playerTwoSelections;
         Result = result;
+        RuleSet = ruleSet;
     }
 
     /// <summary>Gets the immutable board used for territory, legal selections, and resolution.</summary>
     public BoardState Board { get; }
+
+    /// <summary>Gets the rules applied when resolving a pair of selections against this board.</summary>
+    public RuleSet RuleSet { get; }
 
     /// <summary>Gets the derived strategic control of every cell on this board.</summary>
     public TerritoryAnalysis Territory { get; }
@@ -31,12 +35,21 @@ public sealed class MainPhaseState
     /// <summary>Gets whether either player is out of legal selections and the match has ended.</summary>
     public bool IsFinished => Result.HasValue;
 
-    /// <summary>Analyzes territory, generates legal selections for both players, and scores a finished board.</summary>
+    /// <summary>Evaluates a resolved board under the Classic rules.</summary>
     /// <param name="board">The resolved board, including a board from a successful opening draft.</param>
     /// <returns>The immutable evaluation of the supplied board.</returns>
     /// <exception cref="ArgumentNullException">The board is null.</exception>
-    public static MainPhaseState Evaluate(BoardState board)
+    public static MainPhaseState Evaluate(BoardState board) => Evaluate(board, RuleSet.Classic);
+
+    /// <summary>Analyzes territory, generates legal selections for both players, and scores a finished board.</summary>
+    /// <param name="board">The resolved board after the draft or a complete turn, including any support eliminations.</param>
+    /// <param name="ruleSet">The rules to apply on the next resolution, including hypothetical turns.</param>
+    /// <returns>The immutable evaluation of the supplied board. Evaluation itself does not eliminate pieces.</returns>
+    /// <exception cref="ArgumentNullException">The board is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The ruleset is undefined.</exception>
+    public static MainPhaseState Evaluate(BoardState board, RuleSet ruleSet)
     {
+        if (!Enum.IsDefined(ruleSet)) throw new ArgumentOutOfRangeException(nameof(ruleSet));
         TerritoryAnalysis territory = TerritoryAnalyzer.Analyze(board);
         var playerOne = new HashSet<BoardPosition>();
         var playerTwo = new HashSet<BoardPosition>();
@@ -59,7 +72,7 @@ public sealed class MainPhaseState
         MainPhaseResult? result = playerOne.Count == 0 || playerTwo.Count == 0
             ? new MainPhaseResult(territory.PlayerOneScore, territory.PlayerTwoScore)
             : null;
-        return new MainPhaseState(board, territory, playerOne.ToFrozenSet(), playerTwo.ToFrozenSet(), result);
+        return new MainPhaseState(board, territory, playerOne.ToFrozenSet(), playerTwo.ToFrozenSet(), result, ruleSet);
     }
 
     /// <summary>Gets one player's immutable set of legal selections on this board.</summary>
@@ -76,7 +89,7 @@ public sealed class MainPhaseState
     /// <summary>Resolves a legal selection from each player, supplied in either order.</summary>
     /// <param name="first">The selection from one player.</param>
     /// <param name="second">The selection from the other player.</param>
-    /// <returns>A new board with both outcomes applied to the original state.</returns>
+    /// <returns>A new board with both ordinary outcomes applied, followed by any ruleset-specific support eliminations.</returns>
     /// <exception cref="InvalidOperationException">The match has already finished.</exception>
     /// <exception cref="ArgumentException">
     /// A player is undefined, the selections come from the same player, or a position is illegal for its player.
@@ -96,14 +109,33 @@ public sealed class MainPhaseState
         ValidateSelection(second, nameof(second));
 
         CellState firstCell = Board.GetCell(first.Position);
-        if (first.Position == second.Position)
+        // Derive both ordinary outcomes from the same board, even if one capture destroys the other's source of range.
+        BoardState next = first.Position == second.Position
+            ? Board.WithResolvedCells(first.Position, firstCell.AfterGraveConversion())
+            : Board.WithResolvedCells(first.Position, ApplyOrdinaryAction(firstCell, first.Player),
+                (second.Position, ApplyOrdinaryAction(Board.GetCell(second.Position), second.Player)));
+        return RuleSet == RuleSet.KnightSupport ? EliminateUnsupportedKnights(next) : next;
+    }
+
+    private static BoardState EliminateUnsupportedKnights(BoardState board)
+    {
+        var outcomes = new List<(BoardPosition Position, CellState Cell)>();
+        for (int y = 0; y < board.Height; y++)
         {
-            return Board.WithResolvedCells(first.Position, firstCell.AfterDirectCollision());
+            for (int x = 0; x < board.Width; x++)
+            {
+                var position = new BoardPosition(x, y);
+                CellState cell = board.GetCell(position);
+                // Only knights and castles have owners. Read every relationship from the post-action board.
+                if (cell.Piece == PieceType.Knight &&
+                    !board.NeighborsOf(position).Any(neighbor => board.GetCell(neighbor).Owner == cell.Owner))
+                {
+                    outcomes.Add((position, cell.AfterGraveConversion()));
+                }
+            }
         }
 
-        // Derive both ordinary outcomes from the same board, even if one capture destroys the other's source of range.
-        return Board.WithResolvedCells(first.Position, ApplyOrdinaryAction(firstCell, first.Player),
-            (second.Position, ApplyOrdinaryAction(Board.GetCell(second.Position), second.Player)));
+        return board.WithResolvedCells(outcomes);
     }
 
     private static void AddLegalSelections(BoardState board, TerritoryAnalysis territory, BoardPosition position,

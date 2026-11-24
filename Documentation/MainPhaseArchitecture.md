@@ -1,8 +1,8 @@
 # Castrum Tactics — Main-Phase Rules and Architecture
 
 **Status:** Domain, local session, and Godot integration implemented.\
-**Version:** 0.6\
-**Date:** 2026-11-24\
+**Version:** 0.7\
+**Date:** 2026-11-25\
 **Scope:** Main-phase moves, simultaneous resolution, territory classification, legal selections, endgame and scoring
 
 This specification expands the [Game Design Document](GameDesign.md) and follows the [Session Architecture](SessionArchitecture.md). The local session evaluates the board from the Unlimited Draft and runs main-phase turns through final scoring. Godot displays the board, the active human's targets, live territory counts, and the final result in both input modes.
@@ -20,9 +20,9 @@ Local match flow
 3. Generate legal main-phase selections separately for Player One and Player Two using those classifications.
 4. If either legal set is empty, finish the match and score the secured territory.
 5. Otherwise accept each player's private selection against this pre-turn state.
-6. Resolve both selections simultaneously into a new immutable board; clear pending selections and repeat from step 1.
+6. Resolve both ordinary selections simultaneously. In Knight Support, eliminate unsupported knights on that post-action board. Clear pending selections and repeat from step 1 with the final immutable board.
 
-[`TerritoryAnalyzer`](xref:CastrumTactics.Domain.TerritoryAnalyzer) derives classifications independently of legal moves. [`MainPhaseState`](xref:CastrumTactics.Domain.MainPhaseState) binds one board to its territory, both legal sets, and its optional final result. It can resolve a pair of player-tagged selections against that snapshot. Evaluate the returned board to obtain the next snapshot.
+[`TerritoryAnalyzer`](xref:CastrumTactics.Domain.TerritoryAnalyzer) derives classifications independently of legal moves and support enforcement. [`MainPhaseState`](xref:CastrumTactics.Domain.MainPhaseState) binds one board and ruleset to its territory, both legal sets, and its optional final result. Resolve a pair of player-tagged selections against that snapshot and evaluate the returned board with the same ruleset for the next turn.
 
 ## 2. Main-phase legal selections
 
@@ -54,6 +54,14 @@ Both accepted selections are validated against **the same pre-turn board, territ
 - **Same square:** A direct collision takes precedence over the ordinary action. Reduce that square's existing ground health by 1 (minimum 0) and always create an unowned grave, even if health remains positive. Preserve terrain.
 - **Different squares:** Apply both ordinary actions independently using the pre-turn state. For instance, two players can capture one another's knights on different squares. Removing a piece must not retroactively invalidate the other player's already legal selection.
 - After resolution, publish the new board, round identifier, phase, territory classifications and player-specific legal targets; clear pending commands.
+
+### 3.1 Knight Support
+
+Knight Support starts with castles and uses the ordinary rules to validate both selections and resolve their pair. The resulting board supplies all support relationships. The resolver scans the whole board, collects every knight with zero adjacent friendly knights or castles, and applies all grave conversions together. Each conversion reduces that square's current ground health by one, floored at zero. This includes any knight created by a capture that already degraded the ground.
+
+One pass is sufficient because a knight with no adjacent friendly piece cannot support another knight. Each friendly pair of knights can survive independently of castles, and castles themselves need no support. Apply the pass on every main turn. Legal targets come from the pre-turn evaluation, so the resolver accepts legal choices that may expose their own knights.
+
+The session evaluates and publishes only the final board. A successful castle draft can enter Finished directly using the ordinary endgame check. The Runaway Knight fixture checks that removing a foothold during simultaneous placement breaks a solitary pursuit and that an adjacent friendly pair can continue it. [Rules and fixture coordinates](GameDesign.md#55-knight-support-ruleset)
 
 ## 4. Territory classification v1
 
@@ -112,7 +120,7 @@ Each immutable [`TerritoryAnalysis`](xref:CastrumTactics.Domain.TerritoryAnalysi
 - The local session coordinates private commands and revisions, tracks round IDs, and publishes Main or Finished after each evaluation.
 - Godot uses session snapshots to display legal targets, castles, secured-color overlays, and the score banner. Finished hides submission controls and keeps the board, banner, and outcome visible.
 
-The opening phase is intentionally unchanged; do not conflate opening eligible starting positions with main-phase per-player legal selections. Use focused types and extensions rather than a large generalized framework.
+Opening eligibility and collisions are shared by both rulesets. A distinct opening pair places knights in Classic and castles in Knight Support. The opening eligibility list is separate from main-phase per-player legal selections.
 
 ## 7. Required test scenarios
 
@@ -131,6 +139,7 @@ The opening phase is intentionally unchanged; do not conflate opening eligible s
 - Entering main phase with no legal moves finishes immediately; either player's empty legal set finishes after a resolved turn.
 - Finished domain evaluations have no contested squares. Secured empty squares and secured pieces earn points. Neutral cells, graves, and inaccessible terrain score zero. Ties draw.
 - Analyzer does not mutate physical board; no Godot dependency in domain tests.
+- Support checks both players and all eight neighbors after ordinary outcomes. Cover existing, newly placed, and captured knights, simultaneous gain and loss of support, neutral graves, stacked health damage, and revised territory and final scores.
 
 ## 8. Open questions
 

@@ -13,6 +13,7 @@ public partial class Main : Control
 {
     private const string SelectionInstruction = "Select a target. Select it again or press Submit.";
     private const string DraftRetryInstruction = "No starting knights were placed.";
+    private const string CastleDraftRetryInstruction = "No starting castles were placed.";
     private const string CpuWaiting = "Waiting for CPU. You can revise.";
     private const string CpuFailure = "CPU could not move. Start a New Match.";
     private const string InstructionStyle = "MatchInstruction";
@@ -47,6 +48,7 @@ public partial class Main : Control
     private BoardRenderer _board = null!;
     private TerritoryScoreBanner _banner = null!;
     private Label _phase = null!;
+    private Label _ruleSetBadge = null!;
     private Label _status = null!;
     private StableInstructionLayout _instruction = null!;
     private Label _detail = null!;
@@ -58,6 +60,8 @@ public partial class Main : Control
     private BoxContainer _actions = null!;
     private Label _newMatchPrompt = null!;
     private OptionButton _difficulty = null!;
+    private OptionButton _ruleSetChoice = null!;
+    private Label _ruleSetDescription = null!;
     private Button _newMatch = null!;
     private ConfirmationDialog _confirmNewMatch = null!;
     private Vector2 _playerButtonMinimum;
@@ -72,6 +76,10 @@ public partial class Main : Control
     [Export]
     public CpuDifficulty Difficulty { get; set; } = CpuDifficulty.Normal;
 
+    /// <summary>Gets or sets the startup ruleset when no code or command-line override is supplied.</summary>
+    [Export]
+    public RuleSet Rules { get; set; } = RuleSet.Classic;
+
     /// <summary>Gets or sets the human faction for startup in Versus CPU.</summary>
     [Export]
     public PlayerId HumanPlayer { get; set; } = PlayerId.PlayerOne;
@@ -82,7 +90,7 @@ public partial class Main : Control
     public string MapIdOverride { get; set; } = "";
 
     /// <summary>Configures the initial match before adding the scene to the tree.</summary>
-    /// <param name="configuration">The immutable mode, difficulty and input owners.</param>
+    /// <param name="configuration">The immutable ruleset, mode, difficulty and input owners.</param>
     /// <param name="mapId">A catalog identifier. Null uses the editor setting and an empty value selects randomly.</param>
     /// <param name="randomSeed">An optional deterministic seed for the CPU in each new match.</param>
     /// <exception cref="ArgumentNullException">The configuration is null.</exception>
@@ -102,7 +110,7 @@ public partial class Main : Control
         _initialized = true;
         try
         {
-            var configuration = _startupConfiguration ?? new MatchConfiguration(Mode, HumanPlayer, Difficulty);
+            var configuration = _startupConfiguration ?? new MatchConfiguration(Mode, HumanPlayer, Difficulty, Rules);
             _launch = MatchLaunchOptions.Parse(OS.GetCmdlineUserArgs(), configuration, _startupMap ?? MapIdOverride, _startupSeed);
             _configuration = _launch.Configuration;
         }
@@ -148,10 +156,12 @@ public partial class Main : Control
         _board = GetNode<BoardRenderer>("%BoardRenderer");
         _banner = GetNode<TerritoryScoreBanner>("Frame/Layout/BoardRenderer/TerritoryScoreBanner");
         _phase = GetNode<Label>("%Phase");
+        _ruleSetBadge = GetNode<Label>("%RuleSetBadge");
         _status = GetNode<Label>("%Status");
         _detail = GetNode<Label>("%Detail");
         _instruction = new StableInstructionLayout(_status, _detail,
-            [SelectionInstruction, DraftRetryInstruction, WaitingFor(PlayerId.PlayerOne), WaitingFor(PlayerId.PlayerTwo), CpuWaiting],
+            [SelectionInstruction, DraftRetryInstruction, CastleDraftRetryInstruction,
+                WaitingFor(PlayerId.PlayerOne), WaitingFor(PlayerId.PlayerTwo), CpuWaiting],
             InstructionStyle, [.. Rejections.Select(rejection => rejection.Text), UnknownRejection, CpuFailure], RejectionStyle);
         _players = GetNode<BoxContainer>("%Players");
         _playerOne = GetNode<Button>("%PlayerOne");
@@ -161,10 +171,12 @@ public partial class Main : Control
         _actions = GetNode<BoxContainer>("%Actions");
         _newMatchPrompt = GetNode<Label>("%NewMatchPrompt");
         _difficulty = GetNode<OptionButton>("%DifficultyChoice");
+        _ruleSetChoice = GetNode<OptionButton>("%RuleSetChoice");
+        _ruleSetDescription = GetNode<Label>("%RuleSetDescription");
         _newMatch = GetNode<Button>("%NewMatch");
         _confirmNewMatch = GetNode<ConfirmationDialog>("ConfirmNewMatch");
         bool versusCpu = _configuration.CpuPlayer.HasValue;
-        _newMatch.Visible = versusCpu;
+        _difficulty.Visible = versusCpu;
 
         var panel = (StyleBoxFlat)_controls.GetThemeStylebox("panel").Duplicate();
         foreach (Side side in new[] { Side.Left, Side.Top, Side.Right, Side.Bottom })
@@ -185,12 +197,14 @@ public partial class Main : Control
         _restart.Pressed += RestartMatch;
         _newMatch.Pressed += RequestNewMatch;
         _confirmNewMatch.Confirmed += StartNewMatch;
+        foreach (RuleSet ruleSet in Enum.GetValues<RuleSet>())
+            _ruleSetChoice.AddItem(RuleSetName(ruleSet), (int)ruleSet);
+        _ruleSetChoice.ItemSelected += _ => UpdateRuleSetDescription();
         _phase.MouseFilter = MouseFilterEnum.Pass;
         if (versusCpu)
         {
             foreach (CpuDifficulty difficulty in Enum.GetValues<CpuDifficulty>())
                 _difficulty.AddItem(DifficultyName(difficulty), (int)difficulty);
-            _difficulty.Select(_difficulty.GetItemIndex((int)_configuration.Difficulty));
         }
 
         Resized += UpdateLayout;
@@ -206,7 +220,7 @@ public partial class Main : Control
         if (configuration.Mode == GameMode.LocalMultiplayer) _activePlayer = PlayerId.PlayerOne;
         _displayed = null!;
 
-        var session = new LocalGameSession(map.Definition);
+        var session = new LocalGameSession(map.Definition, configuration.RuleSet);
         _session = session;
         if (configuration.CpuPlayer is { } player)
         {
@@ -255,6 +269,7 @@ public partial class Main : Control
         _restart.CustomMinimumSize = _restartButtonMinimum.Max(actionMinimum);
         _newMatch.CustomMinimumSize = actionMinimum;
         _difficulty.CustomMinimumSize = actionMinimum;
+        _ruleSetChoice.CustomMinimumSize = actionMinimum;
         _confirmNewMatch.GetOkButton().CustomMinimumSize = actionMinimum;
         _confirmNewMatch.GetCancelButton().CustomMinimumSize = actionMinimum;
 
@@ -267,7 +282,7 @@ public partial class Main : Control
         // Use the longest captions so a state change never takes space away from the board.
         float panelPadding = _controls.GetThemeStylebox("panel").GetMinimumSize().X;
         float contentWidth = Mathf.Max(Mathf.Max(playerMinimum.X, submitMinimum.X), _restart.CustomMinimumSize.X);
-        if (versusCpu) contentWidth = Mathf.Max(contentWidth, _newMatch.GetCombinedMinimumSize().X);
+        contentWidth = Mathf.Max(contentWidth, _newMatch.GetCombinedMinimumSize().X);
         float sidebarWidth = Mathf.Max(MatchLayout.SidebarWidth, panelPadding + contentWidth);
         bool wide = MatchLayout.UseSidebar(content.Size, sidebarWidth);
         _layout.Vertical = !wide;
@@ -328,17 +343,26 @@ public partial class Main : Control
 
     private void RequestNewMatch()
     {
-        _difficulty.Select(_difficulty.GetItemIndex((int)_configuration.Difficulty));
+        if (_difficulty.Visible)
+            _difficulty.Select(_difficulty.GetItemIndex((int)_configuration.Difficulty));
+        _ruleSetChoice.Select(_ruleSetChoice.GetItemIndex((int)_configuration.RuleSet));
+        UpdateRuleSetDescription();
         _newMatchPrompt.Text = MatchConfiguration.IsPlayable(_displayed.Phase)
-            ? "Leave this match? Choose CPU difficulty."
-            : "Choose CPU difficulty.";
-        _confirmNewMatch.PopupCentered();
+            ? "Leave this match?"
+            : "Choose your next match settings.";
+        _confirmNewMatch.PopupCentered(new Vector2I(300, 200));
     }
+
+    private void UpdateRuleSetDescription() =>
+        _ruleSetDescription.Text = (RuleSet)_ruleSetChoice.GetSelectedId() == RuleSet.KnightSupport
+            ? "Start with castles. Knights require adjacent friendly support to survive."
+            : "Start with knights and use the original rules.";
 
     private void StartNewMatch()
     {
-        if (_configuration.CpuPlayer is null) return;
-        StartMatch(new MatchConfiguration(_configuration.Mode, _configuration.HumanPlayer, (CpuDifficulty)_difficulty.GetSelectedId()));
+        CpuDifficulty difficulty = _difficulty.Visible ? (CpuDifficulty)_difficulty.GetSelectedId() : _configuration.Difficulty;
+        StartMatch(new MatchConfiguration(_configuration.Mode, _configuration.HumanPlayer, difficulty,
+            (RuleSet)_ruleSetChoice.GetSelectedId()));
     }
 
     private void ShowRejection(SessionCommandResult result)
@@ -398,6 +422,7 @@ public partial class Main : Control
             MatchPhase.Finished => "Match complete",
             _ => "Draft ended"
         };
+        _ruleSetBadge.Text = RuleSetName(snapshot.RuleSet);
 
         if (snapshot.FinalResult is { } result)
         {
@@ -406,7 +431,7 @@ public partial class Main : Control
         else if (!playable)
         {
             _status.Text = "Restart the draft";
-            _detail.Text = DraftRetryInstruction;
+            _detail.Text = snapshot.RuleSet == RuleSet.KnightSupport ? CastleDraftRetryInstruction : DraftRetryInstruction;
         }
         else if (cpuFailed)
         {
@@ -457,6 +482,8 @@ public partial class Main : Control
     }
 
     private static string DifficultyName(CpuDifficulty difficulty) => difficulty == CpuDifficulty.VeryHard ? "Very Hard" : difficulty.ToString();
+
+    private static string RuleSetName(RuleSet ruleSet) => ruleSet == RuleSet.KnightSupport ? "Knight Support" : "Classic";
 
     private static string PlayerName(PlayerId player) => player == PlayerId.PlayerOne ? "Player One" : "Player Two";
 

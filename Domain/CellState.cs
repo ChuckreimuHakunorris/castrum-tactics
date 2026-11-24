@@ -79,7 +79,7 @@ public readonly record struct CellState
 
     internal int GroundHealthAfterBattle => Math.Max(0, GroundHealth - 1);
 
-    internal CellState AfterDirectCollision() => new(Terrain, PieceType.Grave, null, GroundHealthAfterBattle);
+    internal CellState AfterGraveConversion() => new(Terrain, PieceType.Grave, null, GroundHealthAfterBattle);
 
     internal CellState WithOwnedPiece(PieceType piece, PlayerId owner) => new(Terrain, piece, owner, GroundHealth);
 }

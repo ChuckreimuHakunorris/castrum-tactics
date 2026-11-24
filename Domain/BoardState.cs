@@ -103,4 +103,15 @@ public sealed class BoardState
 
         _cells[position.Y, position.X] = cell;
     }
+
+    internal BoardState WithResolvedCells(IReadOnlyList<(BoardPosition Position, CellState Cell)> outcomes)
+    {
+        if (outcomes.Count == 0) return this;
+        var next = new BoardState(this);
+        foreach (var (position, cell) in outcomes)
+        {
+            next.SetResolvedCell(position, cell);
+        }
+        return next;
+    }
 }

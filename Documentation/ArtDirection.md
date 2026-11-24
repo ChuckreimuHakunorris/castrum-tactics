@@ -108,7 +108,7 @@ Assign `Themes/castrum_theme.tres` to the root `Control` of a screen so its desc
 
 The **Secured Territory** banner uses the themed score surface and bold numerals. One undecorated shield silhouette is tinted with each faction's palette color. Player One always appears on the left and Player Two on the right. The banner sits above the tiles with the exact grid width. Tight layouts may omit the center label and scale the score groups. The banner stays visible on the final board while the selection panel shows the winner or draw.
 
-The compact match panel places actions in one row beneath the board in portrait and stacks them in the landscape sidebar. The active difficulty is on the CPU card, and the difficulty selector lives in the New Match dialog.
+The compact match panel places actions in one row beneath the board in portrait and stacks them in the landscape sidebar. The header shows the active ruleset next to the phase. New Match offers the ruleset in both input modes and includes the difficulty selector in Versus CPU, where the CPU card also shows the active difficulty. Knight Support uses the existing castle art for draft placements and the existing neutral grave art for unsupported knights. The banner and rendered pieces update from the same resolved snapshot.
 
 The theme uses the regular variable face of Nunito at weights 600 and 800. The font is bundled for offline use under the SIL Open Font License 1.1. The binary and license come from the same [Nunito upstream revision](https://github.com/googlefonts/nunito/tree/8c6a9bb9732545b9ed53f29ec5e1ab0ff53c4e6f). The license is stored at `Assets/Fonts/Nunito/OFL.txt` and included by the Windows and Android export presets.
 

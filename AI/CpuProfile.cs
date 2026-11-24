@@ -25,7 +25,7 @@ public sealed class CpuProfile
     /// <param name="mainTemperature">Softmax temperature from 0 through 10. Zero samples uniformly among equivalent best candidates.</param>
     /// <param name="openingTemperature">Softmax temperature greater than 0 and at most 10.</param>
     /// <param name="openingDiversity">Uniform probability share for ordinary opening rounds, from 0 through 1.</param>
-    /// <param name="urgentOpeningDiversity">Uniform share from 0 through 1 when two starts remain and neither player has a knight.</param>
+    /// <param name="urgentOpeningDiversity">Uniform share from 0 through 1 when two starts remain and neither player has a starting piece.</param>
     /// <param name="openingMaximumScoreDifference">Optional finite, nonnegative maximum gap from the best opening score.
     /// Pass null to disable the restriction. The opening pool minimum takes precedence.</param>
     /// <param name="mainMaximumScoreDifference">Optional finite, nonnegative maximum gap from the best main-phase score.
@@ -75,7 +75,7 @@ public sealed class CpuProfile
     /// <summary>Gets the uniform share of the ordinary opening distribution.</summary>
     public double OpeningDiversity { get; }
 
-    /// <summary>Gets the uniform share when two starts remain and neither player has a knight.</summary>
+    /// <summary>Gets the uniform share when two starts remain and neither player has a starting piece.</summary>
     public double UrgentOpeningDiversity { get; }
 
     /// <summary>Gets the maximum opening score gap in evaluation-score units, or null if disabled.</summary>
@@ -112,14 +112,20 @@ public sealed class CpuProfile
 /// <summary>Provides the built-in tuning for each difficulty.</summary>
 public static class CpuDifficultyProfiles
 {
+    private const double FormationWeight = 1.2;
+    private const double SupportRiskWeight = 1.6;
+
     private static readonly CpuProfile[] Profiles =
     [
-        new(new(2.2, 0.7, 1.5, 0.8, 0.3, 0.2, 0.5, 0.35), 16, 12, 1.0, 0.9),
-        new(new(2.2, 1.2, 1.6, 1.1, 0.6, 0.5, 0.8, 0.65), 12, 8, 0.6, 0.75),
-        new(new(2.0, 1.6, 1.8, 1.4, 0.9, 0.8, 1.1, 0.95), 10, 5, 0.3, 0.65),
-        new(new(2.0, 1.9, 1.9, 1.6, 1.1, 1.1, 1.3, 1.15), 8, 3, 0.12, 0.55),
-        new(new(2.0, 2.1, 2.0, 1.7, 1.2, 1.2, 1.4, 1.25), 16, 1, 0, 0.5),
+        new(WithSupport(new(2.2, 0.7, 1.5, 0.8, 0.3, 0.2, 0.5, 0.35)), 16, 12, 1.0, 0.9),
+        new(WithSupport(new(2.2, 1.2, 1.6, 1.1, 0.6, 0.5, 0.8, 0.65)), 12, 8, 0.6, 0.75),
+        new(WithSupport(new(2.0, 1.6, 1.8, 1.4, 0.9, 0.8, 1.1, 0.95)), 10, 5, 0.3, 0.65),
+        new(WithSupport(new(2.0, 1.9, 1.9, 1.6, 1.1, 1.1, 1.3, 1.15)), 8, 3, 0.12, 0.55),
+        new(WithSupport(new(2.0, 2.1, 2.0, 1.7, 1.2, 1.2, 1.4, 1.25)), 16, 1, 0, 0.5),
     ];
+
+    private static CpuEvaluationWeights WithSupport(CpuEvaluationWeights weights) =>
+        weights with { Formation = FormationWeight, SupportRisk = SupportRiskWeight };
 
     /// <summary>Gets the immutable configuration for a named difficulty.</summary>
     /// <param name="difficulty">One of the five supported values.</param>

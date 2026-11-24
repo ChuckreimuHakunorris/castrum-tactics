@@ -2,10 +2,11 @@ using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using CastrumTactics.Domain.Tests;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace CastrumTactics.AI.Tests;
 
-public sealed class CpuDecisionTests
+public sealed class CpuDecisionTests(ITestOutputHelper output)
 {
     private const PlayerId One = PlayerId.PlayerOne;
     private const PlayerId Two = PlayerId.PlayerTwo;
@@ -13,13 +14,15 @@ public sealed class CpuDecisionTests
     private static readonly CpuProfile Normal = CpuDifficultyProfiles.Get(CpuDifficulty.Normal);
     private readonly CpuDecisionEngine _engine = new();
 
-    [Fact]
-    public void AllCatalogMapsOfferLegalDecisionsForEveryProfileAndBothPlayers()
+    [Theory]
+    [InlineData(RuleSet.Classic)]
+    [InlineData(RuleSet.KnightSupport)]
+    public void AllCatalogMapsOfferLegalDecisionsForEveryProfileAndBothPlayers(RuleSet ruleSet)
     {
         foreach (PredefinedMap map in PredefinedMapCatalog.BuiltIn.Maps)
         {
-            var opening = new LocalGameSession(map.Definition).Current;
-            var main = StartPlayableMatch(map.Definition).Current;
+            var opening = new LocalGameSession(map.Definition, ruleSet).Current;
+            var main = StartPlayableMatch(map.Definition, ruleSet).Current;
             foreach (CpuDifficulty difficulty in Enum.GetValues<CpuDifficulty>())
             {
                 var profile = CpuDifficultyProfiles.Get(difficulty);
@@ -30,6 +33,33 @@ public sealed class CpuDecisionTests
                 }
             }
         }
+    }
+
+    [Fact]
+    public void CatalogOpeningSurveyReportsImmediateTerminalsWithOneSuccessfulPair()
+    {
+        var terminalMaps = new List<string>();
+        // Surplus castles can be replaced by draft graves without joining any components.
+        // This only removes territory sources, so one castle per player suffices to witness any terminal opening.
+        foreach (PredefinedMap map in PredefinedMapCatalog.BuiltIn.Maps)
+        {
+            var starts = map.Definition.StartingPositions;
+            int terminalPairs = 0;
+            for (int i = 0; i < starts.Count; i++)
+            {
+                for (int j = i + 1; j < starts.Count; j++)
+                {
+                    GameSessionSnapshot result = DraftOnePair(map.Definition, RuleSet.KnightSupport, i, j).Current;
+                    if (result.Phase != MatchPhase.Finished) continue;
+                    terminalPairs++;
+                    Assert.Equal(0, result.ResolvedMainTurns);
+                    Assert.Null(_engine.Decide(result, One, Monster, new Random(13)));
+                }
+            }
+            if (terminalPairs > 0) terminalMaps.Add($"{map.Id} ({terminalPairs}/{starts.Count * (starts.Count - 1) / 2})");
+        }
+        Assert.Equal(new[] { "island-keep (8/15)" }, terminalMaps);
+        output.WriteLine($"Immediate terminal maps (one castle each, all other starts collided): {string.Join(", ", terminalMaps)}");
     }
 
     [Fact]
@@ -52,10 +82,12 @@ public sealed class CpuDecisionTests
         }
     }
 
-    [Fact]
-    public void ValidatesPlayerProfileAndCancellation()
+    [Theory]
+    [InlineData(RuleSet.Classic)]
+    [InlineData(RuleSet.KnightSupport)]
+    public void ValidatesPlayerProfileAndCancellation(RuleSet ruleSet)
     {
-        var snapshot = new LocalGameSession(OpenMap([new(0, 0), new(2, 0)])).Current;
+        var snapshot = new LocalGameSession(OpenMap([new(0, 0), new(2, 0)]), ruleSet).Current;
         Assert.Throws<ArgumentNullException>(() => _engine.Decide(null!, One, Normal, new Random()));
         Assert.Throws<ArgumentNullException>(() => _engine.Decide(snapshot, One, null!, new Random()));
         Assert.Throws<ArgumentNullException>(() => _engine.Decide(snapshot, One, Normal, null!));
@@ -292,16 +324,19 @@ public sealed class CpuDecisionTests
         Assert.Contains(easy.Candidates.Skip(1), candidate => candidate.Probability > 0);
     }
 
-    [Fact]
-    public void DraftCollisionRiskRisesWithoutKnightsAndFallsAfterADistinctPair()
+    [Theory]
+    [InlineData(RuleSet.Classic, PieceType.Knight)]
+    [InlineData(RuleSet.KnightSupport, PieceType.Castle)]
+    public void DraftCollisionRiskRisesWithoutFootholdsAndFallsAfterADistinctPair(RuleSet ruleSet, PieceType piece)
     {
         BoardPosition[] corners = [new(0, 0), new(2, 0), new(0, 2), new(2, 2)];
         var map = OpenMap(corners);
-        var colliding = new LocalGameSession(map);
-        var established = new LocalGameSession(map);
+        var colliding = new LocalGameSession(map, ruleSet);
+        var established = new LocalGameSession(map, ruleSet);
         double fresh = MaximumRisk(colliding.Current);
         OpenRound(colliding, corners[0], corners[0]);
         OpenRound(established, corners[0], corners[1]);
+        Assert.Equal(piece, established.Current.Board.GetCell(corners[0]).Piece);
         Assert.True(MaximumRisk(colliding.Current) > fresh);
         Assert.True(MaximumRisk(established.Current) < fresh);
 
@@ -310,12 +345,14 @@ public sealed class CpuDecisionTests
                 .Candidates.Max(candidate => candidate.Features.Risk);
     }
 
-    [Fact]
-    public void SeededChoicesAreIndependentOfStartOrderAndPreviousCalls()
+    [Theory]
+    [InlineData(RuleSet.Classic)]
+    [InlineData(RuleSet.KnightSupport)]
+    public void SeededChoicesAreIndependentOfStartOrderAndPreviousCalls(RuleSet ruleSet)
     {
         BoardPosition[] starts = [new(2, 2), new(1, 1), new(0, 0)];
-        var first = new LocalGameSession(OpenMap(starts)).Current;
-        var reordered = new LocalGameSession(OpenMap(starts.Reverse())).Current;
+        var first = new LocalGameSession(OpenMap(starts), ruleSet).Current;
+        var reordered = new LocalGameSession(OpenMap(starts.Reverse()), ruleSet).Current;
         var a = _engine.DecideWithDiagnostics(first, One, Normal, new Random(5));
         _engine.Decide(first, Two, Monster, new Random(4));
         var b = _engine.DecideWithDiagnostics(reordered, One, Normal, new Random(5));
@@ -324,11 +361,15 @@ public sealed class CpuDecisionTests
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(true, true)]
-    public void PendingSelectionsAndFlagsDoNotAffectDecisions(bool main, bool tie)
+    [InlineData(false, false, RuleSet.Classic)]
+    [InlineData(true, false, RuleSet.Classic)]
+    [InlineData(false, true, RuleSet.Classic)]
+    [InlineData(true, true, RuleSet.Classic)]
+    [InlineData(false, false, RuleSet.KnightSupport)]
+    [InlineData(true, false, RuleSet.KnightSupport)]
+    [InlineData(false, true, RuleSet.KnightSupport)]
+    [InlineData(true, true, RuleSet.KnightSupport)]
+    public void PendingSelectionsAndFlagsDoNotAffectDecisions(bool main, bool tie, RuleSet ruleSet)
     {
         var map = !main && tie
             ? OpenMap([new(0, 0), new(1, 1)])
@@ -339,8 +380,8 @@ public sealed class CpuDecisionTests
             (false, true) => new CpuProfile(Monster.Weights, 1, 1, 0, 1, urgentOpeningDiversity: 0.4),
             _ => Normal
         };
-        LocalGameSession first = main ? StartPlayableMatch(map) : new(map);
-        LocalGameSession second = main ? StartPlayableMatch(map) : new(map);
+        LocalGameSession first = main ? StartPlayableMatch(map, ruleSet) : new(map, ruleSet);
+        LocalGameSession second = main ? StartPlayableMatch(map, ruleSet) : new(map, ruleSet);
         var before = first.Current;
         BoardPosition[] targets = main
             ? before.GetMainPhaseLegalSelections(Two).OrderBy(p => p.Y).ThenBy(p => p.X).ToArray()
@@ -447,10 +488,10 @@ public sealed class CpuDecisionTests
         }
     }
 
-    internal static GameSessionSnapshot Snapshot(BoardState board)
+    internal static GameSessionSnapshot Snapshot(BoardState board, RuleSet ruleSet = RuleSet.Classic)
     {
-        var draft = new OpeningDraft(OpenMap([new(0, 0), new(2, 0)])).Resolve(new(0, 0), new(2, 0));
-        return new GameSessionSnapshot(draft, MainPhaseState.Evaluate(board), 0, 15, false, false);
+        var draft = new OpeningDraft(OpenMap([new(0, 0), new(2, 0)]), ruleSet).Resolve(new(0, 0), new(2, 0));
+        return new GameSessionSnapshot(draft, MainPhaseState.Evaluate(board, ruleSet), 0, 15, false, false);
     }
 
     private static CpuCandidate[] Ranked(params double[] scores) => scores
@@ -465,25 +506,30 @@ public sealed class CpuDecisionTests
         return new MapDefinition(3, 3, grid, starts);
     }
 
-    internal static LocalGameSession StartPlayableMatch(MapDefinition map)
+    internal static LocalGameSession StartPlayableMatch(MapDefinition map, RuleSet ruleSet = RuleSet.Classic)
     {
         for (int i = 0; i < map.StartingPositions.Count; i++)
         {
             for (int j = i + 1; j < map.StartingPositions.Count; j++)
             {
-                var session = new LocalGameSession(map);
-                OpenRound(session, map.StartingPositions[i], map.StartingPositions[j]);
-                while (session.Current.Phase == MatchPhase.Opening)
-                {
-                    var next = session.Current.EligiblePositions[0];
-                    OpenRound(session, next, next);
-                }
-
+                var session = DraftOnePair(map, ruleSet, i, j);
                 if (session.Current.Phase == MatchPhase.Main) return session;
             }
         }
 
         throw new InvalidOperationException("No tested pair produced a nonterminal opening.");
+    }
+
+    private static LocalGameSession DraftOnePair(MapDefinition map, RuleSet ruleSet, int first, int second)
+    {
+        var session = new LocalGameSession(map, ruleSet);
+        OpenRound(session, map.StartingPositions[first], map.StartingPositions[second]);
+        while (session.Current.Phase == MatchPhase.Opening)
+        {
+            var next = session.Current.EligiblePositions[0];
+            OpenRound(session, next, next);
+        }
+        return session;
     }
 
     private void CheckDecision(GameSessionSnapshot snapshot, PlayerId player, CpuProfile profile)
@@ -503,7 +549,8 @@ public sealed class CpuDecisionTests
             Assert.InRange(candidate.Probability, 0, 1);
             Assert.True(double.IsFinite(candidate.Score));
             var f = candidate.Features;
-            Assert.All(new[] { f.Expansion, f.Territory, f.Capture, f.Fortification, f.Mobility, f.Bottleneck, f.Spread, f.Risk },
+            Assert.All(new[] { f.Expansion, f.Territory, f.Capture, f.Fortification, f.Mobility, f.Bottleneck,
+                f.Spread, f.Risk, f.Formation, f.SupportRisk },
                 value => Assert.InRange(value, 0, 1));
         });
     }

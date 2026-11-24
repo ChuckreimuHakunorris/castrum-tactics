@@ -33,6 +33,20 @@ public sealed class CpuEvaluationTests
     }
 
     [Fact]
+    public void StartingCastlesBorderBothRegionsAndIncreaseTheValueOfAGate()
+    {
+        var board = new TacticalBoard(ResolvedBoard.Parse("..A.."), true, default, RuleSet.KnightSupport);
+        Assert.Equal(new TacticalBoard.Region(2, 1, 0), board.RegionAt(0));
+        Assert.Equal(new TacticalBoard.Region(2, 1, 0), board.RegionAt(4));
+
+        var corridor = new TacticalBoard(ResolvedBoard.Parse("....."), true, default, RuleSet.KnightSupport);
+        CpuFeatures classic = CpuDecisionEngine.OpeningFeatures(corridor, 2, One, Two);
+        CpuFeatures castle = CpuDecisionEngine.OpeningFeatures(corridor, 2, One, Two, knightSupport: true);
+        Assert.True(castle.Bottleneck > 0);
+        Assert.True(castle.Territory > classic.Territory);
+    }
+
+    [Fact]
     public void ExpansionReachingNewContestedCellsOutranksRedundantReachWithExpansionWeight()
     {
         var board = ResolvedBoard.Parse(".....", ".1..2", ".....");
@@ -107,6 +121,42 @@ public sealed class CpuEvaluationTests
     }
 
     [Fact]
+    public void KnightSupportRewardsRedundantAndCastleSupportAndPenalizesExposedSoleSupporters()
+    {
+        var target = new BoardPosition(3, 1);
+        var sole = ResolvedBoard.Parse(".......", "A11....", "..B....");
+        var pair = ResolvedBoard.Parse("...1...", "A11....", "..B....");
+        var castle = ResolvedBoard.Parse("...A...", "A11....", "..B....");
+        CpuFeatures exposed = EvaluateMain(sole, target, RuleSet.KnightSupport);
+        CpuFeatures redundant = EvaluateMain(pair, target, RuleSet.KnightSupport);
+        CpuFeatures anchored = EvaluateMain(castle, target, RuleSet.KnightSupport);
+        Assert.True(exposed.SupportRisk > redundant.SupportRisk);
+        Assert.True(redundant.Formation > exposed.Formation);
+        Assert.True(anchored.Formation > redundant.Formation);
+        Assert.Equal(0, redundant.SupportRisk);
+        var classic = EvaluateMain(sole, target);
+        Assert.Equal((0.0, 0.0), (classic.Formation, classic.SupportRisk));
+    }
+
+    [Fact]
+    public void CaptureCreditsIndirectRemovalAndAnUpgradeProtectsItsDependentKnight()
+    {
+        var captured = new BoardPosition(2, 0);
+        var dependent = new BoardPosition(3, 0);
+        var board = ResolvedBoard.Parse("A122.B.");
+        var lowHealth = board.AtHealth(dependent, 1);
+        var backedUp = ResolvedBoard.Parse("A122B.");
+        CpuFeatures opportunity = EvaluateMain(board, captured, RuleSet.KnightSupport);
+        Assert.True(opportunity.Formation > EvaluateMain(backedUp, captured, RuleSet.KnightSupport).Formation);
+        Assert.True(EvaluateMain(lowHealth, captured, RuleSet.KnightSupport).Formation > opportunity.Formation);
+        var state = MainPhaseState.Evaluate(board, RuleSet.KnightSupport);
+        var choice = new MainPhaseSelection(One, captured);
+        Assert.Equal(PieceType.Grave, state.ResolveTurn(choice, new(Two, new(1, 0))).GetCell(dependent).Piece);
+        Assert.Equal(PieceType.Castle, state.ResolveTurn(choice, new(Two, dependent)).GetCell(dependent).Piece);
+        Assert.True(EvaluateMain(ResolvedBoard.Parse("A.112.B"), new(3, 0), RuleSet.KnightSupport).Formation > 0);
+    }
+
+    [Fact]
     public void MainEvaluationNeverRanksSecuredInaccessibleOrGraveCells()
     {
         var board = ResolvedBoard.Parse("..#.....", "1.#.12g.", "..#.....");
@@ -125,11 +175,11 @@ public sealed class CpuEvaluationTests
     private static CpuFeatures Opening(TacticalBoard board, int x, int y) =>
         CpuDecisionEngine.OpeningFeatures(board, board.Index(new BoardPosition(x, y)), One, Two);
 
-    private static CpuFeatures EvaluateMain(BoardState board, BoardPosition position)
+    private static CpuFeatures EvaluateMain(BoardState board, BoardPosition position, RuleSet ruleSet = RuleSet.Classic)
     {
-        var state = MainPhaseState.Evaluate(board);
-        Assert.Contains(position, state.GetLegalSelections(One));
-        return CpuDecisionEngine.MainFeatures(new TacticalBoard(board, opening: false, default), position, One, Two,
-            state.Territory, state.GetLegalSelections(One), state.GetLegalSelections(Two));
+        var snapshot = CpuDecisionTests.Snapshot(board, ruleSet);
+        var report = new CpuDecisionEngine().DecideWithDiagnostics(snapshot, One,
+            CpuDifficultyProfiles.Get(CpuDifficulty.Normal), new Random(1));
+        return Assert.Single(report.Candidates, candidate => candidate.Position == position).Features;
     }
 }

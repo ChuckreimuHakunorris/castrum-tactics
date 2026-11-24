@@ -7,15 +7,21 @@ namespace CastrumTactics.AI;
 /// <param name="Fortification">Value of protecting a friendly knight by upgrading it.</param>
 /// <param name="Mobility">Estimated loss of enemy options when removing their only nearby source.</param>
 /// <param name="Bottleneck">Local importance of a connecting square.</param>
-/// <param name="Spread">Draft access to regions that are poorly covered by friendly knights.</param>
+/// <param name="Spread">Draft access to regions that are poorly covered by friendly starting pieces.</param>
 /// <param name="Risk">Potential collision or exposure cost. Its weighted value is subtracted.</param>
 public readonly record struct CpuFeatures(double Expansion, double Territory, double Capture, double Fortification,
     double Mobility, double Bottleneck, double Spread, double Risk)
 {
+    /// <summary>Gets the value of stronger formations and potential indirect removals in Knight Support.</summary>
+    public double Formation { get; init; }
+
+    /// <summary>Gets the cost of certain or potential support loss in Knight Support.</summary>
+    public double SupportRisk { get; init; }
+
     internal double Score(CpuEvaluationWeights weights) =>
         Expansion * weights.Expansion + Territory * weights.Territory + Capture * weights.Capture +
         Fortification * weights.Fortification + Mobility * weights.Mobility + Bottleneck * weights.Bottleneck +
-        Spread * weights.Spread - Risk * weights.Risk;
+        Spread * weights.Spread - Risk * weights.Risk + Formation * weights.Formation - SupportRisk * weights.SupportRisk;
 }
 
 /// <summary>Defines the relative importance of each feature. A CPU profile requires finite weights from 0 through 10.</summary>
@@ -30,6 +36,12 @@ public readonly record struct CpuFeatures(double Expansion, double Territory, do
 public readonly record struct CpuEvaluationWeights(double Expansion, double Territory, double Capture, double Fortification,
     double Mobility, double Bottleneck, double Spread, double Risk)
 {
+    /// <summary>Gets the weight for formation and indirect removal features in Knight Support.</summary>
+    public double Formation { get; init; }
+
+    /// <summary>Gets the weight for support loss, subtracted from the score in Knight Support.</summary>
+    public double SupportRisk { get; init; }
+
     internal void ValidateWeights()
     {
         Validate(Expansion, nameof(Expansion));
@@ -40,6 +52,8 @@ public readonly record struct CpuEvaluationWeights(double Expansion, double Terr
         Validate(Bottleneck, nameof(Bottleneck));
         Validate(Spread, nameof(Spread));
         Validate(Risk, nameof(Risk));
+        Validate(Formation, nameof(Formation));
+        Validate(SupportRisk, nameof(SupportRisk));
 
         static void Validate(double value, string name)
         {
