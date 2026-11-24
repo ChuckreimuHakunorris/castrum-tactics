@@ -1,0 +1,22 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scenes/UI/AnimatedBackground.cs" id="1_script"]
+[ext_resource type="Shader" path="res://Shaders/animated_background.gdshader" id="2_animated"]
+[ext_resource type="Shader" path="res://Shaders/static_background.gdshader" id="3_static"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_animated"]
+shader = ExtResource("2_animated")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_static"]
+shader = ExtResource("3_static")
+
+[node name="AnimatedBackground" type="ColorRect"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_script")
+_animatedMaterial = SubResource("ShaderMaterial_animated")
+_staticMaterial = SubResource("ShaderMaterial_static")

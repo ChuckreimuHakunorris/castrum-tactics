@@ -9,8 +9,8 @@ internal readonly struct BoardGeometry
 
     internal BoardGeometry(Vector2 controlSize, int columns, int rows)
     {
-        // Fit both axes with one pitch and leave a margin around the centered board.
-        CellPitch = 0.9f * Mathf.Min(controlSize.X / columns, controlSize.Y / rows);
+        // Fit both axes with one pitch and leave a narrow margin around the centered board.
+        CellPitch = 0.96f * Mathf.Min(controlSize.X / columns, controlSize.Y / rows);
         Vector2 boardSize = new Vector2(columns, rows) * CellPitch;
         _bounds = new Rect2((controlSize - boardSize) / 2, boardSize);
         _columns = columns;

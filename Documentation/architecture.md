@@ -56,6 +56,12 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - A terrain texture depends on accessibility and ground health. The piece sprite comes from the same snapshot and is chosen independently, so a collision can show a gravestone over ground with health remaining.
 - The main-phase legal canvas skips the provisional square so only one edge gradient covers it. Both canvases reuse materials and draw quads that match the tile bounds. The opening legal canvas draws the existing dots.
 
+## Milestone 7C decisions
+
+- The gameplay scene inherits a shared native Godot theme. Theme variations define control states and visual hierarchy. `Main` applies faction accents from the presentation palette and renders phase, submission flags, feedback, and final scores from the existing session contract.
+- A full-width header shows phase and turn context. The match sets the wrapped status and instruction labels' maximum width to the available panel width. Instructions, waiting text, and rejections share a bounded slot whose height accounts for the longest wrap. The slot clips overflow, and the draft controls reserve button space for their widest captions so submitting or revising a selection keeps the panel and board in place. The board expands to fill the remaining area and uses 96% of its limiting dimension. On Android, the layout converts the safe area to stretched canvas coordinates and uses display density to maintain a 48 × 48 dp target for the player and action buttons. Resizing retains the session and provisional selection.
+- The reusable [animated background](xref:Global.AnimatedBackground) stays below the gameplay canvas siblings and ignores pointer events. The Compatibility shader calculates lifecycle parameters per vertex and blends bounded, soft lights per fragment. Reduced motion swaps in a separate static shader and avoids the per-frame animation work. See the [interface and background conventions](ArtDirection.md#9-interface-and-typography).
+
 ## Planned
 
 The current scene supports two players sharing a device. CPU inputs and a remote session remain future work. Ranked map validation remains a separate design decision.
