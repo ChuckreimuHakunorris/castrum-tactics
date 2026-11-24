@@ -37,24 +37,30 @@ public sealed class CpuEvaluationTests
     {
         var board = ResolvedBoard.Parse(".....", ".1..2", ".....");
         var snapshot = CpuDecisionTests.Snapshot(board);
-        var profile = new CpuProfile(default(CpuFeatures) with { Expansion = 2 }, 1, 0, 1);
+        var profile = new CpuProfile(default(CpuEvaluationWeights) with { Expansion = 2 }, 1, 1, 0, 1);
         var report = new CpuDecisionEngine().DecideWithDiagnostics(snapshot, One, profile, new Random(1));
         var redundant = report.Candidates.Single(candidate => candidate.Position == new BoardPosition(0, 1));
         var frontier = report.Candidates.Single(candidate => candidate.Position == new BoardPosition(2, 1));
         Assert.True(frontier.Features.Expansion > redundant.Features.Expansion);
         Assert.True(frontier.Score > redundant.Score);
         Assert.Equal(2 * frontier.Features.Expansion, frontier.Score);
-        var zero = new CpuDecisionEngine().DecideWithDiagnostics(snapshot, One, new CpuProfile(default, 1, 0, 1), new Random(1));
+        var zero = new CpuDecisionEngine().DecideWithDiagnostics(snapshot, One, new CpuProfile(default, 1, 1, 0, 1), new Random(1));
         Assert.All(zero.Candidates, candidate => Assert.Equal(0, candidate.Score));
     }
 
-    [Fact]
-    public void CapturesDistinguishRetainingAKnightFromCreatingAGrave()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void CapturesDistinguishRetainingAKnightFromCreatingAGrave(int health)
     {
         var position = new BoardPosition(2, 1);
         var board = ResolvedBoard.Parse(".....", ".12..", ".....");
         CpuFeatures healthy = EvaluateMain(board, position);
-        CpuFeatures lethal = EvaluateMain(board.AtHealth(position, 1), position);
+        var graveCapture = board.AtHealth(position, health);
+        var state = MainPhaseState.Evaluate(graveCapture);
+        var enemyChoice = state.GetLegalSelections(Two).First(choice => choice != position);
+        Assert.Equal(PieceType.Grave, state.ResolveTurn(new(One, position), new(Two, enemyChoice)).GetCell(position).Piece);
+        CpuFeatures lethal = EvaluateMain(graveCapture, position);
         Assert.True(healthy.Capture > lethal.Capture && lethal.Capture > 0);
         Assert.True(healthy.Expansion > 0);
         Assert.Equal(0, lethal.Expansion);
@@ -79,6 +85,25 @@ public sealed class CpuEvaluationTests
         Assert.True(exposed.Risk > safeUpgrade.Risk);
         Assert.Equal(0, exposed.Expansion);
         Assert.Equal(0, exposed.Mobility);
+        Assert.Equal(0.65, exposed.Risk);
+        var state = MainPhaseState.Evaluate(gate);
+        Assert.Equal(PieceType.Grave, state.ResolveTurn(new(One, target), new(Two, target)).GetCell(target).Piece);
+    }
+
+    [Fact]
+    public void SupportCountsCastlesAndKnightsWhileMobilityPreservesEnemyUpgrades()
+    {
+        var board = ResolvedBoard.Parse(".....", ".122.", "..B..", ".....");
+        var tactical = new TacticalBoard(board, opening: false, default);
+        Assert.Equal(3, tactical.Support(tactical.Index(new(3, 2)), Two));
+        Assert.Equal(1, tactical.Support(tactical.Index(new(2, 0)), One));
+
+        var adjacentKnights = ResolvedBoard.Parse("122");
+        var state = MainPhaseState.Evaluate(adjacentKnights);
+        var independentUpgrade = new BoardPosition(2, 0);
+        Assert.Contains(independentUpgrade, state.GetLegalSelections(Two));
+        // The capture removes support for attacking our knight at x=0, while the upgrade at x=2 remains available.
+        Assert.Equal(1.0 / 8, EvaluateMain(adjacentKnights, new(1, 0)).Mobility);
     }
 
     [Fact]

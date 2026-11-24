@@ -6,7 +6,7 @@ namespace CastrumTactics.AI;
 /// <param name="Player">The player making the selection.</param>
 /// <param name="Position">A legal position on the supplied snapshot.</param>
 /// <param name="Phase">The phase of the supplied snapshot.</param>
-/// <param name="RoundId">The supplied round identifier for command validation.</param>
+/// <param name="RoundId">The round identifier within the originating session, used for command validation.</param>
 public readonly record struct CpuDecision(PlayerId Player, BoardPosition Position, MatchPhase Phase, long RoundId);
 
 /// <summary>Records the static evaluation and selection probability for a legal candidate.</summary>

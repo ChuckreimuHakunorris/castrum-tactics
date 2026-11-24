@@ -4,9 +4,34 @@ using CastrumTactics.Domain.Session;
 namespace CastrumTactics.AI;
 
 /// <summary>Ranks authoritative legal selections using static opening and main-phase heuristics.</summary>
-/// <remarks>The engine is stateless. Supply independent random sources for concurrent callers.</remarks>
+/// <remarks>
+/// Computation is synchronous and stateless. Concurrent calls may share the engine, snapshots, and immutable
+/// profiles. Supply an independent random source per concurrent call. Equivalent resolved inputs and random
+/// sequences reproduce results with the same engine and runtime.
+/// </remarks>
 public sealed class CpuDecisionEngine
 {
+    // Scores combine a bounded set of weighted features. This absolute margin covers arithmetic roundoff.
+    private const double ScoreEquivalenceTolerance = 1e-12;
+
+    private const double OpeningFirstKnightUrgency = 1.0;
+    private const double OpeningEarlyCollisionCost = 0.7;
+    private const double OpeningEstablishedCollisionCost = 0.4;
+    private const double OpeningDenialCredit = 0.2;
+    private const double OpeningGateCollisionCost = 0.2;
+    private const double OpeningBalancedRegionFactor = 0.8;
+
+    private const double CaptureRemovalValue = 0.5;
+    private const double CaptureRetainedKnightValue = 0.25;
+    private const double CaptureValuePerAdditionalHealth = 0.125;
+    private const double ThreatenedFortificationValue = 0.8;
+    private const double UnthreatenedFortificationValue = 0.25;
+    private const double TraversableGateFactor = 0.35;
+    private const double PlacementOrUpgradeCollisionCost = 0.65;
+    private const double RetainedKnightCollisionCost = 0.25;
+    private const double GraveCaptureCollisionCost = 0.05;
+    private const double MaximumNewKnightExposure = 0.35;
+
     /// <summary>Chooses one selection without writing to the snapshot or submitting a command.</summary>
     /// <param name="snapshot">The public snapshot supplying the board and legal selections.</param>
     /// <param name="player">The player for whom to choose.</param>
@@ -18,8 +43,12 @@ public sealed class CpuDecisionEngine
     /// <exception cref="ArgumentOutOfRangeException">The player is undefined.</exception>
     /// <exception cref="OperationCanceledException">Cancellation was requested.</exception>
     public CpuDecision? Decide(GameSessionSnapshot snapshot, PlayerId player, CpuProfile profile, Random random,
-        CancellationToken cancellationToken = default) =>
-        Evaluate(snapshot, player, profile, random, cancellationToken).Decision;
+        CancellationToken cancellationToken = default)
+    {
+        var (decision, _) = Evaluate(snapshot, player, profile, random, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return decision;
+    }
 
     /// <summary>Chooses a selection and returns the ranked feature values and sampling probabilities.</summary>
     /// <param name="snapshot">The public snapshot supplying the board and legal selections.</param>
@@ -35,7 +64,9 @@ public sealed class CpuDecisionEngine
         Random random, CancellationToken cancellationToken = default)
     {
         var (decision, candidates) = Evaluate(snapshot, player, profile, random, cancellationToken);
-        return new CpuDecisionReport(decision, candidates);
+        var report = new CpuDecisionReport(decision, candidates);
+        cancellationToken.ThrowIfCancellationRequested();
+        return report;
     }
 
     private static (CpuDecision? Decision, CpuCandidate[] Candidates) Evaluate(GameSessionSnapshot snapshot,
@@ -91,11 +122,13 @@ public sealed class CpuDecisionEngine
 
         token.ThrowIfCancellationRequested();
         double temperature = opening ? profile.OpeningTemperature : profile.MainTemperature;
-        int poolSize = Math.Min(candidates.Length, Math.Max(opening ? 2 : 1, profile.CandidateLimit));
-        if (temperature == 0) poolSize = 1;
-        double diversity = opening ? (noKnights && candidates.Length == 2 ? 0.7 : 0.2) : 0;
+        int limit = opening ? profile.OpeningCandidateLimit : profile.MainCandidateLimit;
+        double? maximumGap = opening ? profile.OpeningMaximumScoreDifference : profile.MainMaximumScoreDifference;
+        int poolSize = temperature == 0 ? 1 : GetPoolSize(candidates, limit, opening ? 2 : 1, maximumGap);
+        double diversity = opening
+            ? (noKnights && candidates.Length == 2 ? profile.UrgentOpeningDiversity : profile.OpeningDiversity)
+            : 0;
         int selected = Sample(candidates, poolSize, temperature, diversity, random);
-        token.ThrowIfCancellationRequested();
         return (new CpuDecision(player, candidates[selected].Position, snapshot.Phase, snapshot.RoundId), candidates);
     }
 
@@ -116,15 +149,17 @@ public sealed class CpuDecisionEngine
             candidates[i] = new CpuCandidate(positions[i], ours, 0, 0);
         }
 
-        double urgency = noKnights ? (positions.Length <= 3 ? 1.0 : 0.7) : 0.4;
+        double urgency = noKnights
+            ? (positions.Length <= 3 ? OpeningFirstKnightUrgency : OpeningEarlyCollisionCost)
+            : OpeningEstablishedCollisionCost;
         for (int i = 0; i < candidates.Length; i++)
         {
             token.ThrowIfCancellationRequested();
             CpuFeatures features = candidates[i].Features;
             double appeal = mostAppealing > 0 ? opponentAppeal[i] / mostAppealing : 1;
             // Denying a prized start can be worthwhile after knights are established. A blocked gate adds cost.
-            double denial = noKnights ? 0 : opponentAppeal[i] * 0.2;
-            double risk = Math.Clamp(appeal * (urgency + features.Bottleneck * 0.2 - denial) /
+            double denial = noKnights ? 0 : opponentAppeal[i] * OpeningDenialCredit;
+            double risk = Math.Clamp(appeal * (urgency + features.Bottleneck * OpeningGateCollisionCost - denial) /
                 Math.Sqrt(positions.Length / 2.0), 0, 1);
             features = features with { Risk = risk };
             candidates[i] = candidates[i] with { Features = features, Score = features.Score(profile.Weights) };
@@ -138,7 +173,7 @@ public sealed class CpuDecisionEngine
         TacticalBoard.Region region = board.RegionAt(index);
         double extent = (double)region.Size / board.PlayableCount;
         double spread = 1.0 / (1 + region.Count(player) + board.Support(index, player));
-        double territory = extent * (region.Count(opponent) > region.Count(player) ? 1.0 : 0.8);
+        double territory = extent * (region.Count(opponent) > region.Count(player) ? 1.0 : OpeningBalancedRegionFactor);
         double gate = board.Bottleneck(index);
         return new CpuFeatures(free / 8.0, territory, 0, 0, 0, gate, spread * extent, 0);
     }
@@ -150,7 +185,7 @@ public sealed class CpuDecisionEngine
         CellState cell = board.Cells[index];
         bool capture = cell.Piece == PieceType.Knight && cell.Owner == opponent;
         bool upgrade = cell.Piece == PieceType.Knight && cell.Owner == player;
-        bool lethal = capture && cell.GroundHealth == 1;
+        bool lethal = capture && cell.GroundHealth <= 1;
         bool gainsReach = cell.Piece == PieceType.None || (capture && !lethal);
         bool shared = enemyLegal.Contains(position);
         int newReach = 0;
@@ -178,18 +213,58 @@ public sealed class CpuDecisionEngine
             }
         }
 
-        double captureValue = capture ? 0.5 + (lethal ? 0 : 0.25 + 0.125 * Math.Clamp(cell.GroundHealth - 2, 0, 2)) : 0;
-        double fortification = upgrade ? (shared ? 0.8 : 0.25) : 0;
-        double gate = board.Bottleneck(index) * (upgrade || lethal ? 1.0 : 0.35);
-        double risk = shared ? (capture ? (lethal ? 0.05 : 0.25) : 0.65) : 0;
-        if (gainsReach) risk += 0.35 * nearbyThreats / 8.0;
+        double captureValue = capture ? CaptureRemovalValue : 0;
+        if (capture && !lethal)
+        {
+            captureValue += CaptureRetainedKnightValue +
+                CaptureValuePerAdditionalHealth * Math.Min(cell.GroundHealth - 2, 2);
+        }
+
+        double fortification = upgrade ? (shared ? ThreatenedFortificationValue : UnthreatenedFortificationValue) : 0;
+        double gate = board.Bottleneck(index) * (upgrade || lethal ? 1.0 : TraversableGateFactor);
+        // A collision leaves a grave on the target, including when our knight was attempting to upgrade.
+        double risk = shared
+            ? (capture ? (lethal ? GraveCaptureCollisionCost : RetainedKnightCollisionCost) : PlacementOrUpgradeCollisionCost)
+            : 0;
+        if (gainsReach) risk += MaximumNewKnightExposure * nearbyThreats / 8.0;
 
         return new CpuFeatures(newReach / 8.0, contestedInfluence / 8, captureValue, fortification,
             denied / 8.0, gate, 0, risk);
     }
 
+    internal static int GetPoolSize(CpuCandidate[] candidates, int nominalLimit, int minimum, double? maximumGap)
+    {
+        minimum = Math.Min(candidates.Length, minimum);
+        int poolSize = Math.Min(candidates.Length, Math.Max(nominalLimit, minimum));
+        if (maximumGap is double gap)
+        {
+            double best = candidates[0].Score;
+            while (poolSize > minimum && best - candidates[poolSize - 1].Score > gap) poolSize--;
+        }
+
+        return IncludeCutoffTies(candidates, poolSize);
+    }
+
+    private static int IncludeCutoffTies(CpuCandidate[] candidates, int poolSize)
+    {
+        // Compare to the original cutoff so a chain of near-ties cannot extend the margin.
+        double cutoff = candidates[poolSize - 1].Score;
+        while (poolSize < candidates.Length && cutoff - candidates[poolSize].Score <= ScoreEquivalenceTolerance)
+        {
+            poolSize++;
+        }
+
+        return poolSize;
+    }
+
     internal static int Sample(CpuCandidate[] candidates, int poolSize, double temperature, double diversity, Random random)
     {
+        if (temperature == 0) poolSize = IncludeCutoffTies(candidates, 1);
+        for (int i = poolSize; i < candidates.Length; i++)
+        {
+            candidates[i] = candidates[i] with { Probability = 0 };
+        }
+
         if (poolSize == 1)
         {
             candidates[0] = candidates[0] with { Probability = 1 };
@@ -200,7 +275,7 @@ public sealed class CpuDecisionEngine
         double total = 0;
         for (int i = 0; i < poolSize; i++)
         {
-            double weight = Math.Exp((candidates[i].Score - best) / temperature);
+            double weight = temperature == 0 ? 1 : Math.Exp((candidates[i].Score - best) / temperature);
             candidates[i] = candidates[i] with { Probability = weight };
             total += weight;
         }

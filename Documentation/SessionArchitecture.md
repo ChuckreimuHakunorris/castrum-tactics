@@ -113,7 +113,7 @@ The current local sequence is:
 4. The second player's submission resolves both selections against the same board. If exactly one opening start remains, the session resolves both players selecting it before publishing. The session clears pending choices and advances the identifier once per resolved round. After a successful draft or main-phase turn, it evaluates the resulting board for the next main-phase turn or final result.
 5. The session publishes the new snapshot. The scene clears the provisional highlight and renders the updated board and status. A completed match keeps its board, territory, and final result visible and rejects further gameplay submissions.
 
-The [CPU decision engine](CpuArchitecture.md) currently returns synchronous proposals against the public snapshot. A future asynchronous caller can use the proposal's round ID when submitting through the same session.
+The CPU decision engine currently returns synchronous proposals against the public snapshot. The future asynchronous caller must verify that the originating session is still active and that the proposal's phase and session-scoped round ID are current. Human submissions and revisions within that round leave the decision valid. See the [Milestone 8B integration lifecycle](CpuArchitecture.md#milestone-8b-integration-lifecycle).
 
 ### 4.2 Online multiplayer
 
