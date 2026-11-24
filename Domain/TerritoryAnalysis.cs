@@ -6,7 +6,21 @@ public sealed class TerritoryAnalysis
     private readonly TerritoryControl[,] _cells;
 
     // The analyzer transfers ownership of its completed grid and never writes to it again.
-    internal TerritoryAnalysis(TerritoryControl[,] cells) => _cells = cells;
+    internal TerritoryAnalysis(TerritoryControl[,] cells)
+    {
+        _cells = cells;
+        foreach (TerritoryControl control in cells)
+        {
+            if (control == TerritoryControl.SecuredByPlayerOne) PlayerOneScore++;
+            else if (control == TerritoryControl.SecuredByPlayerTwo) PlayerTwoScore++;
+        }
+    }
+
+    /// <summary>Gets the total number of secured squares for Player One, regardless of their occupants.</summary>
+    public int PlayerOneScore { get; }
+
+    /// <summary>Gets the total number of secured squares for Player Two, regardless of their occupants.</summary>
+    public int PlayerTwoScore { get; }
 
     /// <summary>Gets the strategic control of a square independently of its physical occupant.</summary>
     /// <param name="position">The cell to query.</param>

@@ -1,11 +1,11 @@
 # Castrum Tactics — Main-Phase Rules and Architecture
 
 **Status:** Domain, local session, and Godot integration implemented.\
-**Version:** 0.5\
-**Date:** 2026-11-23  
+**Version:** 0.6\
+**Date:** 2026-11-24\
 **Scope:** Main-phase moves, simultaneous resolution, territory classification, legal selections, endgame and scoring
 
-This specification expands the [Game Design Document](GameDesign.md) and follows the [Session Architecture](SessionArchitecture.md). The local session evaluates the board from the Unlimited Draft and runs main-phase turns through final scoring. Godot displays the board, each player's targets, and the final result.
+This specification expands the [Game Design Document](GameDesign.md) and follows the [Session Architecture](SessionArchitecture.md). The local session evaluates the board from the Unlimited Draft and runs main-phase turns through final scoring. Godot displays the board, the active human's targets, live territory counts, and the final result in both input modes.
 
 ## 1. Core architecture
 
@@ -101,7 +101,7 @@ The scene tints secured squares with the securing player's color while preservin
 
 Every contested traversable component supplies a legal selection to both players. Each player contributes an own knight on a contested square eligible for upgrade or a bordering castle in range of a contested empty or enemy-knight square. If a bordering castle touches a friendly knight in that component instead, that knight supplies the upgrade. Every legal selection is contested, so under v1 the legal sets become empty together and no contested cells remain at match completion. The tests check this invariant.
 
-At the end, count every **secured playable square** for its controlling player, including empty squares and squares occupied by knights or castles. Graves, neutral playable squares, and inaccessible terrain earn no points. Higher score wins. Equal scores draw.
+Each immutable [`TerritoryAnalysis`](xref:CastrumTactics.Domain.TerritoryAnalysis) counts every **secured playable square** for its controlling player, including empty squares and squares occupied by knights or castles. Contested and neutral playable squares, graves, and inaccessible terrain earn no points. `GameSessionSnapshot` exposes the same totals once territory exists and exposes zeros during the draft and failed-draft state. Resolved turns construct new analyses. Submission and revision snapshots reuse the current analysis. `MainPhaseState` uses its totals to construct the final result. Higher score wins and equal scores draw.
 
 ## 6. Integration responsibilities
 
@@ -110,7 +110,7 @@ At the end, count every **secured playable square** for its controlling player, 
 - Legal selections: pure domain logic receiving resolved board, territory analysis, and player identity; supply separate sets for each player.
 - Resolution: pure domain simultaneous pair transition, preserving existing health and ownership invariants.
 - The local session coordinates private commands and revisions, tracks round IDs, and publishes Main or Finished after each evaluation.
-- Godot uses session snapshots to display legal targets, castles, secured-color overlays, and final scores. Finished hides the submission controls and keeps the board visible.
+- Godot uses session snapshots to display legal targets, castles, secured-color overlays, and the score banner. Finished hides submission controls and keeps the board, banner, and outcome visible.
 
 The opening phase is intentionally unchanged; do not conflate opening eligible starting positions with main-phase per-player legal selections. Use focused types and extensions rather than a large generalized framework.
 
@@ -134,4 +134,4 @@ The opening phase is intentionally unchanged; do not conflate opening eligible s
 
 ## 8. Open questions
 
-Open design questions include ground-health regeneration, overlay styling, and whether playtesting warrants a more precise reachability algorithm. Future Fixed Draft, AI, networking, multiplayer restart authority, and backend choices remain out of scope.
+Open design questions include ground-health regeneration, overlay styling, and whether playtesting warrants a more precise reachability algorithm. Future Fixed Draft, deeper CPU search, networking, multiplayer restart authority, and backend choices remain out of scope.

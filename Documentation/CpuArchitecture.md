@@ -91,16 +91,14 @@ Measured on Windows with an Intel Core i5-7500 at 3.40 GHz, .NET 10.0, and a Rel
 
 ## Milestone 8B integration lifecycle
 
-1. The presentation layer obtains the immutable snapshot from the active session.
-2. It starts one CPU computation for the current round and skips terminal snapshots.
-3. It runs the synchronous engine off the Godot main thread with a worker-owned random source and a cancellation token.
-4. The engine returns a proposal tagged with the input phase and round ID.
-5. On the session's command thread, presentation checks that the originating session or its generation is still active.
-6. It verifies that the work has not been canceled or superseded and that the current phase and round match the proposal.
-7. It submits an `OpeningSelection` or `MainPhaseCommand` through the authoritative session on that thread.
-8. The session validates the phase, player, round ID, and legality.
+1. The scene passes each public snapshot to its `CpuMatchCoordinator`. The coordinator starts one request per playable phase and round, skipping terminal snapshots and rounds the CPU has already submitted.
+2. A `Task.Run` worker calls the synchronous engine with that immutable snapshot, a fresh random instance derived from the match's seed source, and a cancellation token. The worker has no Godot or session reference.
+3. The engine returns a proposal tagged with the input player, phase, and round. The scene pumps completions on the Godot main thread, outside session callbacks.
+4. The coordinator checks active session identity, cancellation, phase, round, and player, and verifies that the CPU still owes a submission. It sends an `OpeningSelection` or `MainPhaseCommand` on the same thread. The session validates phase, round, player, and legality.
 
-`RoundId` is scoped to one session. Independent sessions can publish the same round ID, so the caller also checks originating session identity or an equivalent generation identifier. Restarting or abandoning a session must cancel or invalidate outstanding work. A result from an old session must never reach a replacement session. A human submission or revision within the same unresolved round leaves the CPU's inputs and proposal valid. Treat both as private and keep the original computation.
+`RoundId` is scoped to one session. The coordinator checks session identity even if two sessions publish the same round ID. Superseded, terminal, restarted, and abandoned rounds invalidate outstanding requests and request cancellation. Retired workers have their faults observed and their cancellation sources disposed after they exit. A human submission or revision within the same unresolved round leaves the CPU's inputs and proposal valid. Both players use the same resolved pre-round board.
+
+If the worker faults, returns no valid proposal, or the command is rejected, the scene displays an error and lets the player start a New Match. The coordinator keeps its profile for the life of a match, including restarts. New Match applies the difficulty selected in the scene.
 
 ## Milestone 8C evaluation
 

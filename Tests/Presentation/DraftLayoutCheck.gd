@@ -14,6 +14,7 @@ func run() -> void:
 		root.size = window_size
 		for player in ["One", "Two"]:
 			var game := MATCH_SCENE.instantiate()
+			game.set("Mode", 1) # LocalMultiplayer
 			game.set("MapIdOverride", "demonstration")
 			for label_name in ["%Status", "%Detail"]:
 				var label: Label = game.get_node(label_name)
@@ -31,6 +32,7 @@ func run() -> void:
 				return
 	print("Draft layout stayed fixed for both players at all three window sizes.")
 	var game := MATCH_SCENE.instantiate()
+	game.set("Mode", 1)
 	game.set("MapIdOverride", "demonstration")
 	root.size = Vector2i(720, 1080)
 	root.add_child(game)
@@ -49,10 +51,12 @@ func check_board_extremes() -> void:
 		var dimensions := Vector2(edge, edge)
 		root.size = Vector2i(360, 640)
 		var game := MATCH_SCENE.instantiate()
+		game.set("Mode", 1)
 		game.set("MapIdOverride", sample[0])
 		root.add_child(game)
 		await settle()
 		var board: Control = game.get_node("%BoardRenderer")
+		check_banner(board, dimensions, ["0", "0"])
 		var submit: Button = game.get_node("%Submit")
 		var phase: Label = game.get_node("%Phase")
 		var one: Button = game.get_node("%PlayerOne")
@@ -67,6 +71,7 @@ func check_board_extremes() -> void:
 		expect(not submit.disabled, "Top-left start did not register on %s." % sample[0])
 		root.size = Vector2i(1280, 720)
 		await settle()
+		check_banner(board, dimensions, ["0", "0"])
 		expect(not submit.disabled, "Resize cleared the choice on %s." % sample[0])
 		click(submit.get_global_rect().get_center())
 		await settle()
@@ -109,8 +114,11 @@ func check_complete_match(game: Control) -> void:
 	var phase: Label = game.get_node("%Phase")
 	var board: Control = game.get_node("%BoardRenderer")
 	await settle()
+	check_banner(board, Vector2(7, 5), ["0", "0"])
 	choose(board, Vector2(4, 0))
 	expect(not submit.disabled, "Draft selection did not enable submit.")
+	click(one.get_global_rect().get_center())
+	expect(one.button_pressed and not submit.disabled, "Clicking the active player lost its active state or provisional choice.")
 	click(submit.get_global_rect().get_center())
 	await settle()
 	choose(board, Vector2(1, 1))
@@ -121,7 +129,7 @@ func check_complete_match(game: Control) -> void:
 	expect(not board.get_parent().vertical, "Expected the sidebar after resizing.")
 	expect(not submit.disabled, "Resizing cleared the provisional revision.")
 	var sidebar_rect := board.get_global_rect()
-	click(submit.get_global_rect().get_center())
+	choose(board, Vector2(1, 1))
 	await settle()
 	expect(detail.text == "Waiting for Player Two." and "Submitted" in one.text, "Revision lost the waiting state.")
 	expect(board.get_global_rect() == sidebar_rect, "Revision moved the board.")
@@ -132,6 +140,7 @@ func check_complete_match(game: Control) -> void:
 	await play(board, one, submit, Vector2(4, 0))
 	await play(board, two, submit, Vector2(5, 3))
 	expect(phase.text == "Main · Turn 1", "The opening did not advance to the main phase.")
+	check_banner(board, Vector2(7, 5), ["0", "0"])
 	var main_rect := board.get_global_rect()
 	await play(board, one, submit, Vector2(2, 2))
 	expect(detail.text == "Waiting for Player Two." and submit.text == "Revise selection", "Missing main-phase waiting state.")
@@ -151,15 +160,32 @@ func check_complete_match(game: Control) -> void:
 		await play(board, one, submit, turn[0])
 		await play(board, two, submit, turn[1])
 	var heading: Label = game.get_node("%Status")
-	var first_score: Label = game.get_node("%PlayerOneScore")
-	var second_score: Label = game.get_node("%PlayerTwoScore")
 	expect(phase.text == "Match complete" and heading.text == "Player Two wins", "Missing final outcome.")
-	expect(first_score.text == "8" and second_score.text == "18", "Missing expected final scores.")
+	check_banner(board, Vector2(7, 5), ["8", "18"])
 	expect(restart.text == "Restart Match" and not submit.visible and board.visible, "Incorrect finished controls.")
-	check_controls_fit([restart], [heading, phase, first_score, second_score])
+	check_controls_fit([restart], [heading, phase])
 	click(restart.get_global_rect().get_center())
 	await settle()
 	expect(one.button_pressed and phase.text == "Draft · Round 1" and submit.disabled, "Restart did not restore the opening.")
+	check_banner(board, Vector2(7, 5), ["0", "0"])
+
+func check_banner(board: Control, dimensions: Vector2, scores: Array) -> void:
+	var banner: Control = board.get_node("TerritoryScoreBanner")
+	var grid: Rect2 = board.call("GetRenderedGridBounds")
+	var first: Label = banner.get_node("Content/PlayerOneScore")
+	var second: Label = banner.get_node("Content/PlayerTwoScore")
+	var one_shield: TextureRect = banner.get_node("Content/PlayerOneShield")
+	var two_shield: TextureRect = banner.get_node("Content/PlayerTwoShield")
+	expect(banner.is_visible_in_tree() and banner.size.y > 0.0, "Territory banner is hidden.")
+	expect(is_equal_approx(banner.position.x, grid.position.x) and is_equal_approx(banner.size.x, grid.size.x),
+		"Territory banner edges do not match the grid.")
+	expect(banner.position.y + banner.size.y < grid.position.y and banner.position.y >= 0.0,
+		"Territory banner overlaps the grid or lies outside its region.")
+	expect(is_equal_approx(grid.size.x / dimensions.x, grid.size.y / dimensions.y), "The tiles are not square.")
+	expect(one_shield.texture == two_shield.texture and one_shield.self_modulate.is_equal_approx(Color("#f06c68"))
+		and two_shield.self_modulate.is_equal_approx(Color("#69a4ff")), "Wrong shield silhouette or faction colors.")
+	if not scores.is_empty():
+		expect([first.text, second.text] == scores, "Unexpected territory score: %s/%s" % [first.text, second.text])
 
 func check_controls_fit(buttons: Array[Button], labels: Array[Label]) -> void:
 	for button in buttons:
@@ -180,9 +206,8 @@ func play(board: Control, player: Button, submit: Button, coordinate: Vector2, d
 	await settle()
 
 func choose(board: Control, coordinate: Vector2, dimensions := Vector2(7, 5), touch := false) -> void:
-	var pitch := 0.96 * minf(board.size.x / dimensions.x, board.size.y / dimensions.y)
-	var origin := (board.size - dimensions * pitch) / 2.0
-	var point := board.get_global_transform_with_canvas() * (origin + (coordinate + Vector2(0.5, 0.5)) * pitch)
+	var grid: Rect2 = board.call("GetRenderedGridBounds")
+	var point := board.get_global_transform_with_canvas() * (grid.position + (coordinate + Vector2(0.5, 0.5)) * grid.size / dimensions)
 	if touch:
 		touch_event.position = point
 		touch_event.pressed = true
@@ -202,6 +227,20 @@ func check_draft_submission(game: Node, player: String) -> bool:
 		board, panel, detail.get_parent(), game.get_node("%PlayerOne"), game.get_node("%PlayerTwo"), submit
 	]
 	await settle()
+	expect(not game.get_node("%NewMatch").visible, "Local mode displayed CPU controls.")
+	check_banner(board, Vector2(7, 5), ["0", "0"])
+	var banner: Control = board.get_node("TerritoryScoreBanner")
+	var banner_rect := banner.get_global_rect()
+	banner.call("ShowScores", 9, 99)
+	await settle()
+	banner.call("ShowScores", 100, 144)
+	await settle()
+	expect(banner.get_global_rect() == banner_rect, "Three-digit scores moved the banner.")
+	var left_score: Label = banner.get_node("Content/PlayerOneScore")
+	var right_score: Label = banner.get_node("Content/PlayerTwoScore")
+	expect(banner_rect.encloses(left_score.get_global_rect()) and banner_rect.encloses(right_score.get_global_rect()),
+		"Three-digit scores do not fit inside the banner.")
+	banner.call("ShowScores", 0, 0)
 	var text_width := floorf(detail.get_parent().size.x)
 	if detail.get_combined_maximum_size().x != text_width or status.get_combined_maximum_size().x != text_width:
 		push_error("The wrapped labels did not use the available panel width.")
@@ -209,7 +248,7 @@ func check_draft_submission(game: Node, player: String) -> bool:
 	if player == "Two":
 		click(game.get_node("%PlayerTwo").get_global_rect().get_center())
 		await settle()
-	if detail.text != "Select a gold dot, then submit.":
+	if detail.text != "Select a target. Select it again or press Submit.":
 		push_error("The opening instruction did not appear.")
 		return false
 
@@ -220,11 +259,15 @@ func check_draft_submission(game: Node, player: String) -> bool:
 
 	choose(board, Vector2(1, 1))
 	await settle()
-	if submit.disabled:
-		push_error("The draft target did not enable the Submit button.")
+	if submit.disabled or submit.text != "Submit selection":
+		push_error("The first press should highlight the draft target without submitting.")
 		return false
 
-	click(submit.get_global_rect().get_center())
+	choose(board, Vector2(4, 0))
+	if submit.disabled or submit.text != "Submit selection":
+		push_error("Pressing a different target should move the highlight without submitting.")
+		return false
+	choose(board, Vector2(4, 0))
 	for frame in 6:
 		await process_frame
 		for index in controls.size():

@@ -9,10 +9,22 @@ public sealed class LocalMainPhaseTests
     private const PlayerId Two = PlayerId.PlayerTwo;
 
     [Fact]
+    public void EnteringMainPublishesSecuredSquaresFromTheResolvedDraft()
+    {
+        var session = CreateSession("....#..#..", 0, 2, 5, 8);
+        ResolveOpening(session, 0, 2);
+        Assert.Equal((0, 0), (session.Current.PlayerOneScore, session.Current.PlayerTwoScore));
+        ResolveOpening(session, 5, 8);
+        Assert.Equal(MatchPhase.Main, session.Current.Phase);
+        Assert.Equal((2, 2), (session.Current.PlayerOneScore, session.Current.PlayerTwoScore));
+    }
+
+    [Fact]
     public void OpeningTransitionsWithExistingPiecesHealthAndPlayerSpecificTargets()
     {
         var session = CreateSession("......", 0, 2, 4);
         Assert.Null(session.Current.Territory);
+        Assert.Equal((0, 0), (session.Current.PlayerOneScore, session.Current.PlayerTwoScore));
         Assert.Empty(session.Current.GetMainPhaseLegalSelections(One));
         ResolveOpening(session, 4, 4);
         GameSessionSnapshot beforeLast = session.Current;
@@ -34,6 +46,7 @@ public sealed class LocalMainPhaseTests
         Assert.Equal(TerritoryControl.Contested, main.Territory!.GetControl(At(1)));
         Assert.Equal(TerritoryControl.Neutral, main.Territory.GetControl(At(5)));
         Assert.Null(main.FinalResult);
+        Assert.Equal((0, 0), (main.PlayerOneScore, main.PlayerTwoScore));
     }
 
     [Fact]
@@ -85,6 +98,7 @@ public sealed class LocalMainPhaseTests
             Assert.Equal(initial.ResolvedMainTurns, pending.ResolvedMainTurns);
             Assert.Same(initial.Board, pending.Board);
             Assert.Same(initial.Territory, pending.Territory);
+            Assert.Equal((initial.PlayerOneScore, initial.PlayerTwoScore), (pending.PlayerOneScore, pending.PlayerTwoScore));
             Assert.Same(initial.GetMainPhaseLegalSelections(One), pending.GetMainPhaseLegalSelections(One));
             Assert.Same(initial.GetMainPhaseLegalSelections(Two), pending.GetMainPhaseLegalSelections(Two));
             Assert.Empty(pending.EligiblePositions);
@@ -173,6 +187,7 @@ public sealed class LocalMainPhaseTests
         Assert.Equal(new CellState(TerrainType.Playable, PieceType.Knight, One, 3), placed.Board.GetCell(At(1)));
         Assert.Equal(new CellState(TerrainType.Playable, PieceType.Knight, Two, 3), placed.Board.GetCell(At(3)));
         Assert.Equal(TerritoryControl.Contested, placed.Territory!.GetControl(At(3)));
+        Assert.Equal((0, 0), (placed.PlayerOneScore, placed.PlayerTwoScore));
 
         ResolveMain(session, 2, 3);
         GameSessionSnapshot captured = session.Current;
@@ -181,6 +196,7 @@ public sealed class LocalMainPhaseTests
         Assert.Equal(new CellState(TerrainType.Playable, PieceType.Knight, One, 2), captured.Board.GetCell(At(2)));
         Assert.Equal(new CellState(TerrainType.Playable, PieceType.Castle, Two, 3), captured.Board.GetCell(At(3)));
         Assert.Equal(TerritoryControl.SecuredByPlayerTwo, captured.Territory!.GetControl(At(3)));
+        Assert.Equal((0, 1), (captured.PlayerOneScore, captured.PlayerTwoScore));
         Assert.Equal(TerritoryControl.Contested, placed.Territory!.GetControl(At(3)));
         Assert.True(captured.GetMainPhaseLegalSelections(Two).SetEquals([At(2)]));
         Assert.DoesNotContain(At(3), captured.GetMainPhaseLegalSelections(One));
@@ -193,6 +209,7 @@ public sealed class LocalMainPhaseTests
         Assert.Equal(new CellState(TerrainType.Playable, PieceType.Grave, null, 1), finished.Board.GetCell(At(2)));
         Assert.Equal(TerritoryControl.SecuredByPlayerOne, finished.Territory!.GetControl(At(1)));
         AssertFinished(finished, 2, 1, One);
+        Assert.Equal((2, 1), (finished.PlayerOneScore, finished.PlayerTwoScore));
 
         var updates = new List<GameSessionSnapshot>();
         session.StateChanged += updates.Add;
@@ -226,6 +243,7 @@ public sealed class LocalMainPhaseTests
     private static void AssertFreshDraft(GameSessionSnapshot initial, GameSessionSnapshot finished, GameSessionSnapshot restarted)
     {
         Assert.Equal(MatchPhase.Opening, restarted.Phase);
+        Assert.Equal((0, 0), (restarted.PlayerOneScore, restarted.PlayerTwoScore));
         Assert.Equal(finished.RoundId + 1, restarted.RoundId);
         Assert.Equal(0, restarted.ResolvedRounds);
         Assert.Equal(0, restarted.ResolvedMainTurns);

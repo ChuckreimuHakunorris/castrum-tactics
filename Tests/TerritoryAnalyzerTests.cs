@@ -5,6 +5,18 @@ namespace CastrumTactics.Domain.Tests;
 public sealed class TerritoryAnalyzerTests
 {
     [Fact]
+    public void TotalsIncludeSecuredEmptySquaresKnightsAndCastlesOnly()
+    {
+        var board = ResolvedBoard.Parse("A.1#..#12g#B.2");
+        var analysis = TerritoryAnalyzer.Analyze(board);
+        Assert.Equal((3, 3), (analysis.PlayerOneScore, analysis.PlayerTwoScore));
+        Assert.Equal(TerritoryControl.Neutral, analysis.GetControl(new(4, 0)));
+        Assert.Equal(TerritoryControl.Contested, analysis.GetControl(new(7, 0)));
+        Assert.Equal(TerritoryControl.Contested, analysis.GetControl(new(8, 0)));
+        Assert.Equal(TerritoryControl.Neutral, analysis.GetControl(new(9, 0)));
+        Assert.Equal(TerritoryControl.Inaccessible, analysis.GetControl(new(10, 0)));
+    }
+    [Fact]
     public void WholeComponentsAreClassifiedSeparatelyFromPieceOwnership()
     {
         BoardState board = ResolvedBoard.Parse("1.#.2#..", "..#..#..");

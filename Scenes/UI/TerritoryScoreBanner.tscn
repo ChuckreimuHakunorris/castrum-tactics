@@ -1,0 +1,56 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" uid="uid://o25ib2saj386" path="res://Scenes/UI/TerritoryScoreBanner.cs" id="1"]
+[ext_resource type="Texture2D" uid="uid://66io8wwuogbp" path="res://Assets/UI/territory_shield.svg" id="2"]
+
+[node name="TerritoryScoreBanner" type="Control"]
+texture_filter = 2
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="Content" type="Control" parent="."]
+mouse_filter = 2
+
+[node name="PlayerOneShield" type="TextureRect" parent="Content"]
+offset_right = 17.0
+offset_bottom = 17.0
+mouse_filter = 2
+texture = ExtResource("2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PlayerOneScore" type="Label" parent="Content"]
+offset_right = 36.0
+offset_bottom = 28.0
+mouse_filter = 2
+theme_type_variation = &"ScoreNumber"
+theme_override_font_sizes/font_size = 19
+text = "0"
+accessibility_name = "Player One secured territory"
+vertical_alignment = 1
+
+[node name="Title" type="Label" parent="Content"]
+mouse_filter = 2
+theme_type_variation = &"SecondaryLabel"
+text = "Secured Territory"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="PlayerTwoScore" type="Label" parent="Content"]
+offset_right = 36.0
+offset_bottom = 28.0
+mouse_filter = 2
+theme_type_variation = &"ScoreNumber"
+theme_override_font_sizes/font_size = 19
+text = "0"
+accessibility_name = "Player Two secured territory"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="PlayerTwoShield" type="TextureRect" parent="Content"]
+offset_right = 17.0
+offset_bottom = 17.0
+mouse_filter = 2
+texture = ExtResource("2")
+expand_mode = 1
+stretch_mode = 5

@@ -1,8 +1,8 @@
 # Castrum Tactics — Game Design Document
 
 **Document status:** Revised draft  
-**Version:** 0.5\
-**Last updated:** 2026-11-23  
+**Version:** 0.6\
+**Last updated:** 2026-11-24\
 **Project type:** 2D turn-based grid strategy game  
 **Primary purpose:** Playable game and professional software-engineering portfolio project
 
@@ -224,11 +224,11 @@ Under this algorithm, each contested component supplies a legal selection to bot
 
 ### 6.3 Final scoring
 
-At match completion, count **all secured playable squares** for the corresponding player, including secured empty squares, knights, and castles. Neutral playable squares, graves, and inaccessible terrain score zero. The greater total wins. Equal totals draw. The details of the analyzer and invariants are in [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
+The match banner displays **all secured playable squares** for the corresponding player, including secured empty squares, knights, and castles. Contested and neutral playable squares, graves, and inaccessible terrain score zero. Both scores are zero during the draft and after a failed draft. During Main they reflect the last resolved board, so a pending or revised selection has no effect. The final banner uses the same totals. The greater total wins and equal totals draw. See [Main-Phase Rules and Architecture](MainPhaseArchitecture.md).
 
 ## 7. Maps
 
-Local play starts on one of 50 uniformly selected [predefined maps](MapFormat.md). The maps range from 3 × 3 to 12 × 12 and vary in terrain and candidate starts. Either restart action reuses the current map.
+Local play starts on one of 50 uniformly selected [predefined maps](MapFormat.md). The maps range from 3 × 3 to 12 × 12 and vary in terrain and candidate starts. Either restart action reuses the current map. New Match in Versus CPU draws again unless an explicit map override is active.
 
 Maps are data-driven and should not be hard-coded into board logic.
 
@@ -285,6 +285,9 @@ Procedural map generation is a possible later feature. Multiplayer procedural ma
 ## 8. Game modes and multiplayer direction
 
 - The game is designed for two players.
+- Normal startup on Windows and Android starts a Versus CPU match with the human as Player One and the CPU as Player Two at Normal difficulty. Both participants submit through the same simultaneous rules.
+- Two humans can share one device in Local Multiplayer. This mode is available in the scene configuration, from code, and through the development command line.
+- The CPU difficulty chosen in the New Match dialog applies to that match. Restarting the draft or match preserves the current difficulty.
 - The host selects the opening mode for a session, unless a ranked ruleset fixes it.
 - Casual/custom sessions should allow more flexibility.
 - Ranked play may enforce standardized rules and map eligibility.
@@ -427,6 +430,7 @@ A feature should generally be considered complete when:
 
 | Version | Date | Notes |
 |---|---|---|
+| 0.6 | 2026-11-24 | Added Versus CPU as the default input mode and documented live secured-territory scores in both local modes. |
 | 0.5 | 2026-11-23 | Implemented main-phase domain rules and confirmed zero points for inaccessible terrain. |
 | 0.4 | 2026-11-23 | Clarified eight-adjacent-cell range and own-knight upgrades. Adopted conservative territory flood fill, secured-square move restriction, either-player no-moves endgame, and secured-playable-square scoring; kept inaccessible-terrain scoring open. |
 | 0.3 | 2026-11-23 | Confirmed Unlimited Draft eligibility, simultaneous resolution, and restart. Defined direct collision and capture as separate ground-health transitions. |

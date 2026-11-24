@@ -3,7 +3,7 @@ using Godot;
 
 internal static class MatchLayout
 {
-    internal const float SidebarWidth = 184f;
+    internal const float SidebarWidth = 126f;
     internal const int PanelSeparation = 8;
     private const float MinimumBoardWidth = 286f;
     private const float Inset = 10f;

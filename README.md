@@ -1,11 +1,11 @@
 # Castrum Tactics
 
-Castrum Tactics is a two-player, turn-based strategy game in development about controlling territory on a 2D grid. Two people can play a full match on one device, from the Unlimited Draft through simultaneous main-phase turns and final scoring. The demonstration map is 7 columns by 5 rows.
+Castrum Tactics is a two-player, turn-based strategy game about controlling territory on a 2D grid. Play against the CPU or share one device with another player, from the Unlimited Draft through simultaneous main-phase turns and final scoring.
 
 ## Open and run
 
 1. Install Godot 4.7.2 .NET and a .NET SDK that can build the project's `net8.0` desktop target and `net9.0` Android target. The .NET 10 SDK can build both targets.
-2. Import `project.godot` in the Godot Project Manager and press **F5** to start a match on one of 50 randomly selected [built-in maps](Documentation/MapFormat.md).
+2. Import `project.godot` in the Godot Project Manager and press **F5** to play as Player One against a Normal CPU on one of 50 randomly selected [built-in maps](Documentation/MapFormat.md).
 3. Run `dotnet build CastrumTactics.csproj` from the repository root to check the Godot C# build from the command line.
 
 When running inside Godot's embedded Game view, select **Input** in the Game toolbar before testing the board. **2D** mode intercepts clicks to inspect nodes. Clicking the board in that mode can outline the full-window renderer. [Godot Game view interaction modes](https://docs.godotengine.org/en/4.7/tutorials/editor/game_embedding.html#interaction-mode)
@@ -14,17 +14,25 @@ The project uses C# and Godot's Compatibility renderer. Android export uses Godo
 
 The modern interface uses a shared Godot theme around the pixel-art board. To preview reduced motion, open `Scenes/main.tscn` and turn off **Motion Enabled** on the **AnimatedBackground** instance in the Inspector. See the [art direction](Documentation/ArtDirection.md#9-interface-and-typography) for theme reuse, font licensing, and background customization.
 
-## Play a local match
+## Play against the CPU
 
 Use left clicks on Windows or taps on Android.
 
-Choose **Player One** (red) or **Player Two** (blue), select a marked square, and press **Submit selection**. The board updates once both players submit. The first player can choose again and press **Revise selection** while waiting. Switching players clears the pale provisional outline and refreshes the legal targets.
+Select a marked square, then click or tap it again or press **Submit selection**. Selecting a different square moves the highlight. You can choose while the CPU is thinking and revise a submission until the CPU submits. The board shows both outcomes together when the round resolves.
+
+The CPU card shows the active difficulty. Open **New Match**, choose Easy, Normal, Hard, Very Hard, or Monster, then confirm. New Match draws a map at random unless a map override is active. **Restart Draft** and **Restart Match** keep the current map and difficulty.
+
+The **Secured Territory** banner starts at 0–0 and updates when the board resolves. It counts secured squares, including empty ones, and keeps the final totals above the board. The left and right scores always represent Player One and Player Two.
+
+## Play a local two-human match
+
+Choose **Player One** (red) or **Player Two** (blue) and select a marked square. Click or tap it again or press **Submit selection**. The board updates once both players submit. While waiting, select your revised square and confirm it the same way or use **Revise selection**. Switching players clears the pale provisional outline and refreshes the legal targets.
 
 Gold dots mark shared draft targets. When only one start remains, it automatically becomes an unowned grave and loses one ground health. Main uses gold frames for the active player's legal targets. Secured cells have a red or blue tint and are unavailable to both players. At the end of a match, both scores and the winner or draw stay visible. **Restart Match** starts a fresh opening on the same map with the initial terrain, health, and starting positions.
 
 ### Windows and Android walkthrough
 
-Start on the demonstration map with `godot --path . -- --map demonstration`. For an editor run or a deterministic Android debug export, set **Map Id Override** on the main scene to `demonstration`. Leave it blank for random startup. Count columns A–G from left to right and rows 1–5 from top to bottom. Submit both selections in each row with coordinates.
+Start on the demonstration map with `godot --path . -- --mode local --map demonstration`. For an editor run or a deterministic Android debug export, set **Mode** to **Local Multiplayer** and **Map Id Override** to `demonstration` on the main scene. Leave the map override blank for random startup. Count columns A–G from left to right and rows 1–5 from top to bottom. Submit both selections in each row with coordinates.
 
 | Turn | Player One | Player Two | What to check |
 | --- | --- | --- | --- |
@@ -59,7 +67,7 @@ The Android build is configured for automatic rotation between portrait and land
 1. Install the Godot 4.7.2 .NET export templates, JDK 17, Android SDK Platform 36, and Build Tools 36.1.0. Install Android SDK Platform-Tools for device deployment and configure the Java and Android SDK paths in Godot's editor settings. The checked-in template uses compile and target API 36 and minimum API 24. Gradle can install missing SDK packages when their licenses have already been accepted. [Gradle SDK downloads](https://developer.android.com/studio/intro/update#download-with-gradle)
 2. On a fresh checkout, open the installed export templates' `android_source.zip` and copy `libs/debug/godot-lib.template_debug.aar` and `libs/release/godot-lib.template_release.aar` into their corresponding folders under `android/build/`. This preserves the project's Gradle scripts and Android resources. Godot generates the project assets and .NET runtime files during export.
 3. In **Project > Export**, choose the **Android** preset to export an ARM64 debug APK. Choose a local output directory such as `exports/`. Keep signing keys and credentials local.
-4. Connect a physical ARM64 Android device with USB debugging enabled. Run `adb install -r <path-to-apk>`, launch **CastrumTactics**, and follow the local match walkthrough with touch.
+4. Connect a physical ARM64 Android device with USB debugging enabled. Run `adb install -r <path-to-apk>` and launch **CastrumTactics**. Test Versus CPU with the normal preset and use the editor overrides above for the deterministic two-human walkthrough.
 
 The template pins NDK `29.0.14206865` for native tooling. The verified debug export used prebuilt native libraries and packaged them without stripping symbols, so it succeeded without that NDK. The current Gradle project has no CMake build. Use the versions in [`config.gradle`](android/build/config.gradle) for this project. The general Godot 4.7 setup guide lists older SDK packages. [Godot 4.7 Android setup](https://docs.godotengine.org/en/4.7/tutorials/export/exporting_for_android.html#download-the-android-sdk)
 
@@ -67,8 +75,15 @@ See the [game design](Documentation/GameDesign.md) and [art direction](Documenta
 
 ## Developer documentation
 
-With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain, local session, CPU, and presentation tests. The tests run without the Godot editor or runtime. The standalone CPU engine offers five provisional profiles with separate Opening and Main pools and configurable opening variation. Monster samples among equivalent best Main candidates. See the [CPU architecture](Documentation/CpuArchitecture.md) for profile settings and the future integration lifecycle.
+With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain, local session, CPU, and presentation tests. The tests run without the Godot editor or runtime. The [CPU architecture](Documentation/CpuArchitecture.md) describes the five provisional profiles and the asynchronous lifecycle. The [session architecture](Documentation/SessionArchitecture.md) shows how to configure a match from code.
 
-After building and importing assets with `godot --headless --path . --import`, run `godot --headless --path . --script Tests/Presentation/DraftLayoutCheck.gd` with Godot 4.7.2 .NET. The test checks both players at three window sizes and replays a full match through revision, resize, final scoring, and restart. GitHub Actions runs it in a separate presentation job.
+After building and importing assets with `godot --headless --path . --import`, run the same two Godot 4.7.2 .NET regressions as CI.
+
+```sh
+godot --headless --path . --script Tests/Presentation/DraftLayoutCheck.gd
+godot --headless --path . --script Tests/Presentation/CpuMatchCheck.gd -- --seed 42
+```
+
+The tests replay complete local and CPU matches and exercise responsive layout, scores, and restarts. For development launches, use `--mode cpu` or `--mode local`, `--map <id>`, and an optional `--seed <int>` after the Godot `--` separator. The seed controls CPU randomness, while the map override fixes the map.
 
 See the [documentation homepage source](Documentation/index.md) for architecture and API reference navigation, and the [documentation contributor guide](Documentation/contributing.md) for local builds, writing conventions, and GitHub Pages setup.
