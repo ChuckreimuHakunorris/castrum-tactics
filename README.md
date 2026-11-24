@@ -5,7 +5,7 @@ Castrum Tactics is a two-player, turn-based strategy game in development about c
 ## Open and run
 
 1. Install Godot 4.7.2 .NET and a .NET SDK that can build the project's `net8.0` desktop target and `net9.0` Android target. The .NET 10 SDK can build both targets.
-2. Import `project.godot` in the Godot Project Manager and press **F5** to run the main scene. Follow the local match walkthrough below.
+2. Import `project.godot` in the Godot Project Manager and press **F5** to start a match on one of 50 randomly selected [built-in maps](Documentation/MapFormat.md).
 3. Run `dotnet build CastrumTactics.csproj` from the repository root to check the Godot C# build from the command line.
 
 When running inside Godot's embedded Game view, select **Input** in the Game toolbar before testing the board. **2D** mode intercepts clicks to inspect nodes. Clicking the board in that mode can outline the full-window renderer. [Godot Game view interaction modes](https://docs.godotengine.org/en/4.7/tutorials/editor/game_embedding.html#interaction-mode)
@@ -24,7 +24,7 @@ Gold dots mark shared draft targets. When only one start remains, it automatical
 
 ### Windows and Android walkthrough
 
-Start a fresh match. Count columns A–G from left to right and rows 1–5 from top to bottom. Submit both selections in each row with coordinates.
+Start on the demonstration map with `godot --path . -- --map demonstration`. For an editor run or a deterministic Android debug export, set **Map Id Override** on the main scene to `demonstration`. Leave it blank for random startup. Count columns A–G from left to right and rows 1–5 from top to bottom. Submit both selections in each row with coordinates.
 
 | Turn | Player One | Player Two | What to check |
 | --- | --- | --- | --- |

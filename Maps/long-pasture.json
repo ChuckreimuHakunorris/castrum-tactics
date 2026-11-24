@@ -1,0 +1,12 @@
+{
+  "id": "long-pasture",
+  "name": "Long Pasture",
+  "width": 8,
+  "height": 4,
+  "layout": [
+    "S......S",
+    "...S....",
+    "....S...",
+    "S......S"
+  ]
+}

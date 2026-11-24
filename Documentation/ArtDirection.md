@@ -81,7 +81,7 @@ To add another recolorable piece, place its neutral transparent base and graysca
 
 The ImageGen placeholders use stepped shapes and limited palettes to stay readable at board size. They are temporary pseudo-pixel artwork. The source textures are larger than the planned production pixel grid.
 
-Terrain textures meet at shared tile edges. A translucent dark olive line marks the inside perimeter of each tile. The line is 2% of the tile width at one-third opacity, with a hard edge and a transparent interior. The board keeps its outer margin.
+Terrain textures meet at shared tile edges. A translucent dark olive grid draws once over the board at one-third opacity. Shared lines stay at least one rendered pixel wide and blend across pixels at fractional positions. The outer edge stays inside the board, which keeps its outer margin.
 
 | Tile or piece | Asset | Appearance |
 | --- | --- | --- |
@@ -98,7 +98,7 @@ ImageGen generated each terrain tile separately. The five opaque square sources 
 
 To replace the placeholders, keep the filenames and use full-bleed opaque squares for terrain and a near-square RGBA frame for the grave. Keep borders, territory accents, and selection markers out of the artwork. Import losslessly with mipmaps disabled and verify the replacements at several board sizes with nearest-neighbor filtering.
 
-The rendering order is terrain, secured-territory tint and edge, the grid, pieces, legal targets, then the provisional selection. `Shaders/selection_indicator.gdshader` measures the distance to the nearest edge in tile UV coordinates. Its uniforms control color (`indicator_color`), border thickness (`border_width`), gradient depth (`fade_depth`), and gradient opacity (`fade_opacity`). The grid material sets gradient opacity to zero. The gold legal border uses 4.5% of the tile width and the pale cyan provisional border uses 6.5%. The selection fades extend 20% inward from their solid borders and start at 42% opacity. The tile center remains clear. A provisional selection replaces the legal gradient on that tile. Opening dots remain visible.
+The rendering order is terrain, secured-territory tint and edge, the grid, pieces, legal targets, then the provisional selection. The grid uses `Shaders/tile_grid.gdshader`. `Shaders/selection_indicator.gdshader` measures the distance to the nearest edge in tile UV coordinates. Its uniforms control color (`indicator_color`), border thickness (`border_width`), gradient depth (`fade_depth`), and gradient opacity (`fade_opacity`). The gold legal border uses 4.5% of the tile width and the pale cyan provisional border uses 6.5%. The selection fades extend 20% inward from their solid borders and start at 42% opacity. The tile center remains clear. A provisional selection replaces the legal gradient on that tile. Opening dots remain visible.
 
 ## 9. Interface and typography
 

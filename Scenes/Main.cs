@@ -49,6 +49,11 @@ public partial class Main : Control
     private PlayerId _activePlayer = PlayerId.PlayerOne;
     private GameSessionSnapshot _displayed = null!;
 
+    /// <summary>Gets or sets the built-in map identifier for deterministic scene startup.</summary>
+    /// <remarks>A blank value selects randomly. The <c>--map</c> user argument takes precedence.</remarks>
+    [Export]
+    public string MapIdOverride { get; set; } = "";
+
     /// <summary>Starts the local demonstration, applies faction accents, and binds the controls to session and layout updates.</summary>
     public override void _Ready()
     {
@@ -70,7 +75,25 @@ public partial class Main : Control
         _playerTwoScore = GetNode<Label>("%PlayerTwoScore");
         _submit = GetNode<Button>("%Submit");
         _restart = GetNode<Button>("%Restart");
-        _session = new LocalGameSession(DemonstrationMap.Create());
+        PredefinedMap map;
+        try
+        {
+            map = SelectMap();
+        }
+        catch (System.Exception ex) when (ex is System.ArgumentException
+            or System.Collections.Generic.KeyNotFoundException or System.IO.InvalidDataException)
+        {
+            GD.PushError(ex.Message);
+            GetTree().Quit(1);
+            return;
+        }
+
+        _session = new LocalGameSession(map.Definition);
+        string mapDescription = $"{map.Name} ({map.Definition.Width} × {map.Definition.Height})";
+        _phase.MouseFilter = MouseFilterEnum.Pass;
+        _phase.TooltipText = mapDescription;
+        GetWindow().Title = $"Castrum Tactics — {mapDescription}";
+        GD.Print($"Selected map '{map.Id}' ({map.Definition.Width} × {map.Definition.Height}).");
 
         var scoreOne = GetNode<PanelContainer>("%ScoreOne");
         var scoreTwo = GetNode<PanelContainer>("%ScoreTwo");
@@ -99,19 +122,40 @@ public partial class Main : Control
         DisplayState(_session.Current);
     }
 
+    private PredefinedMap SelectMap()
+    {
+        string[] args = OS.GetCmdlineUserArgs();
+        int option = System.Array.IndexOf(args, "--map");
+        if (option >= 0)
+        {
+            if (option + 1 >= args.Length || args[option + 1].StartsWith("-", System.StringComparison.Ordinal))
+            {
+                throw new System.ArgumentException("Pass a predefined map identifier after --map.");
+            }
+
+            return PredefinedMapCatalog.BuiltIn.Get(args[option + 1]);
+        }
+
+        return string.IsNullOrEmpty(MapIdOverride)
+            ? PredefinedMapCatalog.BuiltIn.SelectRandom()
+            : PredefinedMapCatalog.BuiltIn.Get(MapIdOverride);
+    }
+
     /// <summary>Stops observing session and layout updates when the scene leaves the tree.</summary>
     public override void _ExitTree()
     {
+        if (_session is null)
+        {
+            return;
+        }
+
         Resized -= UpdateLayout;
         if (OS.HasFeature("android"))
         {
             GetViewport().SizeChanged -= UpdateLayout;
         }
 
-        if (_session is not null)
-        {
-            _session.StateChanged -= DisplayState;
-        }
+        _session.StateChanged -= DisplayState;
     }
 
     private void UpdateLayout()

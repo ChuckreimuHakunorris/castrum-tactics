@@ -33,6 +33,7 @@ public partial class BoardRenderer : Control
     private Node2D? _legalOverlay;
     private Node2D? _selectionOverlay;
     private Texture2D _tileQuad = null!;
+    private ShaderMaterial _gridMaterial = null!;
     private ShaderMaterial _legalMaterial = null!;
 
     /// <summary>Gets the provisional selection for the current view, if any.</summary>
@@ -87,13 +88,13 @@ public partial class BoardRenderer : Control
         using var pixel = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8);
         pixel.Fill(Colors.White);
         _tileQuad = ImageTexture.CreateFromImage(pixel);
-        var gridMaterial = CreateIndicatorMaterial(shader, GridColor, 0.02f);
-        gridMaterial.SetShaderParameter("fade_opacity", 0f);
+        _gridMaterial = new ShaderMaterial { Shader = GD.Load<Shader>("res://Shaders/tile_grid.gdshader") };
+        _gridMaterial.SetShaderParameter("grid_color", GridColor);
         _gridOverlay = new Node2D
         {
             Name = "TileGrid",
             ZIndex = GridLayer,
-            Material = gridMaterial,
+            Material = _gridMaterial,
         };
         _legalMaterial = CreateIndicatorMaterial(shader, LegalTargetColor, 0.045f);
         _legalOverlay = new Node2D
@@ -195,13 +196,8 @@ public partial class BoardRenderer : Control
         }
 
         var geometry = new BoardGeometry(Size, board.Width, board.Height);
-        for (int y = 0; y < board.Height; y++)
-        {
-            for (int x = 0; x < board.Width; x++)
-            {
-                overlay.DrawTextureRect(_tileQuad, geometry.GetCellRect(new BoardPosition(x, y)), tile: false);
-            }
-        }
+        _gridMaterial.SetShaderParameter("grid_size", new Vector2(board.Width, board.Height));
+        overlay.DrawTextureRect(_tileQuad, geometry.Bounds, tile: false);
     }
 
     private void DrawLegalTargets()

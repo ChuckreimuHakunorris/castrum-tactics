@@ -3,6 +3,8 @@ items:
     href: index.md
   - name: Architecture
     href: architecture.md
+  - name: Predefined maps
+    href: MapFormat.md
   - name: API Reference
     href: api/
     topicHref: api/index.md

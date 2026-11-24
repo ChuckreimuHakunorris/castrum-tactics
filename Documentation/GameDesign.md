@@ -228,6 +228,8 @@ At match completion, count **all secured playable squares** for the correspondin
 
 ## 7. Maps
 
+Local play starts on one of 50 uniformly selected [predefined maps](MapFormat.md). The maps range from 3 × 3 to 12 × 12 and vary in terrain and candidate starts. Either restart action reuses the current map.
+
 Maps are data-driven and should not be hard-coded into board logic.
 
 A map should support at least:
@@ -272,7 +274,7 @@ A basic map editor is planned relatively early and should eventually allow a use
 - Validate the map.
 - Save and load map data.
 
-Godot Resources are a candidate format for built-in maps. If used, load them into engine-independent C# map data before passing them to the game rules. User-created maps may use serialized data files. The final format and versioning strategy should be selected when the editor is designed.
+The built-in maps use JSON with terrain and starting positions encoded as rows of characters. The domain loads them into immutable map definitions before starting a match. A format and versioning strategy for user-created maps remains an editor design decision.
 
 Online map sharing is a later feature.
 

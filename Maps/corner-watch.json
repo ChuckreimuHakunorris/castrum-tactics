@@ -1,0 +1,11 @@
+{
+  "id": "corner-watch",
+  "name": "Corner Watch",
+  "width": 3,
+  "height": 3,
+  "layout": [
+    "S.#",
+    "...",
+    "#.S"
+  ]
+}

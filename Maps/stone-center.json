@@ -1,0 +1,11 @@
+{
+  "id": "stone-center",
+  "name": "Stone Center",
+  "width": 3,
+  "height": 3,
+  "layout": [
+    ".S.",
+    ".#.",
+    ".S."
+  ]
+}

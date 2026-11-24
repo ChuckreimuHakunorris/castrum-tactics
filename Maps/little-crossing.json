@@ -1,0 +1,12 @@
+{
+  "id": "little-crossing",
+  "name": "Little Crossing",
+  "width": 4,
+  "height": 4,
+  "layout": [
+    ".S..",
+    "##..",
+    "..#.",
+    "...S"
+  ]
+}
