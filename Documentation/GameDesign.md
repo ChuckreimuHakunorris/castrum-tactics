@@ -369,6 +369,8 @@ Feedback should explain what is wrong, why it matters, what a professional alter
 
 ## 11. Development roadmap
 
+The [CPU decision engine](CpuArchitecture.md) provides five provisional difficulty profiles for the Unlimited Draft and main phase. In-game single-player support and empirical difficulty balancing are future milestones.
+
 The current proposed order is:
 
 1. Establish the repository, Godot 4 .NET project with the Compatibility renderer, VS Code development setup, coding conventions, and documentation baseline.

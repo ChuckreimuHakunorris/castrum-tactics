@@ -68,8 +68,12 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - The domain assembly embeds the JSON maps so desktop, Android, and engine-independent simulations share one validated catalog. Catalog constraints apply to the built-in files. `MapDefinition` retains its general-purpose dimension and terrain validation.
 - Startup selects once using the catalog's uniform random selection, an explicit user argument, or a scene override. The local session retains the definition for both restart paths. Rendering and resize continue to consume session snapshots.
 
+## Milestone 8A decisions
+
+- [The CPU decision engine](CpuArchitecture.md) lives in a separate .NET assembly and reads public domain snapshots. A single static evaluator ranks legal selections for five profiles. The caller owns randomness and session submissions, so simultaneous resolution and pending selections remain inside the session.
+
 ## Planned
 
-The current scene supports two players sharing a device. CPU inputs and a remote session remain future work. Ranked map validation remains a separate design decision.
+The current scene supports two players sharing a device. Wiring CPU inputs into Godot and adding a remote session remain future work. Ranked map validation remains a separate design decision.
 
 The [Game Design Document](GameDesign.md) records the rules and open design decisions. The [Session Architecture](SessionArchitecture.md) describes the authority and presentation boundaries. The [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) documents the domain rules and local integration.
