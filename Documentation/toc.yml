@@ -5,6 +5,8 @@ items:
     href: architecture.md
   - name: Predefined maps
     href: MapFormat.md
+  - name: CPU architecture
+    href: CpuArchitecture.md
   - name: API Reference
     href: api/
     topicHref: api/index.md

@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="CastrumTactics.Domain.Tests" />
+    <InternalsVisibleTo Include="CastrumTactics.AI.Tests" />
     <EmbeddedResource Include="../Maps/*.json" LogicalName="CastrumTactics.Maps.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

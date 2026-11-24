@@ -44,7 +44,7 @@ public sealed class GameSessionSnapshot
     /// <summary>Gets the final score and winner in Finished. Null in all other phases.</summary>
     public MainPhaseResult? FinalResult => _mainPhase?.Result;
 
-    /// <summary>Gets the command identifier, which advances once per resolved round and once per restart.</summary>
+    /// <summary>Gets the session-scoped command identifier, which advances once per resolved round and once per restart.</summary>
     public long RoundId { get; }
 
     /// <summary>Gets the immutable set of legal main-phase selections for the specified player.</summary>

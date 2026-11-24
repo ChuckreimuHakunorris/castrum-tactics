@@ -67,7 +67,7 @@ See the [game design](Documentation/GameDesign.md) and [art direction](Documenta
 
 ## Developer documentation
 
-With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain, local session, and presentation tests. The tests run without the Godot editor or runtime.
+With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain, local session, CPU, and presentation tests. The tests run without the Godot editor or runtime. The standalone CPU engine offers five provisional profiles with separate Opening and Main pools and configurable opening variation. Monster samples among equivalent best Main candidates. See the [CPU architecture](Documentation/CpuArchitecture.md) for profile settings and the future integration lifecycle.
 
 After building and importing assets with `godot --headless --path . --import`, run `godot --headless --path . --script Tests/Presentation/DraftLayoutCheck.gd` with Godot 4.7.2 .NET. The test checks both players at three window sizes and replays a full match through revision, resize, final scoring, and restart. GitHub Actions runs it in a separate presentation job.
 
