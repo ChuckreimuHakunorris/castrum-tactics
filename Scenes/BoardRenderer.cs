@@ -6,24 +6,34 @@ using CastrumTactics.Domain;
 using Godot;
 
 /// <summary>Presents the board snapshot, including terrain, territory, pieces, and selection highlights.</summary>
-/// <remarks>Centers the board and fits its piece sprites to the same square cells used for hit testing.</remarks>
+/// <remarks>
+/// Uses the same square cells for drawing, sprite placement, and hit testing.
+/// Terrain, secured territory, and the tile grid draw beneath the pieces. Turn indicators draw above them.
+/// </remarks>
 public partial class BoardRenderer : Control
 {
-    private static readonly Color HealthyColor = new("#829661");
-    private static readonly Color SlightlyDegradedColor = new("#9c875c");
-    private static readonly Color HeavilyDegradedColor = new("#765b47");
-    private static readonly Color DepletedColor = new("#473b35");
-    private static readonly Color InaccessibleColor = new("#343a49");
+    private const int GridLayer = 1;
+    private const int PieceLayer = 2;
+    private const int LegalTargetLayer = 3;
+    private const int SelectionLayer = 4;
+    private const float GraveFootprint = 1f;
+    private static readonly Color GridColor = new("#18200d55");
     private static readonly Color LegalTargetColor = new("#f8d47b");
     private static readonly Color SelectionColor = new("#defaff");
-    private static readonly Color GraveColor = new("#ccc4bd");
 
+    private readonly BoardTerrainArt _terrainArt = new();
     private BoardState? _board;
     private TerritoryAnalysis? _territory;
     private HashSet<BoardPosition> _eligiblePositions = [];
-    private readonly List<(BoardPosition Position, Sprite2D Sprite, FactionPieceArt Art)> _pieceSprites = [];
+    private readonly List<(BoardPosition Position, Sprite2D Sprite, float Footprint)> _pieceSprites = [];
     private FactionPieceArt? _knightArt;
     private FactionPieceArt? _castleArt;
+    private Texture2D? _graveTexture;
+    private Node2D? _gridOverlay;
+    private Node2D? _legalOverlay;
+    private Node2D? _selectionOverlay;
+    private Texture2D _tileQuad = null!;
+    private ShaderMaterial _legalMaterial = null!;
 
     /// <summary>Gets the provisional selection for the current view, if any.</summary>
     public BoardPosition? SelectedPosition { get; private set; }
@@ -46,25 +56,66 @@ public partial class BoardRenderer : Control
         bool piecesMayHaveChanged = !ReferenceEquals(_board, board);
         _board = board;
         _territory = territory;
+        if (_legalOverlay is not null)
+        {
+            _legalOverlay.Material = territory is null ? null : _legalMaterial;
+        }
+
         if (piecesMayHaveChanged)
         {
             UpdatePieceSprites(board);
+            _gridOverlay?.QueueRedraw();
         }
 
+        QueueRedraw();
         ClearSelection();
     }
 
-    /// <summary>Removes the provisional highlight and schedules a redraw.</summary>
+    /// <summary>Removes the provisional highlight and restores any legal indicator it replaced.</summary>
     public void ClearSelection()
     {
         SelectedPosition = null;
-        QueueRedraw();
+        RedrawIndicators();
     }
 
-    /// <summary>Keeps sprite placement and board drawing in sync with the control's size.</summary>
+    /// <summary>Initializes the grid and indicator layers and keeps them aligned during resize.</summary>
     public override void _Ready()
     {
+        TextureFilter = TextureFilterEnum.Nearest;
+        var shader = GD.Load<Shader>("res://Shaders/selection_indicator.gdshader");
+        // Textured quads give the shader a full 0–1 UV range for every tile.
+        using var pixel = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8);
+        pixel.Fill(Colors.White);
+        _tileQuad = ImageTexture.CreateFromImage(pixel);
+        var gridMaterial = CreateIndicatorMaterial(shader, GridColor, 0.02f);
+        gridMaterial.SetShaderParameter("fade_opacity", 0f);
+        _gridOverlay = new Node2D
+        {
+            Name = "TileGrid",
+            ZIndex = GridLayer,
+            Material = gridMaterial,
+        };
+        _legalMaterial = CreateIndicatorMaterial(shader, LegalTargetColor, 0.045f);
+        _legalOverlay = new Node2D
+        {
+            Name = "LegalTargets",
+            ZIndex = LegalTargetLayer,
+            Material = _territory is null ? null : _legalMaterial,
+        };
+        _selectionOverlay = new Node2D
+        {
+            Name = "ProvisionalSelection",
+            ZIndex = SelectionLayer,
+            Material = CreateIndicatorMaterial(shader, SelectionColor, 0.065f),
+        };
+        _gridOverlay.Draw += DrawTileGrid;
+        _legalOverlay.Draw += DrawLegalTargets;
+        _selectionOverlay.Draw += DrawProvisionalSelection;
+        AddChild(_gridOverlay);
+        AddChild(_legalOverlay);
+        AddChild(_selectionOverlay);
         Resized += RefreshLayout;
+        RefreshLayout();
     }
 
     /// <summary>Handles left-button and touch presses that reach the board after GUI input.</summary>
@@ -99,14 +150,14 @@ public partial class BoardRenderer : Control
         if (SelectedPosition != position)
         {
             SelectedPosition = position;
-            QueueRedraw();
+            RedrawIndicators();
             SelectionChanged?.Invoke();
         }
 
         GetViewport().SetInputAsHandled();
     }
 
-    /// <summary>Draws terrain, indicators, and graves in the control's local coordinates.</summary>
+    /// <summary>Draws terrain and secured-territory overlays beneath the piece and indicator layers.</summary>
     public override void _Draw()
     {
         if (_board is not { } board || Size.X <= 0 || Size.Y <= 0)
@@ -122,36 +173,78 @@ public partial class BoardRenderer : Control
                 var position = new BoardPosition(x, y);
                 Rect2 tile = geometry.GetCellRect(position);
                 CellState cell = board.GetCell(position);
-                DrawRect(tile, GroundColor(cell));
+                DrawTextureRect(_terrainArt.GetTexture(cell), tile, tile: false);
                 DrawTerritory(tile, position);
-
-                if (_eligiblePositions.Contains(position))
-                {
-                    if (_territory is null)
-                    {
-                        DrawCircle(tile.GetCenter(), geometry.CellPitch * 0.16f, LegalTargetColor, antialiased: true);
-                    }
-                    else
-                    {
-                        // Keep the legal-target frame inside the separate provisional selection outline.
-                        float width = Mathf.Min(2.5f, tile.Size.X * 0.06f);
-                        DrawRect(tile.Grow(-tile.Size.X * 0.15f), LegalTargetColor, filled: false, width: width);
-                    }
-                }
-
-                if (cell.Piece == PieceType.Grave)
-                {
-                    DrawGrave(tile);
-                }
-
-                if (SelectedPosition == position)
-                {
-                    // Godot centers the stroke on its path, so inset it to preserve the gap.
-                    float width = Mathf.Min(4f, tile.Size.X * 0.12f);
-                    DrawRect(tile.Grow(-width / 2), SelectionColor, filled: false, width: width);
-                }
             }
         }
+    }
+
+    private static ShaderMaterial CreateIndicatorMaterial(Shader shader, Color color, float borderWidth)
+    {
+        var material = new ShaderMaterial { Shader = shader };
+        material.SetShaderParameter("indicator_color", color);
+        material.SetShaderParameter("border_width", borderWidth);
+        return material;
+    }
+
+    private void DrawTileGrid()
+    {
+        if (_board is not { } board || _gridOverlay is not { } overlay || Size.X <= 0 || Size.Y <= 0)
+        {
+            return;
+        }
+
+        var geometry = new BoardGeometry(Size, board.Width, board.Height);
+        for (int y = 0; y < board.Height; y++)
+        {
+            for (int x = 0; x < board.Width; x++)
+            {
+                overlay.DrawTextureRect(_tileQuad, geometry.GetCellRect(new BoardPosition(x, y)), tile: false);
+            }
+        }
+    }
+
+    private void DrawLegalTargets()
+    {
+        if (_board is not { } board || _legalOverlay is not { } overlay || Size.X <= 0 || Size.Y <= 0)
+        {
+            return;
+        }
+
+        var geometry = new BoardGeometry(Size, board.Width, board.Height);
+        foreach (BoardPosition position in _eligiblePositions)
+        {
+            if (!board.IsWithinBounds(position))
+            {
+                continue;
+            }
+
+            Rect2 tile = geometry.GetCellRect(position);
+            if (_territory is null)
+            {
+                overlay.DrawCircle(tile.GetCenter(), geometry.CellPitch * 0.16f, LegalTargetColor, antialiased: true);
+            }
+            else if (position != SelectedPosition)
+            {
+                overlay.DrawTextureRect(_tileQuad, tile, tile: false);
+            }
+        }
+    }
+
+    private void DrawProvisionalSelection()
+    {
+        if (_board is { } board && _selectionOverlay is { } overlay &&
+            SelectedPosition is { } position && Size.X > 0 && Size.Y > 0)
+        {
+            var geometry = new BoardGeometry(Size, board.Width, board.Height);
+            overlay.DrawTextureRect(_tileQuad, geometry.GetCellRect(position), tile: false);
+        }
+    }
+
+    private void RedrawIndicators()
+    {
+        _legalOverlay?.QueueRedraw();
+        _selectionOverlay?.QueueRedraw();
     }
 
     private void UpdatePieceSprites(BoardState board)
@@ -168,17 +261,29 @@ public partial class BoardRenderer : Control
             for (int x = 0; x < board.Width; x++)
             {
                 var position = new BoardPosition(x, y);
-                CellState cell = board.GetCell(position);
-                if (cell.Owner is { } owner && GetPieceArt(cell.Piece) is { } art)
+                if (CreatePieceSprite(board.GetCell(position)) is { } piece)
                 {
-                    Sprite2D sprite = art.CreateSprite(owner);
-                    AddChild(sprite);
-                    _pieceSprites.Add((position, sprite, art));
+                    piece.Sprite.ZIndex = PieceLayer;
+                    AddChild(piece.Sprite);
+                    _pieceSprites.Add((position, piece.Sprite, piece.Footprint));
                 }
             }
         }
 
         LayoutPieceSprites(board);
+    }
+
+    private (Sprite2D Sprite, float Footprint)? CreatePieceSprite(CellState cell)
+    {
+        if (cell.Piece == PieceType.Grave)
+        {
+            _graveTexture ??= GD.Load<Texture2D>("res://Assets/Sprites/Objects/Grave/grave.png");
+            return (new Sprite2D { Texture = _graveTexture }, GraveFootprint);
+        }
+
+        return cell.Owner is { } owner && GetPieceArt(cell.Piece) is { } art
+            ? (art.CreateSprite(owner), art.CellFootprint)
+            : null;
     }
 
     private FactionPieceArt? GetPieceArt(PieceType piece) => piece switch
@@ -202,14 +307,16 @@ public partial class BoardRenderer : Control
         }
 
         QueueRedraw();
+        _gridOverlay?.QueueRedraw();
+        RedrawIndicators();
     }
 
     private void LayoutPieceSprites(BoardState board)
     {
         var geometry = new BoardGeometry(Size, board.Width, board.Height);
-        foreach (var (position, sprite, art) in _pieceSprites)
+        foreach (var (position, sprite, footprint) in _pieceSprites)
         {
-            art.Place(sprite, geometry.GetCellRect(position));
+            FactionPieceArt.Place(sprite, geometry.GetCellRect(position), footprint);
         }
     }
 
@@ -228,31 +335,5 @@ public partial class BoardRenderer : Control
             float edge = Mathf.Min(2.5f, tile.Size.Y * 0.07f);
             DrawRect(new Rect2(tile.Position.X, tile.End.Y - edge, tile.Size.X, edge), new Color(color, 0.68f));
         }
-    }
-
-    private static Color GroundColor(CellState cell)
-    {
-        if (cell.Terrain == TerrainType.Inaccessible)
-        {
-            return InaccessibleColor;
-        }
-
-        return cell.GroundHealth switch
-        {
-            0 => DepletedColor,
-            1 => HeavilyDegradedColor,
-            2 => SlightlyDegradedColor,
-            _ => HealthyColor
-        };
-    }
-
-    private void DrawGrave(Rect2 tile)
-    {
-        Vector2 center = tile.GetCenter();
-        float size = tile.Size.X;
-        Vector2 arm = Vector2.One * (size * 0.19f);
-        Vector2 otherArm = new(arm.X, -arm.Y);
-        DrawLine(center - arm, center + arm, GraveColor, size * 0.09f, antialiased: true);
-        DrawLine(center - otherArm, center + otherArm, GraveColor, size * 0.09f, antialiased: true);
     }
 }

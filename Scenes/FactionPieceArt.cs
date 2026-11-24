@@ -7,6 +7,8 @@ internal sealed class FactionPieceArt(Texture2D texture, Texture2D mask, float c
     private readonly Shader _shader = GD.Load<Shader>("res://Shaders/faction_recolor.gdshader");
     private readonly Dictionary<PlayerId, ShaderMaterial> _materials = [];
 
+    internal float CellFootprint { get; } = cellFootprint;
+
     internal Sprite2D CreateSprite(PlayerId owner)
     {
         if (!_materials.TryGetValue(owner, out ShaderMaterial material))
@@ -26,9 +28,9 @@ internal sealed class FactionPieceArt(Texture2D texture, Texture2D mask, float c
         };
     }
 
-    internal void Place(Sprite2D sprite, Rect2 tile)
+    internal static void Place(Sprite2D sprite, Rect2 tile, float cellFootprint)
     {
-        float scale = GetScale(texture.GetSize(), tile.Size, cellFootprint);
+        float scale = GetScale(sprite.Texture.GetSize(), tile.Size, cellFootprint);
         sprite.Visible = scale > 0;
         sprite.Position = tile.GetCenter();
         sprite.Scale = Vector2.One * scale;
