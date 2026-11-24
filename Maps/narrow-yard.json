@@ -1,0 +1,12 @@
+{
+  "id": "narrow-yard",
+  "name": "Narrow Yard",
+  "width": 3,
+  "height": 4,
+  "layout": [
+    "S..",
+    ".#.",
+    ".#.",
+    "..S"
+  ]
+}

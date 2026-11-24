@@ -1,0 +1,13 @@
+{
+  "id": "quarry-mouth",
+  "name": "Quarry Mouth",
+  "width": 6,
+  "height": 5,
+  "layout": [
+    "#....S",
+    "##....",
+    "###.S.",
+    "###...",
+    "S....#"
+  ]
+}

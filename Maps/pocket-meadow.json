@@ -1,0 +1,11 @@
+{
+  "id": "pocket-meadow",
+  "name": "Pocket Meadow",
+  "width": 3,
+  "height": 3,
+  "layout": [
+    "S..",
+    "...",
+    "..S"
+  ]
+}

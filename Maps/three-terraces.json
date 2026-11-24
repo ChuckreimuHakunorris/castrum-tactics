@@ -1,0 +1,15 @@
+{
+  "id": "three-terraces",
+  "name": "Three Terraces",
+  "width": 6,
+  "height": 7,
+  "layout": [
+    "S.....",
+    "....#.",
+    "###.#.",
+    "..S...",
+    ".#.###",
+    ".#....",
+    ".....S"
+  ]
+}

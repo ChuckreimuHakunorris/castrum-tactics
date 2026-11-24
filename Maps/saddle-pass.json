@@ -1,0 +1,14 @@
+{
+  "id": "saddle-pass",
+  "name": "Saddle Pass",
+  "width": 6,
+  "height": 6,
+  "layout": [
+    "S....S",
+    "..##..",
+    "...#..",
+    "..#...",
+    "..##..",
+    "S....S"
+  ]
+}

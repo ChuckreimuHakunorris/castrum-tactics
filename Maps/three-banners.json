@@ -1,0 +1,11 @@
+{
+  "id": "three-banners",
+  "name": "Three Banners",
+  "width": 3,
+  "height": 3,
+  "layout": [
+    "S.S",
+    "...",
+    ".S."
+  ]
+}

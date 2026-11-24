@@ -1,0 +1,12 @@
+{
+  "id": "ring-field",
+  "name": "Ring Field",
+  "width": 4,
+  "height": 4,
+  "layout": [
+    "S...",
+    ".##.",
+    ".##.",
+    "...S"
+  ]
+}

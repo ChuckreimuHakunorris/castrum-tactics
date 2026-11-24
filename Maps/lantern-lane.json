@@ -1,0 +1,11 @@
+{
+  "id": "lantern-lane",
+  "name": "Lantern Lane",
+  "width": 7,
+  "height": 3,
+  "layout": [
+    "S.....S",
+    "###.###",
+    "S.....S"
+  ]
+}

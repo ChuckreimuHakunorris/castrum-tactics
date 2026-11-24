@@ -7,21 +7,28 @@ namespace CastrumTactics.Presentation.Tests;
 public sealed class BoardGeometryTests
 {
     [Theory]
-    [InlineData(1120, 400)]
-    [InlineData(360, 640)]
-    [InlineData(140, 100)]
-    public void DrawnCellsStaySquareCenteredAndHittable(int width, int height)
+    [InlineData(1120, 400, 7, 5)]
+    [InlineData(360, 640, 7, 5)]
+    [InlineData(140, 100, 7, 5)]
+    [InlineData(140, 100, 3, 3)]
+    [InlineData(360, 640, 4, 8)]
+    [InlineData(1120, 400, 8, 4)]
+    [InlineData(360, 640, 6, 12)]
+    [InlineData(1120, 400, 12, 6)]
+    [InlineData(140, 100, 12, 12)]
+    [InlineData(360, 640, 12, 12)]
+    public void DrawnCellsStaySquareCenteredAndHittable(int width, int height, int columns, int rows)
     {
-        var geometry = new BoardGeometry(new Vector2(width, height), 7, 5);
+        var geometry = new BoardGeometry(new Vector2(width, height), columns, rows);
         Rect2 first = geometry.GetCellRect(new BoardPosition(0, 0));
-        Rect2 last = geometry.GetCellRect(new BoardPosition(6, 4));
+        Rect2 last = geometry.GetCellRect(new BoardPosition(columns - 1, rows - 1));
 
         Assert.Equal(first.Position.X, width - last.End.X, 3);
         Assert.Equal(first.Position.Y, height - last.End.Y, 3);
-        Assert.Equal(0.96f * Math.Min(width / 7f, height / 5f), geometry.CellPitch, 3);
-        for (int y = 0; y < 5; y++)
+        Assert.Equal(0.96f * Math.Min((float)width / columns, (float)height / rows), geometry.CellPitch, 3);
+        for (int y = 0; y < rows; y++)
         {
-            for (int x = 0; x < 7; x++)
+            for (int x = 0; x < columns; x++)
             {
                 var position = new BoardPosition(x, y);
                 Rect2 cell = geometry.GetCellRect(position);

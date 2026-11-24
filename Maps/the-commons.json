@@ -1,0 +1,13 @@
+{
+  "id": "the-commons",
+  "name": "The Commons",
+  "width": 5,
+  "height": 5,
+  "layout": [
+    "S.S.S",
+    ".....",
+    "..S..",
+    ".....",
+    "S.S.S"
+  ]
+}

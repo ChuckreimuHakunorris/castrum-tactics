@@ -4,7 +4,7 @@
 
 The Godot project references [CastrumTactics.Domain](xref:CastrumTactics.Domain) as a separate assembly. The Godot project's compile items exclude domain and test source files. The domain library targets .NET 8 and has no Godot or NuGet package dependencies. The xUnit test project exercises both rules and coordination in that assembly.
 
-[`Main`](xref:Global.Main) creates a [`LocalGameSession`](xref:CastrumTactics.Domain.Session.LocalGameSession) for the 7-by-5 demonstration map. The scene uses [`IGameSession`](xref:CastrumTactics.Domain.Session.IGameSession) to issue commands and read state from the opening draft through final scoring. It passes the board, current targets for the active player, and territory analysis to [`BoardRenderer`](xref:Global.BoardRenderer).
+[`Main`](xref:Global.Main) creates a [`LocalGameSession`](xref:CastrumTactics.Domain.Session.LocalGameSession) on one of 50 [predefined maps](MapFormat.md). The scene uses [`IGameSession`](xref:CastrumTactics.Domain.Session.IGameSession) to issue commands and read state from the opening draft through final scoring. It passes the board, current targets for the active player, and territory analysis to [`BoardRenderer`](xref:Global.BoardRenderer).
 
 `BoardRenderer` is a Godot `Control` that draws [textured terrain and secured territory](ArtDirection.md#8-placeholder-board-art), [knight and castle sprites with faction recoloring](ArtDirection.md#7-implemented-faction-sprites), and neutral gravestones. Opening targets use gold dots. Main-phase targets use gold tile-edge outlines with inward fades, and a brighter pale cyan version marks the provisional selection in either phase. The board stays centered with square cells in its allotted space.
 
@@ -52,7 +52,7 @@ The renderer handles physical left-button and touch presses after GUI input, con
 
 ## Milestone 7B decisions
 
-- The board draws each terrain rectangle followed by its secured-territory tint. A child canvas at Z index 1 draws translucent tile edges with the indicator shader and a zero-opacity gradient. Piece sprites sit above the grid at Z index 2. Legal and provisional indicators use separate child canvases at Z indices 3 and 4. Godot uses those indices for stacking even when the piece nodes are rebuilt.
+- The board draws each terrain rectangle followed by its secured-territory tint. A child canvas at Z index 1 draws the grid on a single quad sized by board geometry. The grid shader computes pixel coverage so fractional tile edges stay visible on dense boards. Piece sprites sit above the grid at Z index 2. Legal and provisional indicators use separate child canvases at Z indices 3 and 4. Godot uses those indices for stacking even when the piece nodes are rebuilt.
 - A terrain texture depends on accessibility and ground health. The piece sprite comes from the same snapshot and is chosen independently, so a collision can show a gravestone over ground with health remaining.
 - The main-phase legal canvas skips the provisional square so only one edge gradient covers it. Both canvases reuse materials and draw quads that match the tile bounds. The opening legal canvas draws the existing dots.
 
@@ -62,6 +62,11 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - A full-width header shows phase and turn context. The match sets the wrapped status and instruction labels' maximum width to the available panel width. Instructions, waiting text, and rejections share a bounded slot whose height accounts for the longest wrap. The slot clips overflow, and the draft controls reserve button space for their widest captions so submitting or revising a selection keeps the panel and board in place. The board expands to fill the remaining area and uses 96% of its limiting dimension. On Android, the layout converts the safe area to stretched canvas coordinates and uses display density to maintain a 48 × 48 dp target for the player and action buttons. Resizing retains the session and provisional selection.
 - The reusable [animated background](xref:Global.AnimatedBackground) stays below the gameplay canvas siblings and ignores pointer events. The Compatibility shader calculates lifecycle parameters per vertex and blends bounded, soft lights per fragment. Reduced motion swaps in a separate static shader and avoids the per-frame animation work. See the [interface and background conventions](ArtDirection.md#9-interface-and-typography).
 - The sidebar breakpoint reserves the widest requirements of the player, action, restart, and score controls, plus panel padding and the board gap. It also requires 286 canvas units for the board and checks the aspect ratio of the inset safe area. The measurements stay independent of the current match phase and container sizes. `StableInstructionLayout` measures the instruction slot only when its available width changes.
+
+## Milestone 7D decisions
+
+- The domain assembly embeds the JSON maps so desktop, Android, and engine-independent simulations share one validated catalog. Catalog constraints apply to the built-in files. `MapDefinition` retains its general-purpose dimension and terrain validation.
+- Startup selects once using the catalog's uniform random selection, an explicit user argument, or a scene override. The local session retains the definition for both restart paths. Rendering and resize continue to consume session snapshots.
 
 ## Planned
 

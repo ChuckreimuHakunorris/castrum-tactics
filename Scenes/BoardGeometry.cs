@@ -18,6 +18,7 @@ internal readonly struct BoardGeometry
     }
 
     internal float CellPitch { get; }
+    internal Rect2 Bounds => _bounds;
 
     internal Rect2 GetCellRect(BoardPosition position)
     {

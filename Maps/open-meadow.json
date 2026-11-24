@@ -1,0 +1,13 @@
+{
+  "id": "open-meadow",
+  "name": "Open Meadow",
+  "width": 6,
+  "height": 5,
+  "layout": [
+    "S.....",
+    "......",
+    "..S...",
+    "......",
+    ".....S"
+  ]
+}

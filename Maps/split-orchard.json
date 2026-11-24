@@ -1,0 +1,13 @@
+{
+  "id": "split-orchard",
+  "name": "Split Orchard",
+  "width": 7,
+  "height": 5,
+  "layout": [
+    "S..#..S",
+    "...#...",
+    "S..#..S",
+    "...#...",
+    ".....S."
+  ]
+}

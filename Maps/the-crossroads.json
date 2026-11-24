@@ -1,0 +1,13 @@
+{
+  "id": "the-crossroads",
+  "name": "The Crossroads",
+  "width": 7,
+  "height": 5,
+  "layout": [
+    "...#...",
+    ".S...S.",
+    "##...##",
+    ".S...S.",
+    "...#..."
+  ]
+}

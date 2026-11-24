@@ -3,6 +3,8 @@ extends SceneTree
 const MATCH_SCENE := preload("res://Scenes/main.tscn")
 const WINDOW_SIZES := [Vector2i(900, 650), Vector2i(720, 1080), Vector2i(320, 240)]
 var failed := false
+var mouse_event := InputEventMouseButton.new()
+var touch_event := InputEventScreenTouch.new()
 
 func _initialize() -> void:
 	call_deferred("run")
@@ -12,6 +14,7 @@ func run() -> void:
 		root.size = window_size
 		for player in ["One", "Two"]:
 			var game := MATCH_SCENE.instantiate()
+			game.set("MapIdOverride", "demonstration")
 			for label_name in ["%Status", "%Detail"]:
 				var label: Label = game.get_node(label_name)
 				if label.custom_maximum_size.x <= 0:
@@ -28,12 +31,68 @@ func run() -> void:
 				return
 	print("Draft layout stayed fixed for both players at all three window sizes.")
 	var game := MATCH_SCENE.instantiate()
+	game.set("MapIdOverride", "demonstration")
 	root.size = Vector2i(720, 1080)
 	root.add_child(game)
 	await check_complete_match(game)
+	game.queue_free()
+	await process_frame
 	if not failed:
-		print("Verified draft revision, resize, main turns, final scores, and restart.")
+		await check_board_extremes()
+	if not failed:
+		print("Verified draft revision, resize, main turns, final scores, restart, and both board size extremes.")
 		quit()
+
+func check_board_extremes() -> void:
+	for sample in [["pocket-meadow", 3, Vector2(2, 2)], ["twelve-towers", 12, Vector2(11, 11)]]:
+		var edge: int = sample[1]
+		var dimensions := Vector2(edge, edge)
+		root.size = Vector2i(360, 640)
+		var game := MATCH_SCENE.instantiate()
+		game.set("MapIdOverride", sample[0])
+		root.add_child(game)
+		await settle()
+		var board: Control = game.get_node("%BoardRenderer")
+		var submit: Button = game.get_node("%Submit")
+		var phase: Label = game.get_node("%Phase")
+		var one: Button = game.get_node("%PlayerOne")
+		var two: Button = game.get_node("%PlayerTwo")
+		expect(phase.tooltip_text.ends_with("(%d × %d)" % [edge, edge]), "Wrong map size loaded.")
+		if edge == 12:
+			choose(board, Vector2(2, 2), dimensions)
+			await settle()
+			expect(submit.disabled, "An inaccessible tile was selectable.")
+		choose(board, Vector2.ZERO, dimensions, true)
+		await settle()
+		expect(not submit.disabled, "Top-left start did not register on %s." % sample[0])
+		root.size = Vector2i(1280, 720)
+		await settle()
+		expect(not submit.disabled, "Resize cleared the choice on %s." % sample[0])
+		click(submit.get_global_rect().get_center())
+		await settle()
+		click(two.get_global_rect().get_center())
+		await settle()
+		choose(board, sample[2], dimensions)
+		await settle()
+		expect(not submit.disabled, "Bottom-right start did not register on %s." % sample[0])
+		click(submit.get_global_rect().get_center())
+		await settle()
+		var expected_phase := "Main · Turn 1" if edge == 3 else "Draft · Round 2"
+		expect(phase.text == expected_phase, "Opening round did not resolve on %s." % sample[0])
+		if edge == 12:
+			for y in [0, 3, 8, 11]:
+				for x in [0, 5, 11]:
+					var position := Vector2(x, y)
+					if phase.text.begins_with("Draft") and position != Vector2.ZERO and position != sample[2]:
+						await play(board, one, submit, position, dimensions)
+						await play(board, two, submit, position, dimensions)
+			expect(phase.text == "Main · Turn 1", "Large-board draft did not advance to Main.")
+			await play(board, one, submit, Vector2.ZERO, dimensions)
+			expect(submit.text == "Revise selection", "Large-board main submission did not enter the waiting state.")
+			await play(board, two, submit, sample[2], dimensions)
+			expect(phase.text in ["Main · Turn 2", "Match complete"], "Large-board main turn did not resolve.")
+		game.queue_free()
+		await process_frame
 
 func expect(condition: bool, message: String) -> void:
 	if not condition:
@@ -111,19 +170,27 @@ func check_controls_fit(buttons: Array[Button], labels: Array[Label]) -> void:
 			"Label is outside the viewport: %s" % label.text)
 		expect(label.get_visible_line_count() == label.get_line_count(), "Label is clipped: %s" % label.text)
 
-func play(board: Control, player: Button, submit: Button, coordinate: Vector2) -> void:
+func play(board: Control, player: Button, submit: Button, coordinate: Vector2, dimensions := Vector2(7, 5)) -> void:
 	click(player.get_global_rect().get_center())
 	await settle()
 	expect(player.button_pressed, "Player could not be activated.")
-	choose(board, coordinate)
+	choose(board, coordinate, dimensions)
 	expect(not submit.disabled, "Expected a legal choice at %s." % coordinate)
 	click(submit.get_global_rect().get_center())
 	await settle()
 
-func choose(board: Control, coordinate: Vector2) -> void:
-	var pitch := 0.96 * minf(board.size.x / 7.0, board.size.y / 5.0)
-	var origin := (board.size - Vector2(7, 5) * pitch) / 2.0
-	click(board.get_global_transform_with_canvas() * (origin + (coordinate + Vector2(0.5, 0.5)) * pitch))
+func choose(board: Control, coordinate: Vector2, dimensions := Vector2(7, 5), touch := false) -> void:
+	var pitch := 0.96 * minf(board.size.x / dimensions.x, board.size.y / dimensions.y)
+	var origin := (board.size - dimensions * pitch) / 2.0
+	var point := board.get_global_transform_with_canvas() * (origin + (coordinate + Vector2(0.5, 0.5)) * pitch)
+	if touch:
+		touch_event.position = point
+		touch_event.pressed = true
+		root.push_input(touch_event, true)
+		touch_event.pressed = false
+		root.push_input(touch_event, true)
+	else:
+		click(point)
 
 func check_draft_submission(game: Node, player: String) -> bool:
 	var board: Control = game.get_node("%BoardRenderer")
@@ -176,14 +243,12 @@ func check_draft_submission(game: Node, player: String) -> bool:
 	return not failed
 
 func click(point: Vector2) -> void:
-	var event := InputEventMouseButton.new()
-	event.position = point
-	event.button_index = MOUSE_BUTTON_LEFT
-	event.pressed = true
-	root.push_input(event, true)
-	event = event.duplicate() as InputEventMouseButton
-	event.pressed = false
-	root.push_input(event, true)
+	mouse_event.position = point
+	mouse_event.button_index = MOUSE_BUTTON_LEFT
+	mouse_event.pressed = true
+	root.push_input(mouse_event, true)
+	mouse_event.pressed = false
+	root.push_input(mouse_event, true)
 
 func settle() -> void:
 	for frame in 6:
