@@ -1,6 +1,6 @@
 # Predefined maps
 
-The library contains 50 hand-authored battlefields in `Maps/`. Normal startup draws one uniformly at random. The local session retains that definition through the opening, main phase, and final scoring. **Restart Draft** and **Restart Match** restore the same battlefield.
+The library contains 50 hand-authored battlefields in `Maps/`. Normal startup draws one uniformly at random. The local session retains that definition through the opening, main phase, and final scoring. **Restart Draft** and **Restart Match** restore the same battlefield. **New Match** in Versus CPU draws again unless a map override is active.
 
 ## File format
 
@@ -37,7 +37,7 @@ The domain project embeds the JSON files in its assembly. Godot loads the same l
 
 ## Reproduce a match
 
-Use `godot --path . -- --map demonstration` with Godot .NET to replay the README walkthrough. In the editor, set the main scene's **Map Id Override** to a particular catalog ID. Leave it blank for normal random startup. The game logs the selected ID and board size and shows the display name and dimensions in the desktop window title and phase tooltip.
+Use `godot --path . -- --mode local --map demonstration` with Godot .NET to replay the README walkthrough. In the editor, set **Mode** to **Local Multiplayer** for the walkthrough and **Map Id Override** to a particular catalog ID. Leave the map override blank for random startup. The game logs the selected ID and board size and shows the display name and dimensions in the desktop window title and phase tooltip.
 
 Engine-independent tests and simulation tools can call `PredefinedMapCatalog.BuiltIn.Get("demonstration")` or enumerate `.Maps`. Pass `new Random(seed)` to `SelectRandom` for a reproducible sequence with the same catalog and .NET implementation.
 

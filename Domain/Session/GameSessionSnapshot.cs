@@ -41,6 +41,12 @@ public sealed class GameSessionSnapshot
     /// <summary>Gets strategic control on the current board in Main or Finished. Null during the draft.</summary>
     public TerritoryAnalysis? Territory => _mainPhase?.Territory;
 
+    /// <summary>Gets Player One's secured territory total, or zero during the opening or a failed draft.</summary>
+    public int PlayerOneScore => Territory?.PlayerOneScore ?? 0;
+
+    /// <summary>Gets Player Two's secured territory total, or zero during the opening or a failed draft.</summary>
+    public int PlayerTwoScore => Territory?.PlayerTwoScore ?? 0;
+
     /// <summary>Gets the final score and winner in Finished. Null in all other phases.</summary>
     public MainPhaseResult? FinalResult => _mainPhase?.Result;
 

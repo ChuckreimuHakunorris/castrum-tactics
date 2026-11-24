@@ -40,8 +40,6 @@ public sealed class MainPhaseState
         TerritoryAnalysis territory = TerritoryAnalyzer.Analyze(board);
         var playerOne = new HashSet<BoardPosition>();
         var playerTwo = new HashSet<BoardPosition>();
-        int playerOneScore = 0;
-        int playerTwoScore = 0;
 
         for (int y = 0; y < board.Height; y++)
         {
@@ -49,15 +47,6 @@ public sealed class MainPhaseState
             {
                 var position = new BoardPosition(x, y);
                 TerritoryControl control = territory.GetControl(position);
-                if (control == TerritoryControl.SecuredByPlayerOne)
-                {
-                    playerOneScore++;
-                }
-                else if (control == TerritoryControl.SecuredByPlayerTwo)
-                {
-                    playerTwoScore++;
-                }
-
                 CellState cell = board.GetCell(position);
                 if (cell.Owner is PlayerId owner)
                 {
@@ -68,7 +57,7 @@ public sealed class MainPhaseState
         }
 
         MainPhaseResult? result = playerOne.Count == 0 || playerTwo.Count == 0
-            ? new MainPhaseResult(playerOneScore, playerTwoScore)
+            ? new MainPhaseResult(territory.PlayerOneScore, territory.PlayerTwoScore)
             : null;
         return new MainPhaseState(board, territory, playerOne.ToFrozenSet(), playerTwo.ToFrozenSet(), result);
     }

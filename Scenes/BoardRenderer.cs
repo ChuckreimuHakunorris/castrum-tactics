@@ -35,12 +35,21 @@ public partial class BoardRenderer : Control
     private Texture2D _tileQuad = null!;
     private ShaderMaterial _gridMaterial = null!;
     private ShaderMaterial _legalMaterial = null!;
+    private TerritoryScoreBanner? _scoreBanner;
 
     /// <summary>Gets the provisional selection for the current view, if any.</summary>
     public BoardPosition? SelectedPosition { get; private set; }
 
     /// <summary>Reports that a player highlighted a different eligible board position.</summary>
     public event Action? SelectionChanged;
+
+    /// <summary>Requests confirmation when the current provisional square is pressed again while it is still eligible.</summary>
+    /// <remarks>The renderer leaves the highlight in place for the caller to submit or clear.</remarks>
+    public event Action? SelectionConfirmed;
+
+    /// <summary>Gets the actual square-cell grid bounds in the renderer's local coordinates.</summary>
+    /// <returns>The rendered grid rectangle, or an empty rectangle before a board is assigned.</returns>
+    public Rect2 GetRenderedGridBounds() => _board is { } board ? GetGeometry(board).Bounds : default;
 
     /// <summary>Displays the supplied board, updates its pieces, and clears the provisional selection.</summary>
     /// <param name="board">The snapshot providing the board's dimensions, terrain, and pieces.</param>
@@ -64,6 +73,7 @@ public partial class BoardRenderer : Control
 
         if (piecesMayHaveChanged)
         {
+            LayoutBanner(board);
             UpdatePieceSprites(board);
             _gridOverlay?.QueueRedraw();
         }
@@ -82,6 +92,7 @@ public partial class BoardRenderer : Control
     /// <summary>Initializes the grid and indicator layers and keeps them aligned during resize.</summary>
     public override void _Ready()
     {
+        _scoreBanner = GetNodeOrNull<TerritoryScoreBanner>("TerritoryScoreBanner");
         TextureFilter = TextureFilterEnum.Nearest;
         var shader = GD.Load<Shader>("res://Shaders/selection_indicator.gdshader");
         // Textured quads give the shader a full 0–1 UV range for every tile.
@@ -121,7 +132,7 @@ public partial class BoardRenderer : Control
 
     /// <summary>Handles left-button and touch presses that reach the board after GUI input.</summary>
     /// <param name="inputEvent">A viewport event. Emulated, canceled, and release events are ignored.</param>
-    /// <remarks>Misses preserve the current highlight. An eligible hit consumes the event.</remarks>
+    /// <remarks>Misses preserve the highlight. An eligible hit consumes the event and highlights or confirms the square.</remarks>
     public override void _UnhandledInput(InputEvent inputEvent)
     {
         if (_board is not { } board || _eligiblePositions.Count == 0 ||
@@ -141,21 +152,23 @@ public partial class BoardRenderer : Control
             return;
         }
 
-        var geometry = new BoardGeometry(Size, board.Width, board.Height);
+        var geometry = GetGeometry(board);
         Vector2 localPoint = MakeCanvasPositionLocal(point);
         if (geometry.HitTest(localPoint) is not { } position || !_eligiblePositions.Contains(position))
         {
             return;
         }
 
-        if (SelectedPosition != position)
+        GetViewport().SetInputAsHandled();
+        if (SelectedPosition == position)
         {
-            SelectedPosition = position;
-            RedrawIndicators();
-            SelectionChanged?.Invoke();
+            SelectionConfirmed?.Invoke();
+            return;
         }
 
-        GetViewport().SetInputAsHandled();
+        SelectedPosition = position;
+        RedrawIndicators();
+        SelectionChanged?.Invoke();
     }
 
     /// <summary>Draws terrain and secured-territory overlays beneath the piece and indicator layers.</summary>
@@ -166,7 +179,7 @@ public partial class BoardRenderer : Control
             return;
         }
 
-        var geometry = new BoardGeometry(Size, board.Width, board.Height);
+        var geometry = GetGeometry(board);
         for (int y = 0; y < board.Height; y++)
         {
             for (int x = 0; x < board.Width; x++)
@@ -195,7 +208,7 @@ public partial class BoardRenderer : Control
             return;
         }
 
-        var geometry = new BoardGeometry(Size, board.Width, board.Height);
+        var geometry = GetGeometry(board);
         _gridMaterial.SetShaderParameter("grid_size", new Vector2(board.Width, board.Height));
         overlay.DrawTextureRect(_tileQuad, geometry.Bounds, tile: false);
     }
@@ -207,7 +220,7 @@ public partial class BoardRenderer : Control
             return;
         }
 
-        var geometry = new BoardGeometry(Size, board.Width, board.Height);
+        var geometry = GetGeometry(board);
         foreach (BoardPosition position in _eligiblePositions)
         {
             if (!board.IsWithinBounds(position))
@@ -232,7 +245,7 @@ public partial class BoardRenderer : Control
         if (_board is { } board && _selectionOverlay is { } overlay &&
             SelectedPosition is { } position && Size.X > 0 && Size.Y > 0)
         {
-            var geometry = new BoardGeometry(Size, board.Width, board.Height);
+            var geometry = GetGeometry(board);
             overlay.DrawTextureRect(_tileQuad, geometry.GetCellRect(position), tile: false);
         }
     }
@@ -299,6 +312,7 @@ public partial class BoardRenderer : Control
     {
         if (_board is { } board)
         {
+            LayoutBanner(board);
             LayoutPieceSprites(board);
         }
 
@@ -309,12 +323,18 @@ public partial class BoardRenderer : Control
 
     private void LayoutPieceSprites(BoardState board)
     {
-        var geometry = new BoardGeometry(Size, board.Width, board.Height);
+        var geometry = GetGeometry(board);
         foreach (var (position, sprite, footprint) in _pieceSprites)
         {
             FactionPieceArt.Place(sprite, geometry.GetCellRect(position), footprint);
         }
     }
+
+    private float BannerReserve => _scoreBanner is null ? 0 : TerritoryScoreBanner.ReservedHeight(Size.Y);
+
+    private BoardGeometry GetGeometry(BoardState board) => new(Size, board.Width, board.Height, BannerReserve);
+
+    private void LayoutBanner(BoardState board) => _scoreBanner?.AlignWith(GetGeometry(board).Bounds, BannerReserve);
 
     private void DrawTerritory(Rect2 tile, BoardPosition position)
     {

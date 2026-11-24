@@ -47,7 +47,7 @@ The architecture defines two kinds of session:
 
 **LocalGameSession**
 
-- Runs a complete local match between two people sharing one device. Human versus CPU is a later input mode.
+- Runs a complete local match with either two humans sharing one device or one human and a CPU opponent.
 - Coordinates selections from both participants.
 - Invokes the shared domain rules locally.
 - Maintains the authoritative local match state.
@@ -108,12 +108,26 @@ For local matches, the local session is authoritative.
 The current local sequence is:
 
 1. The scene displays shared opening positions or the active player's legal main-phase targets and lets the active player highlight a provisional choice.
-2. The scene submits an [`OpeningSelection`](xref:CastrumTactics.Domain.Session.OpeningSelection) or [`MainPhaseCommand`](xref:CastrumTactics.Domain.Session.MainPhaseCommand) with the player, position, and displayed round identifier.
+2. A second press on the highlighted square and the Submit or Revise button use the same command path. The scene submits an [`OpeningSelection`](xref:CastrumTactics.Domain.Session.OpeningSelection) or [`MainPhaseCommand`](xref:CastrumTactics.Domain.Session.MainPhaseCommand) with the player, position, and displayed round identifier.
 3. The session checks the player, round identifier, phase, and eligibility from the applicable domain rules. It keeps an accepted choice private and allows revisions until the other player submits.
 4. The second player's submission resolves both selections against the same board. If exactly one opening start remains, the session resolves both players selecting it before publishing. The session clears pending choices and advances the identifier once per resolved round. After a successful draft or main-phase turn, it evaluates the resulting board for the next main-phase turn or final result.
 5. The session publishes the new snapshot. The scene clears the provisional highlight and renders the updated board and status. A completed match keeps its board, territory, and final result visible and rejects further gameplay submissions.
 
-The CPU decision engine currently returns synchronous proposals against the public snapshot. The future asynchronous caller must verify that the originating session is still active and that the proposal's phase and session-scoped round ID are current. Human submissions and revisions within that round leave the decision valid. See the [Milestone 8B integration lifecycle](CpuArchitecture.md#milestone-8b-integration-lifecycle).
+Versus CPU uses a separate coordinator in the application. It starts work against the public snapshot and consumes completion on the scene's process callback, after any current session publication has returned. Session identity, phase, round, player, and submission status are checked before issuing the same commands as human input. Human submissions and revisions within that round leave the decision valid. See the [Milestone 8B integration lifecycle](CpuArchitecture.md#milestone-8b-integration-lifecycle).
+
+### Match configuration
+
+An immutable [`MatchConfiguration`](xref:CastrumTactics.Match.MatchConfiguration) captures mode, human faction, and CPU profile choice. Normal startup uses Versus CPU, with Player One as human and Normal difficulty. In Local Multiplayer either player can use the toggle. Versus CPU keeps the configured human active and shows passive **You** and **CPU** status cards.
+
+Call `Configure` on the scene before adding it to the tree. In this example `matchScene` is the instantiated [`Main`](xref:Global.Main) scene.
+
+```csharp
+using CastrumTactics.Match;
+
+matchScene.Configure(new MatchConfiguration(GameMode.LocalMultiplayer), mapId: "demonstration");
+```
+
+The editor also exposes **Mode**, **Human Player**, **Difficulty**, and **Map Id Override**. Command-line overrides after `--` accept `--mode cpu` or `--mode local`, `--map <id>`, and `--seed <int>`. Mode, map, and seed flags take precedence over their startup defaults. Unknown options and invalid values fail startup with a diagnostic.
 
 ### 4.2 Online multiplayer
 
@@ -162,9 +176,9 @@ Possible presentation states include:
 
 A submission acknowledgment and a completed turn are distinct events.
 
-A [`GameSessionSnapshot`](xref:CastrumTactics.Domain.Session.GameSessionSnapshot) publishes an immutable board, phase, round identifier, turn counts, and each player's submission flag. `EligiblePositions` is the shared opening list. `GetMainPhaseLegalSelections` supplies player-specific targets during Main. Main and Finished snapshots include territory, while Finished also includes the final score and winner or draw. Pending coordinates stay private. Rejected commands leave the current snapshot and pending choices intact.
+A [`GameSessionSnapshot`](xref:CastrumTactics.Domain.Session.GameSessionSnapshot) publishes an immutable board, phase, round identifier, turn counts, and each player's submission flag. `EligiblePositions` is the shared opening list. `GetMainPhaseLegalSelections` supplies player-specific targets during Main. Main and Finished snapshots include territory and its secured totals. Draft snapshots expose zero scores. Finished also includes the final outcome. Pending coordinates stay private. Rejected commands leave the current snapshot and pending choices intact.
 
-The local scene passes a player identifier chosen by a UI toggle. Changing the active player clears the provisional highlight and refreshes their targets. `RestartDraft` accepts the current round identifier in `OpeningRestartRequired` or `Finished`. It restores the original map, clears both pending choices, turn counts, territory and final result, and publishes a fresh Opening snapshot. The identifier advances on restart so commands from the previous match are stale. The scene clears the provisional highlight and makes Player One active.
+Changing the active player in Local Multiplayer clears the provisional highlight and refreshes their targets. In Versus CPU a CPU submission preserves the human highlight until the round advances. `RestartDraft` accepts the current round identifier in `OpeningRestartRequired` or `Finished`. It restores the original map and clears pending choices, turn counts, territory, and final result. The identifier advances, and the scene restores the starting human input owner with the same difficulty. Versus CPU's confirmed New Match creates a different session with the selected difficulty and a fresh map draw unless an override is active.
 
 ## 7. Architectural constraints
 
@@ -172,7 +186,7 @@ The following constraints should guide future implementation:
 
 1. Do not duplicate gameplay rules between singleplayer and multiplayer.
 2. Do not place authoritative rules or turn resolution in Godot scene scripts.
-3. Do not make the gameplay scene depend directly on CPU or networking implementations.
+3. Keep computation and transport behind focused match components. Scene code binds input, thread dispatch, and rendering.
 4. Keep the domain library independent of Godot and infrastructure.
 5. Treat remote game-state updates as authoritative in multiplayer.
 6. Keep CPU decision-making separate from game-rule execution.
@@ -200,9 +214,12 @@ Adopt the architecture incrementally.
 
 - The session evaluates the successful opening board and publishes Main or Finished in the same update. It then coordinates simultaneous main-phase submissions through final scoring. Godot renders the published targets, territory, and result.
 
+**Milestone 8B — Versus CPU and live scoring**
+
+- Pass CPU proposals through the shared command mechanism and display authoritative territory totals in both modes.
+
 **Later milestones**
 
-- Introduce CPU decision-making through the same command mechanism.
 - Introduce `RemoteGameSession` when multiplayer development begins.
 - Connect the multiplayer server to the shared domain rules.
 - Expand session status handling, error reporting, and reconnection behavior as required.
@@ -215,7 +232,6 @@ The following remain undecided:
 
 - Asynchronous acknowledgments, transport snapshots, and thread dispatch for a remote `IGameSession`.
 - Whether to move session coordination into a separate assembly as more implementations are added.
-- How CPU decision-making is scheduled and canceled.
 - The multiplayer backend, network protocol, and server hosting model.
 - Timeout, disconnection, reconnection, and forfeiture behavior.
 - Network-specific session status and error reporting.

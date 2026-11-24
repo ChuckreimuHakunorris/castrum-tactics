@@ -9,3 +9,4 @@
 - When implementing main-phase rules, update the game design, session/public API docs, test coverage, and any affected architecture articles in the same change. Preserve opening-draft behavior and the common local/remote session direction.
 - Follow [Predefined maps](Documentation/MapFormat.md) when editing built-in maps, and keep the catalog summary and validation tests in sync.
 - Follow [CPU architecture](Documentation/CpuArchitecture.md) when changing CPU decisions. Keep the engine on the public snapshot boundary and verify originating session identity as well as round currentness when integrating asynchronous proposals.
+- Keep live and final territory scores on the same authoritative analysis. Use the board geometry for the score banner and retain both local input modes in runtime regression coverage.

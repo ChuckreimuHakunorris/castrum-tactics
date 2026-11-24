@@ -64,6 +64,9 @@ jobs:
       - name: Import project assets
         timeout-minutes: 5
         run: '"$GODOT" --headless --path . --import'
-      - name: Run match presentation regression
+      - name: Run local match presentation regression
         timeout-minutes: 2
         run: '"$GODOT" --headless --path . --script Tests/Presentation/DraftLayoutCheck.gd'
+      - name: Run CPU match presentation regression
+        timeout-minutes: 2
+        run: '"$GODOT" --headless --path . --script Tests/Presentation/CpuMatchCheck.gd -- --seed 42'
