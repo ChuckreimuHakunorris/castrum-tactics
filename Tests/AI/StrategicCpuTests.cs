@@ -27,7 +27,7 @@ public sealed class StrategicCpuTests
         Assert.Null(alternative.Result);
         Assert.Equal((1, 1), (alternative.Territory.PlayerOneScore, alternative.Territory.PlayerTwoScore));
 
-        var report = Engine.DecideWithDiagnostics(before, One, Monster, new Random(42));
+        var report = Engine.DecideWithDiagnostics(before, One, Profile(2, 18, 10, 850), new Random(42));
         var search = report.Search!;
         Assert.Equal(2, search.Depth);
         Assert.Equal(6, search.Replies.Count);
@@ -74,7 +74,7 @@ public sealed class StrategicCpuTests
         Assert.True(timed.Search!.TimeLimitReached);
         Assert.Contains(timed.Decision!.Value.Position, snapshot.GetMainPhaseLegalSelections(One));
         Assert.Throws<ArgumentOutOfRangeException>(() => new CpuDecisionEngine(TimeSpan.Zero));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new CpuSearchOptions(3, 5, 5, 100, 0.4, 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new CpuSearchOptions(7, 5, 5, 100, 0.4, 1));
     }
 
     [Fact]

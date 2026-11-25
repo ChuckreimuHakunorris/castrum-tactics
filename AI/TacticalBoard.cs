@@ -77,18 +77,53 @@ internal sealed class TacticalBoard
     internal int SurvivalSupport(int index, PlayerId player) => _rules.KnightSupportRange == 1 && _rules.CastleSupportRange == 1
         ? Support(index, player) : Supporters(index, player).Count();
 
-    internal IEnumerable<int> SupportedTargets(int index, PieceType source) =>
+    internal Neighborhood SupportedTargets(int index, PieceType source) =>
         Neighbors(index, _rules.SurvivalSupportRange(source));
 
-    internal IEnumerable<int> Neighbors(int index, int range = 1)
+    internal bool InSupportRange(int source, int target, PieceType piece)
     {
-        BoardPosition position = Position(index);
-        for (int y = Math.Max(0, position.Y - range); y <= Math.Min(_height - 1, position.Y + range); y++)
+        var a = Position(source);
+        var b = Position(target);
+        return source != target && Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y)) <= _rules.SurvivalSupportRange(piece);
+    }
+
+    internal Neighborhood Neighbors(int index, int range = 1) => new(_width, _height, index, range);
+
+    // Ranking walks this window several times for each candidate. Keep its iterator on the stack.
+    internal readonly record struct Neighborhood(int Width, int Height, int Center, int Range)
+    {
+        public Enumerator GetEnumerator() => new(Width, Height, Center, Range);
+
+        internal struct Enumerator
         {
-            for (int x = Math.Max(0, position.X - range); x <= Math.Min(_width - 1, position.X + range); x++)
+            private readonly int _width, _center, _left, _right, _bottom;
+            private int _x, _y;
+
+            internal Enumerator(int width, int height, int center, int range)
             {
-                int neighbor = y * _width + x;
-                if (neighbor != index) yield return neighbor;
+                _width = width;
+                _center = center;
+                _left = Math.Max(0, center % width - range);
+                _right = Math.Min(width - 1, center % width + range);
+                _bottom = Math.Min(height - 1, center / width + range);
+                _x = _left - 1;
+                _y = Math.Max(0, center / width - range);
+            }
+
+            public int Current => _y * _width + _x;
+
+            public bool MoveNext()
+            {
+                do
+                {
+                    if (++_x > _right)
+                    {
+                        _x = _left;
+                        _y++;
+                    }
+                }
+                while (_y <= _bottom && Current == _center);
+                return _y <= _bottom;
             }
         }
     }

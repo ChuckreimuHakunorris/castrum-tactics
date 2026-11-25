@@ -43,7 +43,11 @@ public sealed class CpuDecisionReport
 /// <param name="CollisionChecked">Whether this action was evaluated against a legal same-square reply, either in the common set or as an additional adverse-only check.</param>
 /// <param name="Depth">The comparable completed depth used for this action.</param>
 public readonly record struct CpuActionAnalysis(BoardPosition Position, double Expected, double Adverse,
-    bool CollisionChecked, int Depth);
+    bool CollisionChecked, int Depth)
+{
+    /// <summary>Gets whether all legal opposing replies were covered in a verified winning line.</summary>
+    public bool ProvenWin { get; init; }
+}
 
 /// <summary>Shows the weighted, signed nonterminal evaluation terms from the acting player's perspective.</summary>
 /// <param name="Secured">Authoritative secured score lead times its phase weight.</param>
@@ -65,10 +69,16 @@ public readonly record struct CpuReplyAnalysis(BoardPosition Position, double Pr
 /// <param name="Replies">The common root opponent response set.</param>
 /// <param name="Position">Strategic feature contributions of the input board in Main, or null during the draft.</param>
 /// <param name="ResolvedPairs">Total authoritative pair resolutions performed.</param>
-/// <param name="Depth">Deepest fully compared search pass, or zero when using the static fallback.</param>
+/// <param name="Depth">Comparable search depth used to select the action, or zero for the static fallback.</param>
 /// <param name="BudgetExhausted">Whether the next complete comparison could not fit within the pair budget.</param>
 /// <param name="TimeLimitReached">Whether the optional elapsed-time safeguard interrupted search.</param>
 /// <param name="Elapsed">Total wall time for the decision with diagnostics enabled.</param>
 public sealed record CpuSearchReport(IReadOnlyList<CpuActionAnalysis> Actions, IReadOnlyList<CpuReplyAnalysis> Replies,
     CpuStrategicFeatures? Position, int ResolvedPairs, int Depth, bool BudgetExhausted, bool TimeLimitReached,
-    TimeSpan Elapsed);
+    TimeSpan Elapsed)
+{
+    /// <summary>Gets how many requests reused an already resolved and evaluated pair in this decision.</summary>
+    public int ReusedPairs { get; init; }
+    /// <summary>Gets the deepest complete comparison, including a deeper pass that the selection policy declined.</summary>
+    public int CompletedDepth { get; init; }
+}

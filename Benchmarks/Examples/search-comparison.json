@@ -1,0 +1,19 @@
+{
+  "id": "8d2-search-tuning",
+  "format": "baseline",
+  "participants": [
+    { "id": "8c", "opponent": "frozen8c:Monster" },
+    { "id": "wide", "opponent": "strategic:Monster", "pairBudget": 2000, "search": { "depth": 2, "ownCandidates": 22, "opponentCandidates": 14 } },
+    { "id": "deep", "opponent": "strategic:Monster", "pairBudget": 2000, "search": { "depth": 3, "continuationOwnCandidates": 2, "continuationOpponentCandidates": 2, "deepFinalists": 2, "verifyTerminalWins": true, "proofOnlyDeepening": false } },
+    { "id": "deep-large", "opponent": "strategic:Monster", "pairBudget": 4000, "search": { "depth": 3, "continuationOwnCandidates": 3, "continuationOpponentCandidates": 2, "deepFinalists": 2, "verifyTerminalWins": true, "proofOnlyDeepening": false } },
+    { "id": "depth-four", "opponent": "strategic:Monster", "pairBudget": 8000, "search": { "depth": 4, "continuationOwnCandidates": 2, "continuationOpponentCandidates": 2, "deepFinalists": 2, "verifyTerminalWins": true, "proofOnlyDeepening": false } }
+  ],
+  "references": ["8c"],
+  "maps": { "ids": ["bellflower-reach", "twin-basins", "banner-plain"] },
+  "opening": { "mode": "fixed" },
+  "seeds": [42],
+  "swapSeats": true,
+  "workers": 2,
+  "strategicMetrics": false,
+  "outputDirectory": "exports/tournaments/8d2-search-tuning"
+}

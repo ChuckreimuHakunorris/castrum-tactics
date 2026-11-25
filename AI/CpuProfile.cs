@@ -11,7 +11,7 @@ public enum CpuDifficulty
     Hard,
     /// <summary>Uses strategic search with two-turn planning and little variation.</summary>
     VeryHard,
-    /// <summary>Uses the widest strategic search and varies draft choices.</summary>
+    /// <summary>Uses the widest strategic search, verifies deeper tactical wins, and varies draft choices.</summary>
     Monster
 }
 
@@ -129,7 +129,7 @@ public static class CpuDifficultyProfiles
         new(WithSupport(new(2.0, 1.9, 1.9, 1.6, 1.1, 1.1, 1.3, 1.15)), 8, 3, 0.12, 0.55)
             { Search = new(2, 14, 9, 500, 0.36, 1.1) },
         new(WithSupport(new(2.0, 2.1, 2.0, 1.7, 1.2, 1.2, 1.4, 1.25)), 16, 1, 0, 0.5)
-            { Search = new(2, 18, 10, 850, 0.40, 1.0) },
+            { Search = new(3, 18, 10, 850, 0.40, 1.0, 6, 6, 3, verifyTerminalWins: false, proofOnlyDeepening: true) },
     ];
 
     private static CpuEvaluationWeights WithSupport(CpuEvaluationWeights weights) =>

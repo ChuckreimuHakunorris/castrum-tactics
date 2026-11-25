@@ -17,7 +17,8 @@ internal static partial class Program
     internal sealed record TournamentOpponent(ParticipantSpec Spec, string Version, TournamentDecision Decide);
     internal sealed record DecisionSample(string Move, double Milliseconds = 0, long AllocatedBytes = 0,
         int? Pairs = null, int? Depth = null, bool? BudgetExhausted = null, bool? TimeLimitReached = null,
-        bool? Fallback = null, object? Diagnostics = null, bool Measured = false);
+        bool? Fallback = null, object? Diagnostics = null, bool Measured = false, int? ReusedPairs = null,
+        int? CompletedDepth = null);
     internal sealed record TournamentRound(string Phase, int Number, DecisionSample Red, DecisionSample Blue,
         int RedScore, int BlueScore);
     internal sealed record TournamentResult(string Id, string Status, string Opening, PlayerId? Winner,
@@ -33,7 +34,8 @@ internal static partial class Program
             throw new ArgumentException($"'{spec.Id}' has an invalid time limit. Use a positive value up to 60000 ms.");
         string[] parts = spec.Opponent.Split(':');
         string kind = parts[0];
-        if (kind != "strategic" && (spec.PairBudget is not null || spec.Weights is not null || spec.TimeLimitMs is not null))
+        if (kind != "strategic" && (spec.PairBudget is not null || spec.Weights is not null ||
+            spec.TimeLimitMs is not null || spec.Search is not null))
             throw new ArgumentException($"'{spec.Id}' can only tune production strategic opponents.");
         if (spec.Opponent == "probe")
         {
@@ -53,13 +55,21 @@ internal static partial class Program
             case "strategic":
                 var defaults = CpuDifficultyProfiles.Get(level);
                 var search = defaults.Search!;
+                var overrides = spec.Search;
                 var profile = new CpuProfile(spec.Weights ?? defaults.Weights, defaults.OpeningCandidateLimit,
                     defaults.MainCandidateLimit, defaults.MainTemperature, defaults.OpeningTemperature,
                     defaults.OpeningDiversity, defaults.UrgentOpeningDiversity, defaults.OpeningMaximumScoreDifference,
                     defaults.MainMaximumScoreDifference)
                 {
-                    Search = new(search.Depth, search.OwnCandidates, search.OpponentCandidates,
-                        spec.PairBudget ?? search.PairBudget, search.Risk, search.ReplyTemperature)
+                    Search = new(overrides?.Depth ?? search.Depth, overrides?.OwnCandidates ?? search.OwnCandidates,
+                        overrides?.OpponentCandidates ?? search.OpponentCandidates, spec.PairBudget ?? search.PairBudget,
+                        overrides?.Risk ?? search.Risk, overrides?.ReplyTemperature ?? search.ReplyTemperature,
+                        overrides?.ContinuationOwnCandidates ?? search.ContinuationOwnCandidates,
+                        overrides?.ContinuationOpponentCandidates ?? search.ContinuationOpponentCandidates,
+                        overrides?.DeepFinalists ?? search.DeepFinalists,
+                        overrides?.VerifyTerminalWins ?? search.VerifyTerminalWins,
+                        overrides?.RequireFullRootReplies ?? search.RequireFullRootReplies,
+                        overrides?.ProofOnlyDeepening ?? search.ProofOnlyDeepening)
                 };
                 var engine = spec.TimeLimitMs is double milliseconds
                     ? new CpuDecisionEngine(TimeSpan.FromMilliseconds(milliseconds)) : Engine;
@@ -70,7 +80,8 @@ internal static partial class Program
                     return new(Coordinate(decision.Decision!.Value.Position), Pairs: report?.ResolvedPairs,
                         Depth: report?.Depth, BudgetExhausted: report?.BudgetExhausted,
                         TimeLimitReached: report?.TimeLimitReached, Fallback: report is null ? null : report.Depth == 0,
-                        Diagnostics: diagnostics ? decision : null);
+                        Diagnostics: diagnostics ? decision : null, ReusedPairs: report?.ReusedPairs,
+                        CompletedDepth: report?.CompletedDepth);
                 });
             case "frozen8c":
                 var frozenEngine = new EightC.CpuDecisionEngine();

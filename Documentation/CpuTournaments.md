@@ -23,12 +23,14 @@ The JSON examples cover a five-difficulty round robin, explicit fixed drafts aga
 
 | Opponent ID | Implementation and provenance |
 | --- | --- |
-| `strategic:<difficulty>` | Current production policy and profile. Optional `pairBudget`, `weights` (a complete [CpuEvaluationWeights](xref:CastrumTactics.AI.CpuEvaluationWeights) object), and `timeLimitMs` overrides apply only to that participant. |
+| `strategic:<difficulty>` | Current production policy and profile. Optional `pairBudget`, `weights` (a complete [CpuEvaluationWeights](xref:CastrumTactics.AI.CpuEvaluationWeights) object), `timeLimitMs`, and `search` overrides apply only to that participant. |
 | `frozen8c:<difficulty>` | Eight original AI sources from `6d5c1355e1f119a42feb5f2e7f848bc63d66b145`, the corrected 8C draft collision implementation merged in `1682d48`. `Benchmarks/Frozen8C` builds a separate assembly, including the evaluator, search options, and all difficulty profiles. |
 | `static:<difficulty>` | The original five static AI sources from `afb0dcbab5b789ed8820017c84648ed4dd3bbe14` in `Benchmarks/Frozen`. |
 | `probe` | Dot's frozen One-Turn Probe from the original Knight Support benchmark archive for `afb0dcbab5b789ed8820017c84648ed4dd3bbe14`. It uses frozen Normal's shortlist and plays frozen Normal during the draft. |
 
 The difficulty names are `Easy`, `Normal`, `Hard`, `VeryHard`, and `Monster`. Each participant has a unique ID, even when several entries share an implementation. A future CPU can register a versioned adapter in `CreateOpponent` that takes a published snapshot, seat, seeded random source, diagnostics flag, and cancellation token. The runner owns timing, session validation, and history. All adapters should return an action from the supplied snapshot and report only the search counters their implementation exposes.
+
+An optional `search` object overrides `depth`, `ownCandidates`, `opponentCandidates`, `continuationOwnCandidates`, `continuationOpponentCandidates`, `deepFinalists`, `risk`, `replyTemperature`, `verifyTerminalWins`, `requireFullRootReplies`, and `proofOnlyDeepening` independently. Omitted values inherit the selected difficulty. Set `proofOnlyDeepening` to false to compare heuristic deepening for Monster, and set continuation widths explicitly when comparing against an older configuration. All supplied overrides are part of the manifest fingerprint. The performance exports include selected and completed depth counts, simulated pairs per second and reused pair counts. [Example configurations and measured results](CpuSearchOptimization.md)
 
 The frozen policies use the checkout's shared domain assembly, with its build identified in every manifest. The 8C.1 catalog update retained the 8C Knight Support gameplay behavior. For exact reproduction of Dot's original benchmark, including its pinned 8B.1 Domain, use the [archived reproduction workflow](CpuBenchmarks.md#frozen-controls-and-provenance). The original fixtures and legacy commands remain available.
 

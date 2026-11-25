@@ -6,8 +6,9 @@ using CastrumTactics.Domain.Session;
 namespace CastrumTactics.AI;
 
 // Each node uses one common response distribution. Extra collisions are risk checks only.
-internal sealed class SimultaneousSearch
+internal sealed partial class SimultaneousSearch
 {
+    private const int ProofRootActionLimit = 6;
     private readonly PlayerId _player;
     private readonly PlayerId _opponent;
     private readonly CpuProfile _profile;
@@ -20,6 +21,8 @@ internal sealed class SimultaneousSearch
     private int _pairs;
     private bool _budgetExhausted;
     private bool _timeLimitReached;
+    private bool _allowDeeper;
+    private int _completedDepth;
 
     internal SimultaneousSearch(GameSessionSnapshot snapshot, PlayerId player, PlayerId opponent, CpuProfile profile,
         CancellationToken token, long start, TimeSpan? timeLimit)
@@ -54,6 +57,10 @@ internal sealed class SimultaneousSearch
             if (diagnostics) _rootFeatures = features.Contributions(_player);
             choices = Shortlist(snapshot.Board, own, _player, _options.OwnCandidates);
             replies = Shortlist(snapshot.Board, opponent, _opponent, _options.OpponentCandidates);
+            bool fullRoot = replies.Length == snapshot.MainState!.GetLegalSelections(_opponent).Count;
+            _allowDeeper = _options.Depth > 2 && (!_options.RequireFullRootReplies || fullRoot) &&
+                (!_options.ProofOnlyDeepening || (fullRoot && choices.Length <= ProofRootActionLimit &&
+                    replies.Length <= ProofRootActionLimit));
         }
 
         double[] weights = ReplyWeights(replies);
@@ -73,6 +80,8 @@ internal sealed class SimultaneousSearch
             return Finish(own, [], [], replies, weights, 0, diagnostics);
 
         first.Sort(Compare);
+        if (!opening && _options.Depth > 2 && _options.VerifyTerminalWins && first.Count == choices.Length)
+            VerifyImmediateWins(snapshot.MainState!, replies, first);
         depth = 1;
         IReadOnlyList<Rating> finalists = first;
         if (!opening && _options.Depth > 1 && first.Count == choices.Length && first[0].Safety < 2)
@@ -114,6 +123,27 @@ internal sealed class SimultaneousSearch
                 Math.Min(width + 1, child.GetLegalSelections(_opponent).Count));
         }
 
+        // Commit a deeper tier only after every finalist has a complete row against the same root model.
+        while (_allowDeeper && depth >= 2 && depth < _options.Depth && finalists[0].Safety < 2)
+        {
+            var comparable = finalists.Where(rating => rating.Safety == finalists[0].Safety)
+                .Take(_options.DeepFinalists).ToArray();
+            if (comparable.Length < 2) break;
+            var deeper = new List<Rating>(comparable.Length);
+            foreach (Rating rating in comparable)
+            {
+                Rating? refined = RefineDeep(rating, weights, depth + 1);
+                if (refined is null) break;
+                deeper.Add(refined);
+            }
+            if (deeper.Count != comparable.Length || !deeper.Any(rating => rating.Depth == depth + 1)) break;
+            _completedDepth = depth + 1;
+            if (_options.ProofOnlyDeepening && !deeper.Any(rating => rating.Safety == 3)) break;
+            deeper.Sort(Compare);
+            finalists = deeper;
+            depth++;
+        }
+
         return Finish(own, finalists, first, replies, weights, depth, diagnostics);
     }
 
@@ -130,7 +160,8 @@ internal sealed class SimultaneousSearch
         {
             if (!included.Add(rating.Candidate.Position)) return;
             ranked.Add(rating.Candidate with { Score = rating.Value(_options.Risk) });
-            analyses?.Add(new(rating.Candidate.Position, rating.Expected, rating.Adverse, rating.Collision, rating.Depth));
+            analyses?.Add(new(rating.Candidate.Position, rating.Expected, rating.Adverse, rating.Collision, rating.Depth)
+                { ProvenWin = rating.Safety == 3 });
         }
 
         foreach (Rating rating in finalists) Include(rating);
@@ -145,6 +176,7 @@ internal sealed class SimultaneousSearch
         ? new(analyses!.AsReadOnly(), Array.AsReadOnly(replies.Select((r, i) =>
             new CpuReplyAnalysis(r.Position, weights[i])).ToArray()),
             _rootFeatures, _pairs, depth, _budgetExhausted, _timeLimitReached, TimeSpan.Zero)
+            { ReusedPairs = _reusedPairs, CompletedDepth = Math.Max(depth, _completedDepth) }
         : null;
 
     private Rating? RateDraft(GameSessionSnapshot snapshot, CpuCandidate choice, CpuCandidate[] replies, double[] weights)
@@ -199,16 +231,16 @@ internal sealed class SimultaneousSearch
         double expected = 0, adverse = double.PositiveInfinity;
         for (int i = 0; i < count; i++)
         {
-            if (!SpendPair()) return null;
             BoardPosition reply = i < replies.Length ? replies[i].Position : choice.Position;
-            MainPhaseState child = state.Advance(new(_player, choice.Position), new(_opponent, reply));
-            double value = Evaluate(child);
-            if (retainChildren) children[i] = child;
-            if (i < replies.Length) expected += weights[i] * value;
-            adverse = Math.Min(adverse, value);
+            if (!TryResolve(state, choice.Position, reply, cache: _allowDeeper && !retainChildren, out var outcome))
+                return null;
+            if (retainChildren) children[i] = outcome.State;
+            if (i < replies.Length) expected += weights[i] * outcome.Value;
+            adverse = Math.Min(adverse, outcome.Value);
         }
         int safety = adverse >= StrategicPosition.TerminalWin ? 2 : adverse <= -StrategicPosition.TerminalWin ? 0 : 1;
-        return new(choice, expected, adverse, collision || extra, 1, safety, children);
+        return new(choice, expected, adverse, collision || extra, 1, safety, children)
+            { Exhaustive = count == state.GetLegalSelections(_opponent).Count };
     }
 
     private Rating? Refine(Rating first, double[] rootWeights, int width)
@@ -221,6 +253,7 @@ internal sealed class SimultaneousSearch
             double value = Evaluate(child);
             if (!child.IsFinished)
             {
+                if (_options.Depth > 2 && ShouldStop()) return null;
                 var tactical = new TacticalBoard(child.Board, false, _token, child.RuleSet);
                 CpuCandidate[] own = Shortlist(child.Board, Rank(child, tactical, _player, _opponent), _player, width);
                 CpuCandidate[] replies = Shortlist(child.Board, Rank(child, tactical, _opponent, _player), _opponent, width);
@@ -320,12 +353,7 @@ internal sealed class SimultaneousSearch
 
     private bool SpendPair()
     {
-        _token.ThrowIfCancellationRequested();
-        if (_timeLimit is { } timeLimit && Stopwatch.GetElapsedTime(_start) >= timeLimit)
-        {
-            _timeLimitReached = true;
-            return false;
-        }
+        if (ShouldStop()) return false;
         if (_pairs < _options.PairBudget)
         {
             _pairs++;
@@ -333,6 +361,14 @@ internal sealed class SimultaneousSearch
         }
         _budgetExhausted = true;
         return false;
+    }
+
+    private bool ShouldStop()
+    {
+        _token.ThrowIfCancellationRequested();
+        if (_timeLimit is not { } timeLimit || Stopwatch.GetElapsedTime(_start) < timeLimit) return false;
+        _timeLimitReached = true;
+        return true;
     }
 
     private int Compare(Rating a, Rating b)
@@ -350,6 +386,7 @@ internal sealed class SimultaneousSearch
     private sealed record Rating(CpuCandidate Candidate, double Expected, double Adverse, bool Collision,
         int Depth, int Safety, MainPhaseState[] Children)
     {
+        internal bool Exhaustive { get; init; }
         internal double Value(double risk) => (1 - risk) * Expected + risk * Adverse;
     }
 }

@@ -70,10 +70,12 @@ internal static partial class Program
     {
         // Logarithmic buckets keep memory bounded even for long runs and slow opponents.
         private readonly SortedDictionary<int, int> buckets = new();
+        private readonly SortedDictionary<int, int> depths = new();
+        private readonly SortedDictionary<int, int> completedDepths = new();
         internal int Count { get; private set; }
         private int searchSamples, budgetSamples, timeSamples, fallbackSamples, depthSamples, budget, timed, fallback;
-        private long pairs, depth, allocated;
-        private double total, max;
+        private long pairs, depth, allocated, reused;
+        private double total, max, searchMilliseconds;
 
         internal void Add(DecisionSample sample)
         {
@@ -84,8 +86,16 @@ internal static partial class Program
             allocated += sample.AllocatedBytes;
             int bucket = (int)Math.Ceiling(Math.Log(1 + sample.Milliseconds * 1000, 1.02));
             buckets[bucket] = buckets.GetValueOrDefault(bucket) + 1;
-            if (sample.Pairs is int p) { searchSamples++; pairs += p; }
-            if (sample.Depth is int d) { depthSamples++; depth += d; }
+            if (sample.Pairs is int p) { searchSamples++; pairs += p; searchMilliseconds += sample.Milliseconds; }
+            if (sample.Depth is int d)
+            {
+                depthSamples++;
+                depth += d;
+                depths[d] = depths.GetValueOrDefault(d) + 1;
+                int completed = sample.CompletedDepth ?? d;
+                completedDepths[completed] = completedDepths.GetValueOrDefault(completed) + 1;
+            }
+            reused += sample.ReusedPairs ?? 0;
             if (sample.BudgetExhausted is bool b) { budgetSamples++; if (b) budget++; }
             if (sample.TimeLimitReached is bool t) { timeSamples++; if (t) timed++; }
             if (sample.Fallback is bool f) { fallbackSamples++; if (f) fallback++; }
@@ -105,13 +115,18 @@ internal static partial class Program
         internal PerformanceRow Row(string participant, string opponent, string phase) => new(participant, opponent,
             phase, Count, total / Count, Quantile(.5), Quantile(.95), max, allocated / (double)Count,
             searchSamples, pairs, Ratio(pairs, searchSamples), depthSamples, Ratio(depth, depthSamples), budgetSamples,
-            budget, timeSamples, timed, fallbackSamples, fallback);
+            budget, timeSamples, timed, fallbackSamples, fallback,
+            DepthCounts(depths), DepthCounts(completedDepths), Ratio(pairs * 1000d, searchMilliseconds), reused);
+
+        private static string DepthCounts(SortedDictionary<int, int> history) =>
+            string.Join('/', history.Select(pair => $"{pair.Key}:{pair.Value}"));
     }
 
     private sealed record PerformanceRow(string Participant, string Opponent, string Phase, int Decisions, double MeanMs,
         double MedianMs, double P95Ms, double MaxMs, double MeanBytes, int PairSamples, long Pairs, double? MeanPairs,
         int DepthSamples, double? MeanDepth, int BudgetSamples, int BudgetExhausted, int TimeSamples, int TimeLimitReached,
-        int FallbackSamples, int Fallbacks);
+        int FallbackSamples, int Fallbacks, string DepthDistribution, string CompletedDepthDistribution,
+        double? PairsPerSecond, long ReusedPairs);
     internal sealed record Rating(string Participant, string Component, double? RelativeRating, int Evidence, string Precision);
     internal sealed record Comparison(string First, string Second, int DistinctScored, int UniqueBlocks,
         double? BlockPointRate, double? Low95, double? High95);
@@ -119,7 +134,7 @@ internal static partial class Program
     private sealed record MatchEvidence(string First, string Second, string Map, int Seed, bool SeatsSwapped,
         bool StartsSwapped, string History, double FirstPoints, bool Distinct);
 
-    private static double? Ratio(double numerator, long denominator) => denominator == 0 ? null : numerator / denominator;
+    private static double? Ratio(double numerator, double denominator) => denominator == 0 ? null : numerator / denominator;
 
     internal static Rating[] FitRatings(string[] participants, IEnumerable<(string First, string Second, double Points)> games)
     {
@@ -305,10 +320,10 @@ internal static partial class Program
             report.AppendLine($"|{row.Key}|{row.Participant}|{Wdl(row.Scores)}|{row.Scores.MeanMargin:F2}|{row.Scores.MainMatches}|{row.Scores.DraftRetries}|");
         report.AppendLine().AppendLine("## Decision performance").AppendLine()
             .AppendLine(manifest.DedicatedPerformance ? "Dedicated sequential measurements." : "Tournament timings include worker contention when run concurrently.")
-            .AppendLine().AppendLine("|Participant|Phase|Decisions|Median ms|P95 ms|Max ms|Mean pairs|Mean depth|Budget exhausted|Time exhausted|Fallbacks|Mean bytes|")
-            .AppendLine("|---|---|---:|---:|---:|---:|---:|---:|---|---|---|---:|");
+            .AppendLine().AppendLine("|Participant|Phase|Decisions|Median ms|P95 ms|Max ms|Mean pairs|Pairs/s|Selected depth|Completed depth|Reused pairs|Budget exhausted|Time exhausted|Fallbacks|Mean bytes|")
+            .AppendLine("|---|---|---:|---:|---:|---:|---:|---:|---|---|---:|---|---|---|---:|");
         foreach (var p in timings)
-            report.AppendLine($"|{p.Participant}|{p.Phase}|{p.Decisions}|{p.MedianMs:F3}|{p.P95Ms:F3}|{p.MaxMs:F3}|{p.MeanPairs:F1}|{p.MeanDepth:F2}|{p.BudgetExhausted}/{p.BudgetSamples}|{p.TimeLimitReached}/{p.TimeSamples}|{p.Fallbacks}/{p.FallbackSamples}|{p.MeanBytes:F0}|");
+            report.AppendLine($"|{p.Participant}|{p.Phase}|{p.Decisions}|{p.MedianMs:F3}|{p.P95Ms:F3}|{p.MaxMs:F3}|{p.MeanPairs:F1}|{p.PairsPerSecond:F0}|{p.DepthDistribution}|{p.CompletedDepthDistribution}|{p.ReusedPairs}|{p.BudgetExhausted}/{p.BudgetSamples}|{p.TimeLimitReached}/{p.TimeSamples}|{p.Fallbacks}/{p.FallbackSamples}|{p.MeanBytes:F0}|");
         if (errors.Count != 0) report.AppendLine().AppendLine("## Technical failures").AppendLine().AppendLine(string.Join('\n', errors.Select(e => $"- {e.ReplaceLineEndings(" ")}")));
         return report.ToString();
 
