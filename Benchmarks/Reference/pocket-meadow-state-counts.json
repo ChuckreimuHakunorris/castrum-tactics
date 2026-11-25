@@ -1,0 +1,365 @@
+{
+  "map": "pocket-meadow",
+  "starts": "A1/C3",
+  "statistics": {
+    "unique": 47344695,
+    "cachedPositions": 11842458,
+    "nonterminal": 43935744,
+    "terminal": 3408951,
+    "redWins": 1224022,
+    "blueWins": 1224022,
+    "draws": 960907,
+    "pairTransitions": 361860294,
+    "distinctEdges": 359811294,
+    "resolvedPairs": 90506859,
+    "repeatedDestinations": 314515600,
+    "maximumTurns": 17,
+    "meanBranching": 8.236125328843867,
+    "maximumBranching": 49,
+    "completedHistories": "123495304538020",
+    "allPrefixes": "222343005838434",
+    "depths": [
+      {
+        "turns": 0,
+        "positions": 1,
+        "terminalPositions": 0,
+        "histories": "1",
+        "completed": "0"
+      },
+      {
+        "turns": 1,
+        "positions": 9,
+        "terminalPositions": 0,
+        "histories": "9",
+        "completed": "0"
+      },
+      {
+        "turns": 2,
+        "positions": 191,
+        "terminalPositions": 0,
+        "histories": "244",
+        "completed": "0"
+      },
+      {
+        "turns": 3,
+        "positions": 2787,
+        "terminalPositions": 0,
+        "histories": "6964",
+        "completed": "0"
+      },
+      {
+        "turns": 4,
+        "positions": 32044,
+        "terminalPositions": 108,
+        "histories": "195638",
+        "completed": "236"
+      },
+      {
+        "turns": 5,
+        "positions": 268137,
+        "terminalPositions": 1602,
+        "histories": "4844918",
+        "completed": "13132"
+      },
+      {
+        "turns": 6,
+        "positions": 1533334,
+        "terminalPositions": 14750,
+        "histories": "99654078",
+        "completed": "494722"
+      },
+      {
+        "turns": 7,
+        "positions": 5755711,
+        "terminalPositions": 92671,
+        "histories": "1638511416",
+        "completed": "16272276"
+      },
+      {
+        "turns": 8,
+        "positions": 13857806,
+        "terminalPositions": 400721,
+        "histories": "21071540640",
+        "completed": "462408068"
+      },
+      {
+        "turns": 9,
+        "positions": 21283894,
+        "terminalPositions": 1135137,
+        "histories": "208423254770",
+        "completed": "9476774870"
+      },
+      {
+        "turns": 10,
+        "positions": 21038097,
+        "terminalPositions": 1998007,
+        "histories": "1546699453578",
+        "completed": "134051104404"
+      },
+      {
+        "turns": 11,
+        "positions": 13647675,
+        "terminalPositions": 2189687,
+        "histories": "8256745303232",
+        "completed": "1285795181538"
+      },
+      {
+        "turns": 12,
+        "positions": 5914392,
+        "terminalPositions": 1532241,
+        "histories": "29688518737566",
+        "completed": "7909241127522"
+      },
+      {
+        "turns": 13,
+        "positions": 1702695,
+        "terminalPositions": 684066,
+        "histories": "65139618479484",
+        "completed": "28159077898204"
+      },
+      {
+        "turns": 14,
+        "positions": 311265,
+        "terminalPositions": 183708,
+        "histories": "75153057157476",
+        "completed": "48916920996396"
+      },
+      {
+        "turns": 15,
+        "positions": 32724,
+        "terminalPositions": 26128,
+        "histories": "36606042166372",
+        "completed": "31495156958772"
+      },
+      {
+        "turns": 16,
+        "positions": 1617,
+        "terminalPositions": 1545,
+        "histories": "5585105307880",
+        "completed": "5449124083712"
+      },
+      {
+        "turns": 17,
+        "positions": 22,
+        "terminalPositions": 22,
+        "histories": "135981224168",
+        "completed": "135981224168"
+      }
+    ],
+    "actionCounts": [
+      {
+        "red": 1,
+        "blue": 1,
+        "positions": 7413538
+      },
+      {
+        "red": 1,
+        "blue": 2,
+        "positions": 928544
+      },
+      {
+        "red": 1,
+        "blue": 3,
+        "positions": 244852
+      },
+      {
+        "red": 1,
+        "blue": 4,
+        "positions": 21972
+      },
+      {
+        "red": 1,
+        "blue": 5,
+        "positions": 2436
+      },
+      {
+        "red": 2,
+        "blue": 1,
+        "positions": 928544
+      },
+      {
+        "red": 2,
+        "blue": 2,
+        "positions": 10379692
+      },
+      {
+        "red": 2,
+        "blue": 3,
+        "positions": 1398732
+      },
+      {
+        "red": 2,
+        "blue": 4,
+        "positions": 276701
+      },
+      {
+        "red": 2,
+        "blue": 5,
+        "positions": 9648
+      },
+      {
+        "red": 2,
+        "blue": 6,
+        "positions": 27
+      },
+      {
+        "red": 3,
+        "blue": 1,
+        "positions": 244852
+      },
+      {
+        "red": 3,
+        "blue": 2,
+        "positions": 1398732
+      },
+      {
+        "red": 3,
+        "blue": 3,
+        "positions": 9336744
+      },
+      {
+        "red": 3,
+        "blue": 4,
+        "positions": 970820
+      },
+      {
+        "red": 3,
+        "blue": 5,
+        "positions": 126838
+      },
+      {
+        "red": 3,
+        "blue": 6,
+        "positions": 44
+      },
+      {
+        "red": 4,
+        "blue": 1,
+        "positions": 21972
+      },
+      {
+        "red": 4,
+        "blue": 2,
+        "positions": 276701
+      },
+      {
+        "red": 4,
+        "blue": 3,
+        "positions": 970820
+      },
+      {
+        "red": 4,
+        "blue": 4,
+        "positions": 5469589
+      },
+      {
+        "red": 4,
+        "blue": 5,
+        "positions": 344270
+      },
+      {
+        "red": 4,
+        "blue": 6,
+        "positions": 27366
+      },
+      {
+        "red": 5,
+        "blue": 1,
+        "positions": 2436
+      },
+      {
+        "red": 5,
+        "blue": 2,
+        "positions": 9648
+      },
+      {
+        "red": 5,
+        "blue": 3,
+        "positions": 126838
+      },
+      {
+        "red": 5,
+        "blue": 4,
+        "positions": 344270
+      },
+      {
+        "red": 5,
+        "blue": 5,
+        "positions": 2017615
+      },
+      {
+        "red": 5,
+        "blue": 6,
+        "positions": 62174
+      },
+      {
+        "red": 5,
+        "blue": 7,
+        "positions": 1412
+      },
+      {
+        "red": 6,
+        "blue": 2,
+        "positions": 27
+      },
+      {
+        "red": 6,
+        "blue": 3,
+        "positions": 44
+      },
+      {
+        "red": 6,
+        "blue": 4,
+        "positions": 27366
+      },
+      {
+        "red": 6,
+        "blue": 5,
+        "positions": 62174
+      },
+      {
+        "red": 6,
+        "blue": 6,
+        "positions": 435385
+      },
+      {
+        "red": 6,
+        "blue": 7,
+        "positions": 4528
+      },
+      {
+        "red": 7,
+        "blue": 5,
+        "positions": 1412
+      },
+      {
+        "red": 7,
+        "blue": 6,
+        "positions": 4528
+      },
+      {
+        "red": 7,
+        "blue": 7,
+        "positions": 42453
+      }
+    ],
+    "symmetry": [
+      {
+        "geometry": 0,
+        "playerExchange": false
+      },
+      {
+        "geometry": 3,
+        "playerExchange": true
+      },
+      {
+        "geometry": 4,
+        "playerExchange": false
+      },
+      {
+        "geometry": 7,
+        "playerExchange": true
+      }
+    ]
+  }
+}

@@ -4,6 +4,7 @@ extern alias frozen8c;
 using System.Diagnostics;
 using CastrumTactics.AI;
 using CastrumTactics.Development;
+using CastrumTactics.Development.Solver;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using Frozen = frozen::CastrumTactics.AI;
@@ -14,7 +15,7 @@ internal static partial class Program
     internal delegate DecisionSample TournamentDecision(GameSessionSnapshot state, PlayerId player, Random random,
         bool diagnostics, CancellationToken token);
 
-    internal sealed record TournamentOpponent(ParticipantSpec Spec, string Version, TournamentDecision Decide);
+    internal sealed record TournamentOpponent(ParticipantSpec Spec, string Version, TournamentDecision Decide, string? TablebaseMap = null);
     internal sealed record DecisionSample(string Move, double Milliseconds = 0, long AllocatedBytes = 0,
         int? Pairs = null, int? Depth = null, bool? BudgetExhausted = null, bool? TimeLimitReached = null,
         bool? Fallback = null, object? Diagnostics = null, bool Measured = false, int? ReusedPairs = null,
@@ -37,6 +38,27 @@ internal static partial class Program
         if (kind != "strategic" && (spec.PairBudget is not null || spec.Weights is not null ||
             spec.TimeLimitMs is not null || spec.Search is not null))
             throw new ArgumentException($"'{spec.Id}' can only tune production strategic opponents.");
+        if (kind == "solver")
+        {
+            if (parts.Length != 2 || spec.Tablebase is null)
+                throw new ArgumentException("Solver opponents require solver:<tablebase-id> and a tablebase path.");
+            Identifier(parts[1], "Tablebase ID");
+            if (parts[1] != Path.GetFileNameWithoutExtension(spec.Tablebase))
+                throw new ArgumentException("Tablebase ID must match its filename without extension.");
+            var tablebase = LoadSolverTablebase(spec.Tablebase);
+            return new(spec, tablebase.Digest, (state, player, random, diagnostics, token) =>
+            {
+                token.ThrowIfCancellationRequested();
+                var move = tablebase.Decide(state, player, random, out var game);
+                return new(Coordinate(move), Diagnostics: diagnostics ? new
+                {
+                    game.IsExact, redValueLower = game.Lower.ToString(), redValueUpper = game.Upper.ToString(),
+                    optimalityGapBound = (game.Upper - game.Lower).ToString()
+                } : null);
+            }, tablebase.Info.Map);
+        }
+        if (spec.Tablebase is not null)
+            throw new ArgumentException("Only solver opponents accept a tablebase path.");
         if (spec.Opponent == "probe")
         {
             return new(spec, "archived-one-turn-probe", (state, player, random, diagnostics, token) =>
@@ -147,6 +169,9 @@ internal static partial class Program
 
         try
         {
+            foreach (var opponent in new[] { red, blue })
+                if (opponent.TablebaseMap is { } map && (map != match.Map || config.Ruleset != RuleSet.KnightSupport))
+                    throw new InvalidOperationException("The tournament map or rules are outside the reference tablebase scope.");
             while (IsPlayable(session.Current.Phase))
             {
                 token.ThrowIfCancellationRequested();

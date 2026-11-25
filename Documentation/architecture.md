@@ -111,3 +111,5 @@ The renderer handles physical left-button and touch presses after GUI input, con
 CPU tuning, a remote session, and ranked map validation remain future work.
 
 The [Game Design Document](GameDesign.md) records the rules and open design decisions. The [Session Architecture](SessionArchitecture.md) describes the authority and presentation boundaries. The [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) documents the domain rules and local integration.
+
+The [small-board solver](SmallBoardSolver.md) uses the Domain resolver and exposes exact results through the development benchmark executable.

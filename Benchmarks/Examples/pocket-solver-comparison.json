@@ -1,0 +1,25 @@
+{
+  "id": "8d21-pocket-solver",
+  "format": "baseline",
+  "participants": [
+    { "id": "reference", "opponent": "solver:pocket-meadow", "tablebase": "exports/solver/pocket-meadow.ctb" },
+    { "id": "probe", "opponent": "probe" },
+    { "id": "static", "opponent": "static:Monster" },
+    { "id": "frozen8c", "opponent": "frozen8c:Monster" },
+    { "id": "production", "opponent": "strategic:Monster" },
+    { "id": "wide", "opponent": "strategic:Monster", "pairBudget": 2000, "search": { "depth": 2, "ownCandidates": 22, "opponentCandidates": 14 } },
+    { "id": "depth-three", "opponent": "strategic:Monster", "pairBudget": 4000,
+      "search": { "depth": 3, "continuationOwnCandidates": 3, "continuationOpponentCandidates": 2, "deepFinalists": 2, "proofOnlyDeepening": false } },
+    { "id": "depth-four", "opponent": "strategic:Monster", "pairBudget": 8000,
+      "search": { "depth": 4, "continuationOwnCandidates": 2, "continuationOpponentCandidates": 2, "deepFinalists": 2, "proofOnlyDeepening": false } }
+  ],
+  "references": ["reference"],
+  "maps": { "ids": ["pocket-meadow"] },
+  "opening": { "mode": "fixed", "fixed": { "pocket-meadow": ["A1/C3"] } },
+  "seeds": [42, 43, 44, 45],
+  "swapSeats": true,
+  "swapStarts": true,
+  "workers": 1,
+  "strategicMetrics": false,
+  "outputDirectory": "exports/tournaments/8d21-pocket-solver"
+}

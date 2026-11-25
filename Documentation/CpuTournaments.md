@@ -118,3 +118,7 @@ The 16-match throughput sample took 26.78 s with one worker and 14.75 s with fou
 Strategic Monster averaged 1.99 completed search depth. No strategic decision in that pass exhausted its budget, hit a time limit, or fell back to static evaluation. The time-limited configuration was disabled for this reference. Timing includes first-call overhead.
 
 For 8D.2, pair each candidate configuration with frozen 8C on tuning maps, test against Probe, and repeat the most promising variants on held-out maps. Pocket Meadow is a useful tactical fixture for the Probe losses. Carry over the same opening and stream assignments when isolating changes to Main. For 8D.3, replay representative early and late Main positions on ARM64 Android and measure P95, allocation traffic and sustained latency before choosing mobile budgets.
+
+## Certified tablebase opponents
+
+Use a solver:<tablebase-id> opponent with a tablebase path and fixed openings within the certified scope. The manifest records the tablebase checksum, and unavailable positions are explicit failures. See the [solver commands and tablebase format](SmallBoardSolver.md).

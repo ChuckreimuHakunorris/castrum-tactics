@@ -114,3 +114,5 @@ godot --headless --path . --script Tests/Presentation/CpuMatchCheck.gd -- --seed
 The tests replay complete Classic local and CPU matches, exercise Knight Support gameplay, and check map previews, replacement, scores, and restarts at different viewport sizes. For development launches, use `--mode cpu` or `--mode local`, `--ruleset classic` or `--ruleset knight-support`, `--map <id>`, and an optional `--seed <int>` after the Godot `--` separator. The seed controls CPU randomness. The map override fixes the initial map.
 
 See the [documentation homepage source](Documentation/index.md) for architecture and API reference navigation, and the [documentation contributor guide](Documentation/contributing.md) for local builds, writing conventions, and GitHub Pages setup.
+
+The [small-board solver](Documentation/SmallBoardSolver.md) provides exact simultaneous analysis and development tablebase opponents for archived maps.
