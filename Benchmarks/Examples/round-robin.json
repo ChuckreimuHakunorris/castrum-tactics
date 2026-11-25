@@ -1,0 +1,18 @@
+{
+  "id": "8d1-five",
+  "format": "round-robin",
+  "participants": [
+    { "id": "easy", "opponent": "strategic:Easy" },
+    { "id": "normal", "opponent": "strategic:Normal" },
+    { "id": "hard", "opponent": "strategic:Hard" },
+    { "id": "veryhard", "opponent": "strategic:VeryHard" },
+    { "id": "monster", "opponent": "strategic:Monster" }
+  ],
+  "maps": { "ids": ["open-meadow", "twin-basins", "banner-plain"] },
+  "ruleset": "knightSupport",
+  "opening": { "mode": "natural" },
+  "seeds": [42],
+  "swapSeats": true,
+  "workers": 2,
+  "outputDirectory": "exports/8d1-final/five"
+}

@@ -9,6 +9,8 @@ items:
     href: CpuArchitecture.md
   - name: CPU benchmarks
     href: CpuBenchmarks.md
+  - name: CPU tournaments
+    href: CpuTournaments.md
   - name: API Reference
     href: api/
     topicHref: api/index.md

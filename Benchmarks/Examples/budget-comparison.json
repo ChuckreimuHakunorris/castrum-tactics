@@ -1,0 +1,23 @@
+{
+  "id": "monster-budgets",
+  "format": "baseline",
+  "participants": [
+    { "id": "budget-350", "opponent": "strategic:Monster", "pairBudget": 350 },
+    { "id": "budget-650", "opponent": "strategic:Monster", "pairBudget": 650 },
+    { "id": "8c", "opponent": "frozen8c:Monster" }
+  ],
+  "references": ["8c"],
+  "maps": {
+    "heldOut": ["banner-plain", "twin-basins", "broadshield-field"],
+    "split": "tuning",
+    "sample": 6,
+    "sampleSeed": 42,
+    "minWidth": 8,
+    "minHeight": 8
+  },
+  "opening": { "mode": "fixed", "pairs": 2, "seed": 13 },
+  "firstSeed": 1,
+  "seedCount": 3,
+  "swapStarts": true,
+  "strategicMetrics": false
+}

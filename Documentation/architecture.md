@@ -96,8 +96,13 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - The public snapshot exposes the domain's immutable Main evaluation and a draft preview. Search advances both players' choices together with the live domain resolver. One engine shares tactical ordering, strategic evaluation, sampling, and bounded search across all five difficulties. The worker continues to submit proposals through the same coordinator.
 - Benchmarks use a development-only executable with the original 8B.1 AI sources in a separate assembly. Dot's Probe ranks candidates through that frozen Normal implementation. The application has no reference to the benchmark assembly. [Benchmark report and reproduction](CpuBenchmarks.md)
 
+## Milestone 8D.1 decisions
+
+- A tournament plans reproducible matches before execution. Workers own their sessions and random streams, and the harness submits both choices against the same published round. It uses the production domain and keeps both historical AI generations in dedicated assemblies.
+- A versioned schedule manifest and checksummed per-match records allow interruption, resume and replay. Reporting separates scored matches from draft retries and tracks repeated action histories. Dedicated sequential timing measures decision cost independently of tournament throughput. [CPU tournament design and commands](CpuTournaments.md)
+
 ## Planned
 
-Broader CPU competition and tuning, a remote session, and ranked map validation remain future work.
+CPU tuning, a remote session, and ranked map validation remain future work.
 
 The [Game Design Document](GameDesign.md) records the rules and open design decisions. The [Session Architecture](SessionArchitecture.md) describes the authority and presentation boundaries. The [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) documents the domain rules and local integration.

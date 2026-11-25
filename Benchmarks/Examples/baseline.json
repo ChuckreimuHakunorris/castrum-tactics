@@ -1,0 +1,16 @@
+{
+  "id": "8d1-monster-fixed",
+  "format": "baseline",
+  "participants": [
+    { "id": "monster", "opponent": "strategic:Monster" },
+    { "id": "static", "opponent": "static:Monster" },
+    { "id": "dot", "opponent": "probe" }
+  ],
+  "references": ["static", "dot"],
+  "maps": { "ids": ["pocket-meadow", "banner-plain"] },
+  "opening": { "mode": "fixed", "fixed": { "pocket-meadow": ["A1/C3"], "banner-plain": ["A1/L12"] } },
+  "seeds": [42],
+  "swapSeats": true,
+  "workers": 2,
+  "outputDirectory": "exports/8d1-final/monster-fixed"
+}
