@@ -1,6 +1,7 @@
 # Repository guidance
 
 - The external project files directory is `D:\Game Projects\Files`. Inspect and import materials there only when the project owner requests them. Leave originals unchanged unless authorized, and keep local paths out of application code, builds, and CI.
+- Use `scripts/Install-AndroidDebug.ps1` for routine Android debug deployments. Keep the standard package ID `com.castrumtactics.prototype` stable across milestone builds.
 
 - Add meaningful XML documentation to new or changed public C# APIs. Include parameters, return values, exceptions, and behavioral constraints where applicable.
 - Update the affected documentation with any change to a public API or documented behavior. Record decisions that affect the overall design separately from the API reference.
