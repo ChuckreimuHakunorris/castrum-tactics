@@ -20,7 +20,7 @@ public static class TerritoryAnalyzer
         ArgumentNullException.ThrowIfNull(board);
 
         var control = new TerritoryControl[board.Height, board.Width];
-        var component = new List<BoardPosition>();
+        var component = new List<BoardPosition>(Math.Min(144, control.Length));
         for (int y = 0; y < board.Height; y++)
         {
             for (int x = 0; x < board.Width; x++)

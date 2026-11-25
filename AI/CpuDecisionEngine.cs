@@ -1,13 +1,14 @@
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
+using System.Diagnostics;
 
 namespace CastrumTactics.AI;
 
-/// <summary>Ranks authoritative legal selections using static opening and main-phase heuristics.</summary>
+/// <summary>Ranks authoritative legal selections using tactical heuristics and optional simultaneous search.</summary>
 /// <remarks>
 /// Computation is synchronous and stateless. Concurrent calls may share the engine, snapshots, and immutable
 /// profiles. Supply an independent random source per concurrent call. Equivalent resolved inputs and random
-/// sequences reproduce results with the same engine and runtime.
+/// sequences reproduce results with the same engine and runtime when the elapsed-time safeguard is disabled.
 /// </remarks>
 public sealed class CpuDecisionEngine
 {
@@ -38,6 +39,21 @@ public sealed class CpuDecisionEngine
     private const double GroundExhaustionFactor = 0.5;
     private const double SoleSupportThreatRisk = 0.5;
     private const double OpponentResponseDiscount = 0.5;
+    private readonly TimeSpan? _searchTimeLimit;
+
+    /// <summary>Creates a decision engine that uses deterministic search pair limits.</summary>
+    public CpuDecisionEngine() { }
+
+    /// <summary>Creates a decision engine with an additional elapsed-time safeguard for strategic search.</summary>
+    /// <param name="searchTimeLimit">A positive finite duration. Search checks the limit between authoritative resolutions.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The duration is zero or negative.</exception>
+    /// <remarks>A time-limited call can fall back to a completed shallower pass or a static legal decision.
+    /// Omit the limit when comparing seeded benchmark runs.</remarks>
+    public CpuDecisionEngine(TimeSpan searchTimeLimit)
+    {
+        if (searchTimeLimit <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(searchTimeLimit));
+        _searchTimeLimit = searchTimeLimit;
+    }
 
     /// <summary>Chooses one selection without writing to the snapshot or submitting a command.</summary>
     /// <param name="snapshot">The public snapshot supplying the board and legal selections.</param>
@@ -52,7 +68,7 @@ public sealed class CpuDecisionEngine
     public CpuDecision? Decide(GameSessionSnapshot snapshot, PlayerId player, CpuProfile profile, Random random,
         CancellationToken cancellationToken = default)
     {
-        var (decision, _) = Evaluate(snapshot, player, profile, random, cancellationToken);
+        var (decision, _, _) = Evaluate(snapshot, player, profile, random, cancellationToken, diagnostics: false);
         cancellationToken.ThrowIfCancellationRequested();
         return decision;
     }
@@ -70,14 +86,17 @@ public sealed class CpuDecisionEngine
     public CpuDecisionReport DecideWithDiagnostics(GameSessionSnapshot snapshot, PlayerId player, CpuProfile profile,
         Random random, CancellationToken cancellationToken = default)
     {
-        var (decision, candidates) = Evaluate(snapshot, player, profile, random, cancellationToken);
-        var report = new CpuDecisionReport(decision, candidates);
+        long start = Stopwatch.GetTimestamp();
+        var (decision, candidates, search) = Evaluate(snapshot, player, profile, random, cancellationToken, diagnostics: true);
+        var report = new CpuDecisionReport(decision, candidates,
+            search is null ? null : search with { Elapsed = Stopwatch.GetElapsedTime(start) });
         cancellationToken.ThrowIfCancellationRequested();
         return report;
     }
 
-    private static (CpuDecision? Decision, CpuCandidate[] Candidates) Evaluate(GameSessionSnapshot snapshot,
-        PlayerId player, CpuProfile profile, Random random, CancellationToken token)
+    private (CpuDecision? Decision, CpuCandidate[] Candidates, CpuSearchReport? Search) Evaluate(
+        GameSessionSnapshot snapshot, PlayerId player, CpuProfile profile, Random random, CancellationToken token,
+        bool diagnostics)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(profile);
@@ -89,57 +108,94 @@ public sealed class CpuDecisionEngine
             _ => throw new ArgumentOutOfRangeException(nameof(player))
         };
         token.ThrowIfCancellationRequested();
+        long start = _searchTimeLimit.HasValue ? Stopwatch.GetTimestamp() : 0;
 
         bool opening = snapshot.Phase == MatchPhase.Opening;
         IReadOnlySet<BoardPosition>? ownLegal = snapshot.Phase == MatchPhase.Main
             ? snapshot.GetMainPhaseLegalSelections(player) : null;
-        IEnumerable<BoardPosition> legal = opening ? snapshot.EligiblePositions : ownLegal?.AsEnumerable() ?? [];
-        BoardPosition[] positions = legal.OrderBy(position => position.Y).ThenBy(position => position.X).ToArray();
-        token.ThrowIfCancellationRequested();
-        if (positions.Length == 0)
+        if (opening ? snapshot.EligiblePositions.Count == 0 : ownLegal is null || ownLegal.Count == 0)
         {
-            return (null, []);
+            return (null, [], null);
         }
 
-        bool knightSupport = snapshot.RuleSet == RuleSet.KnightSupport;
+        bool knightSupport = RuleSetDefinition.Get(snapshot.RuleSet).RequiresKnightSupport;
+        bool strategic = knightSupport && profile.Search is not null;
         var board = new TacticalBoard(snapshot.Board, opening, token, snapshot.RuleSet);
         bool noStartingPieces = board.StartingPieceCount == 0;
-        var candidates = new CpuCandidate[positions.Length];
+        CpuCandidate[] candidates;
+        CpuCandidate[]? replies = null;
         if (opening)
         {
+            BoardPosition[] positions = snapshot.EligiblePositions.OrderBy(p => p.Y).ThenBy(p => p.X).ToArray();
+            candidates = new CpuCandidate[positions.Length];
             RankOpening(board, positions, player, opponent, noStartingPieces, knightSupport, profile, candidates, token);
+            Sort(candidates);
+            if (strategic)
+            {
+                replies = new CpuCandidate[positions.Length];
+                RankOpening(board, positions, opponent, player, noStartingPieces, knightSupport, profile, replies, token);
+                Sort(replies);
+            }
         }
         else
         {
             IReadOnlySet<BoardPosition> enemyLegal = snapshot.GetMainPhaseLegalSelections(opponent);
-            for (int i = 0; i < positions.Length; i++)
-            {
-                token.ThrowIfCancellationRequested();
-                CpuFeatures features = MainFeatures(board, positions[i], player, opponent, snapshot.Territory!, ownLegal!,
-                    enemyLegal, knightSupport);
-                candidates[i] = new CpuCandidate(positions[i], features, features.Score(profile.Weights), 0);
-            }
+            candidates = RankMain(board, snapshot.Territory!, player, opponent, ownLegal!, enemyLegal, profile,
+                knightSupport, token);
+            if (strategic)
+                replies = RankMain(board, snapshot.Territory!, opponent, player, enemyLegal, ownLegal!, profile,
+                    knightSupport, token);
         }
 
-        Array.Sort(candidates, static (a, b) =>
+        CpuSearchReport? searchReport = null;
+        int selectable = candidates.Length;
+        if (replies is not null)
         {
-            int compare = b.Score.CompareTo(a.Score);
-            if (compare != 0) return compare;
-            compare = a.Position.Y.CompareTo(b.Position.Y);
-            return compare != 0 ? compare : a.Position.X.CompareTo(b.Position.X);
-        });
+            var result = new SimultaneousSearch(snapshot, player, opponent, profile, token, start, _searchTimeLimit)
+                .Analyze(snapshot, candidates, replies, diagnostics);
+            candidates = result.Candidates;
+            selectable = result.Selectable;
+            searchReport = result.Report;
+        }
 
         token.ThrowIfCancellationRequested();
+        Span<CpuCandidate> sampling = candidates.AsSpan(0, selectable);
         double temperature = opening ? profile.OpeningTemperature : profile.MainTemperature;
         int limit = opening ? profile.OpeningCandidateLimit : profile.MainCandidateLimit;
         double? maximumGap = opening ? profile.OpeningMaximumScoreDifference : profile.MainMaximumScoreDifference;
-        int poolSize = temperature == 0 ? 1 : GetPoolSize(candidates, limit, opening ? 2 : 1, maximumGap);
+        int poolSize = temperature == 0 ? 1 : GetPoolSize(sampling, limit, opening ? 2 : 1, maximumGap);
         double diversity = opening
             ? (noStartingPieces && candidates.Length == 2 ? profile.UrgentOpeningDiversity : profile.OpeningDiversity)
             : 0;
-        int selected = Sample(candidates, poolSize, temperature, diversity, random);
-        return (new CpuDecision(player, candidates[selected].Position, snapshot.Phase, snapshot.RoundId), candidates);
+        int selected = Sample(sampling, poolSize, temperature, diversity, random);
+        return (new CpuDecision(player, candidates[selected].Position, snapshot.Phase, snapshot.RoundId), candidates,
+            searchReport);
     }
+
+    internal static CpuCandidate[] RankMain(TacticalBoard board, TerritoryAnalysis territory, PlayerId player,
+        PlayerId opponent, IReadOnlySet<BoardPosition> ownLegal, IReadOnlySet<BoardPosition> enemyLegal,
+        CpuProfile profile, bool knightSupport, CancellationToken token)
+    {
+        var candidates = new CpuCandidate[ownLegal.Count];
+        int i = 0;
+        foreach (BoardPosition position in ownLegal)
+        {
+            token.ThrowIfCancellationRequested();
+            CpuFeatures features = MainFeatures(board, position, player, opponent, territory, ownLegal, enemyLegal,
+                knightSupport);
+            candidates[i++] = new(position, features, features.Score(profile.Weights), 0);
+        }
+        Sort(candidates);
+        return candidates;
+    }
+
+    private static void Sort(CpuCandidate[] candidates) => Array.Sort(candidates, static (a, b) =>
+    {
+        int compare = b.Score.CompareTo(a.Score);
+        if (compare != 0) return compare;
+        compare = a.Position.Y.CompareTo(b.Position.Y);
+        return compare != 0 ? compare : a.Position.X.CompareTo(b.Position.X);
+    });
 
     private static void RankOpening(TacticalBoard board, BoardPosition[] positions, PlayerId player, PlayerId opponent,
         bool noStartingPieces, bool knightSupport, CpuProfile profile, CpuCandidate[] candidates, CancellationToken token)
@@ -253,34 +309,44 @@ public sealed class CpuDecisionEngine
         PlayerId player, PlayerId opponent, IReadOnlySet<BoardPosition> enemyLegal, bool gainsReach, bool upgrade,
         bool capture, bool shared)
     {
-        int friendlyNeighbors = board.Support(index, player);
+        int friendlyNeighbors = board.SurvivalSupport(index, player);
         double formation = gainsReach && friendlyNeighbors > 1 ? MultipleSupportValue : 0;
         double supportRisk = 0;
 
-        foreach (int neighbor in board.Neighbors(index))
+        if (gainsReach)
         {
-            CellState piece = board.Cells[neighbor];
-            if (piece.Owner == player)
+            foreach (int neighbor in board.Supporters(index, player))
             {
-                if (gainsReach && piece.Piece == PieceType.Castle) formation += CastleSupportValue;
-                if (gainsReach && friendlyNeighbors == 1 && enemyLegal.Contains(board.Position(neighbor)))
+                if (board.Cells[neighbor].Piece == PieceType.Castle) formation += CastleSupportValue;
+                if (friendlyNeighbors == 1 && enemyLegal.Contains(board.Position(neighbor)))
                 {
-                    // A legal placement or capture starts in friendly range. The opponent can remove its only source.
+                    // The opponent can remove the newly placed knight's only supporter.
                     bool exhaustsGround = board.Cells[index].GroundHealth <= (capture ? 2 : 1);
                     supportRisk += SoleSupportThreatRisk * (exhaustsGround ? 1 + GroundExhaustionFactor : 1);
                 }
-
-                // An upgrade anchors a dependent knight; a placement gives a knight another neighbor.
-                if ((upgrade || gainsReach) && piece.Piece == PieceType.Knight && board.Support(neighbor, player) == 1)
+            }
+        }
+        if (upgrade || gainsReach)
+        {
+            foreach (int target in board.SupportedTargets(index, upgrade ? PieceType.Castle : PieceType.Knight))
+            {
+                if (board.Cells[target] is { Piece: PieceType.Knight } knight && knight.Owner == player &&
+                    board.SurvivalSupport(target, player) == 1)
                 {
                     formation += DependentKnightValue;
-                    if (upgrade && shared) supportRisk += DependentKnightValue * OpponentResponseDiscount;
+                    if (upgrade && shared && board.SupportedTargets(index, PieceType.Knight).Contains(target))
+                        supportRisk += DependentKnightValue * OpponentResponseDiscount;
                 }
             }
-            else if (capture && piece.Owner == opponent && piece.Piece == PieceType.Knight && board.Support(neighbor, opponent) == 1)
+        }
+        if (capture)
+        {
+            foreach (int target in board.SupportedTargets(index, PieceType.Knight))
             {
+                if (board.Cells[target] is not { Piece: PieceType.Knight } knight || knight.Owner != opponent ||
+                    board.SurvivalSupport(target, opponent) != 1) continue;
                 // The opponent can add a supporter or upgrade the dependent knight in the same turn.
-                double groundValue = piece.GroundHealth <= 1 ? 1 + GroundExhaustionFactor : 1;
+                double groundValue = knight.GroundHealth <= 1 ? 1 + GroundExhaustionFactor : 1;
                 formation += DependentKnightValue * groundValue * OpponentResponseDiscount;
             }
         }
@@ -289,7 +355,7 @@ public sealed class CpuDecisionEngine
         return features with { Formation = Math.Min(1, formation), SupportRisk = Math.Min(1, supportRisk) };
     }
 
-    internal static int GetPoolSize(CpuCandidate[] candidates, int nominalLimit, int minimum, double? maximumGap)
+    internal static int GetPoolSize(ReadOnlySpan<CpuCandidate> candidates, int nominalLimit, int minimum, double? maximumGap)
     {
         minimum = Math.Min(candidates.Length, minimum);
         int poolSize = Math.Min(candidates.Length, Math.Max(nominalLimit, minimum));
@@ -302,7 +368,7 @@ public sealed class CpuDecisionEngine
         return IncludeCutoffTies(candidates, poolSize);
     }
 
-    private static int IncludeCutoffTies(CpuCandidate[] candidates, int poolSize)
+    private static int IncludeCutoffTies(ReadOnlySpan<CpuCandidate> candidates, int poolSize)
     {
         // Compare to the original cutoff so a chain of near-ties cannot extend the margin.
         double cutoff = candidates[poolSize - 1].Score;
@@ -314,7 +380,7 @@ public sealed class CpuDecisionEngine
         return poolSize;
     }
 
-    internal static int Sample(CpuCandidate[] candidates, int poolSize, double temperature, double diversity, Random random)
+    internal static int Sample(Span<CpuCandidate> candidates, int poolSize, double temperature, double diversity, Random random)
     {
         if (temperature == 0) poolSize = IncludeCutoffTies(candidates, 1);
         for (int i = poolSize; i < candidates.Length; i++)

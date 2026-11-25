@@ -7,11 +7,11 @@ public enum CpuDifficulty
     Easy,
     /// <summary>Balances tactical awareness with some variation.</summary>
     Normal,
-    /// <summary>Favors stronger territory and mobility choices.</summary>
+    /// <summary>Favors stronger territorial choices and adds a narrow second turn when the budget permits.</summary>
     Hard,
-    /// <summary>Uses detailed static assessment with little variation.</summary>
+    /// <summary>Uses strategic search with two-turn planning and little variation.</summary>
     VeryHard,
-    /// <summary>Always takes a best-rated main-phase selection and varies draft choices.</summary>
+    /// <summary>Uses the widest strategic search and varies draft choices.</summary>
     Monster
 }
 
@@ -84,6 +84,9 @@ public sealed class CpuProfile
     /// <summary>Gets the maximum main-phase score gap in evaluation-score units, or null if disabled.</summary>
     public double? MainMaximumScoreDifference { get; }
 
+    /// <summary>Gets the optional simultaneous search configuration for Knight Support. Null uses static evaluation.</summary>
+    public CpuSearchOptions? Search { get; init; }
+
     private static void ValidateTemperature(double value, string parameter, bool allowZero)
     {
         if (!double.IsFinite(value) || value < 0 || value > 10 || (!allowZero && value == 0))
@@ -117,11 +120,16 @@ public static class CpuDifficultyProfiles
 
     private static readonly CpuProfile[] Profiles =
     [
-        new(WithSupport(new(2.2, 0.7, 1.5, 0.8, 0.3, 0.2, 0.5, 0.35)), 16, 12, 1.0, 0.9),
-        new(WithSupport(new(2.2, 1.2, 1.6, 1.1, 0.6, 0.5, 0.8, 0.65)), 12, 8, 0.6, 0.75),
-        new(WithSupport(new(2.0, 1.6, 1.8, 1.4, 0.9, 0.8, 1.1, 0.95)), 10, 5, 0.3, 0.65),
-        new(WithSupport(new(2.0, 1.9, 1.9, 1.6, 1.1, 1.1, 1.3, 1.15)), 8, 3, 0.12, 0.55),
-        new(WithSupport(new(2.0, 2.1, 2.0, 1.7, 1.2, 1.2, 1.4, 1.25)), 16, 1, 0, 0.5),
+        new(WithSupport(new(2.2, 0.7, 1.5, 0.8, 0.3, 0.2, 0.5, 0.35)), 16, 12, 1.0, 0.9)
+            { Search = new(1, 5, 4, 64, 0.15, 1.8) },
+        new(WithSupport(new(2.2, 1.2, 1.6, 1.1, 0.6, 0.5, 0.8, 0.65)), 12, 8, 0.6, 0.75)
+            { Search = new(1, 8, 6, 120, 0.24, 1.4) },
+        new(WithSupport(new(2.0, 1.6, 1.8, 1.4, 0.9, 0.8, 1.1, 0.95)), 10, 5, 0.3, 0.65)
+            { Search = new(2, 12, 8, 360, 0.32, 1.2) },
+        new(WithSupport(new(2.0, 1.9, 1.9, 1.6, 1.1, 1.1, 1.3, 1.15)), 8, 3, 0.12, 0.55)
+            { Search = new(2, 14, 9, 500, 0.36, 1.1) },
+        new(WithSupport(new(2.0, 2.1, 2.0, 1.7, 1.2, 1.2, 1.4, 1.25)), 16, 1, 0, 0.5)
+            { Search = new(2, 18, 10, 850, 0.40, 1.0) },
     ];
 
     private static CpuEvaluationWeights WithSupport(CpuEvaluationWeights weights) =>

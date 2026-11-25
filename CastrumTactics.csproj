@@ -10,7 +10,7 @@
     <ProjectReference Include="Domain/CastrumTactics.Domain.csproj" />
     <ProjectReference Include="AI/CastrumTactics.AI.csproj" />
     <InternalsVisibleTo Include="CastrumTactics.Presentation.Tests" />
-    <Compile Remove="Domain/**/*.cs;AI/**/*.cs;Tests/**/*.cs" />
+    <Compile Remove="Domain/**/*.cs;AI/**/*.cs;Tests/**/*.cs;Benchmarks/**/*.cs" />
     <!-- Android exports stage copies of Godot scripts under these generated paths. -->
     <Compile Remove="android/build/build/**/*.cs;android/build/src/main/assets/**/*.cs" />
   </ItemGroup>

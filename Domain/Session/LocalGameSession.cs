@@ -102,20 +102,12 @@ public sealed class LocalGameSession : IGameSession
     {
         if (_mainPhase is { } mainPhase)
         {
-            BoardState board = mainPhase.ResolveTurn(new(PlayerId.PlayerOne, first), new(PlayerId.PlayerTwo, second));
-            _mainPhase = MainPhaseState.Evaluate(board, mainPhase.RuleSet);
+            _mainPhase = mainPhase.Advance(new(PlayerId.PlayerOne, first), new(PlayerId.PlayerTwo, second));
             _resolvedMainTurns++;
             return 1;
         }
 
-        OpeningDraft draft = _draft.Resolve(first, second);
-        // Both players would have to choose the last start. Resolve it before publishing another snapshot.
-        if (draft.EligiblePositions.Count == 1)
-        {
-            BoardPosition last = draft.EligiblePositions[0];
-            draft = draft.Resolve(last, last);
-        }
-
+        OpeningDraft draft = _draft.ResolveRound(first, second);
         // Score the actual draft board before publishing any main-phase snapshot.
         _mainPhase = draft.Phase == MatchPhase.Main ? MainPhaseState.Evaluate(draft.Board, draft.RuleSet) : null;
         int resolvedRounds = draft.ResolvedRounds - _draft.ResolvedRounds;

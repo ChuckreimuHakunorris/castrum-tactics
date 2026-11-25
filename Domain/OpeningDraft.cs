@@ -36,6 +36,15 @@ internal sealed class OpeningDraft
 
     internal bool CanSelect(BoardPosition position) => EligiblePositions.Contains(position);
 
+    internal OpeningDraft ResolveRound(BoardPosition playerOne, BoardPosition playerTwo)
+    {
+        OpeningDraft draft = Resolve(playerOne, playerTwo);
+        // The final start would be forced for both players, so resolve it in the same published round.
+        if (draft.EligiblePositions.Count != 1) return draft;
+        BoardPosition last = draft.EligiblePositions[0];
+        return draft.Resolve(last, last);
+    }
+
     internal OpeningDraft Resolve(BoardPosition playerOne, BoardPosition playerTwo)
     {
         if (!CanSelect(playerOne) || !CanSelect(playerTwo))
@@ -45,7 +54,7 @@ internal sealed class OpeningDraft
 
         CellState first = Board.GetCell(playerOne);
         bool collision = playerOne == playerTwo;
-        PieceType startingPiece = RuleSet == RuleSet.KnightSupport ? PieceType.Castle : PieceType.Knight;
+        PieceType startingPiece = RuleSetDefinition.Get(RuleSet).StartingPiece;
         BoardState next = collision
             ? Board.WithResolvedCells(playerOne, first.AfterGraveConversion())
             : Board.WithResolvedCells(playerOne, first.WithOwnedPiece(startingPiece, PlayerId.PlayerOne),
