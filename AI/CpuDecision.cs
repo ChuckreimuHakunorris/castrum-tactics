@@ -40,7 +40,7 @@ public sealed class CpuDecisionReport
 /// <param name="Position">The action analyzed.</param>
 /// <param name="Expected">The probability-weighted value across common replies.</param>
 /// <param name="Adverse">The lowest value including an extra collision reply when applicable.</param>
-/// <param name="CollisionChecked">Whether resolution with a same-square reply was included.</param>
+/// <param name="CollisionChecked">Whether this action was evaluated against a legal same-square reply, either in the common set or as an additional adverse-only check.</param>
 /// <param name="Depth">The comparable completed depth used for this action.</param>
 public readonly record struct CpuActionAnalysis(BoardPosition Position, double Expected, double Adverse,
     bool CollisionChecked, int Depth);

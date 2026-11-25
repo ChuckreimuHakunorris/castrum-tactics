@@ -33,6 +33,9 @@ def summarize(label, rows):
             metrics["interior"] += row["interiorPlacements"]
             metrics["placements"] += row["placements"]
         for turn in row["rounds"]:
+            if turn["phase"] == "draft":
+                metrics["draft_rounds"] += 1
+                metrics["draft_collisions"] += turn["red"]["move"] == turn["blue"]["move"]
             decision = turn[row["firstSide"]]
             if decision["legal"] > 0:
                 samples[turn["phase"]].append(decision)
@@ -40,6 +43,9 @@ def summarize(label, rows):
     print(f"{label}: {counts['win']}-{counts['draw']}-{counts['loss']} W-D-L, "
           f"{counts['retry']} retry, {counts['draftscore']} scored opening, "
           f"{metrics['avoidable']} avoidable losses, {metrics['interior']}/{metrics['placements']} interior placements")
+    if metrics["draft_rounds"]:
+        print(f"  draft collisions: {metrics['draft_collisions']}/{metrics['draft_rounds']} submitted rounds, "
+              f"{counts['main']}/{len(rows)} matches reached Main")
     for phase, decisions in sorted(samples.items()):
         describe(phase, decisions)
         if phase == "main":

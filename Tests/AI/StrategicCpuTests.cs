@@ -180,6 +180,128 @@ public sealed class StrategicCpuTests
         Assert.Throws<InvalidOperationException>(() => preview.PreviewDraft(starts[0], starts[1]));
     }
 
+    [Fact]
+    public void OmittedDraftCollisionLowersAdverseValueWithoutChangingTerminalCommonOutcome()
+    {
+        BoardPosition[] starts = [new(0, 0), new(1, 0), new(3, 0)];
+        var terrain = new[,] { { TerrainType.Playable, TerrainType.Playable, TerrainType.Inaccessible,
+            TerrainType.Playable, TerrainType.Playable } };
+        var snapshot = new LocalGameSession(new MapDefinition(5, 1, terrain, starts), RuleSet.KnightSupport).Current;
+        var common = starts[0];
+        var omitted = starts[2];
+        var distinct = snapshot.PreviewDraft(omitted, common);
+        Assert.Equal(MatchPhase.Finished, distinct.Phase);
+        Assert.Equal(2, distinct.ResolvedRounds);
+        Assert.Equal(PieceType.Grave, distinct.Board.GetCell(starts[1]).Piece);
+        Assert.Equal(new MainPhaseResult(2, 1), distinct.FinalResult);
+        Assert.Equal(MatchPhase.Opening, snapshot.PreviewDraft(omitted, omitted).Phase);
+
+        var search = AnalyzeDraft(snapshot, Profile(1, 5, 1, 5));
+        Assert.Equal(new CpuReplyAnalysis(common, 1), Assert.Single(search.Replies));
+        Assert.Equal(5, search.ResolvedPairs);
+        Assert.False(search.BudgetExhausted);
+        Assert.Equal(3, search.Actions.Count);
+        Assert.All(search.Actions, action => Assert.True(action.CollisionChecked));
+        var rating = search.Actions.Single(action => action.Position == omitted);
+        Assert.Equal(1.575, rating.Expected, 12);
+        Assert.Equal(0, rating.Adverse, 12);
+    }
+
+    [Theory]
+    [InlineData(CpuDifficulty.Easy, 5, 61)]
+    [InlineData(CpuDifficulty.Normal, 8, 91)]
+    [InlineData(CpuDifficulty.Monster, 11, 121)]
+    public void LargeDraftBudgetsIncludeEveryCollisionAndIgnorePendingOpponentChoices(
+        CpuDifficulty difficulty, int replyCount, int pairCount)
+    {
+        var map = PredefinedMapCatalog.BuiltIn.Get("broadshield-field").Definition;
+        var first = new LocalGameSession(map, RuleSet.KnightSupport);
+        var second = new LocalGameSession(map, RuleSet.KnightSupport);
+        var snapshot = first.Current;
+        Assert.Equal(11, snapshot.EligiblePositions.Count);
+        var profile = CpuDifficultyProfiles.Get(difficulty);
+        var baseline = Engine.DecideWithDiagnostics(snapshot, One, profile, new Random(42));
+        var search = baseline.Search!;
+        Assert.Equal(1, search.Depth);
+        Assert.Equal(replyCount, search.Replies.Count);
+        Assert.Equal(1, search.Replies.Sum(reply => reply.Probability), 12);
+        Assert.Equal(pairCount, search.ResolvedPairs);
+        Assert.InRange(search.ResolvedPairs, 1, profile.Search!.PairBudget);
+        Assert.False(search.BudgetExhausted);
+        Assert.Equal(snapshot.EligiblePositions.Count, search.Actions.Count);
+        Assert.All(search.Actions, action => Assert.True(action.CollisionChecked));
+        Assert.Contains(baseline.Decision!.Value.Position, snapshot.EligiblePositions);
+        Assert.Equal(1, baseline.Candidates.Sum(candidate => candidate.Probability), 12);
+        Assert.True(baseline.Candidates.Count(candidate => candidate.Probability > 0) >= 2);
+
+        Assert.Equal(SessionCommandResult.Accepted, first.SubmitOpeningSelection(new(Two, snapshot.EligiblePositions[0], snapshot.RoundId)));
+        Assert.Equal(SessionCommandResult.Accepted, second.SubmitOpeningSelection(new(Two, snapshot.EligiblePositions[^1], snapshot.RoundId)));
+        foreach (var pending in new[] { first.Current, second.Current })
+        {
+            Assert.True(pending.HasSubmitted(Two));
+            var replay = Engine.DecideWithDiagnostics(pending, One, profile, new Random(42));
+            Assert.Equal(baseline.Decision, replay.Decision);
+            Assert.Equal(baseline.Candidates, replay.Candidates);
+            Assert.Equal(search.Actions, replay.Search!.Actions);
+            Assert.Equal(search.Replies, replay.Search.Replies);
+        }
+    }
+
+    [Fact]
+    public void DraftCollisionCompletesOrFallsBackWhenTheLastPreviewDoesNotFit()
+    {
+        var map = PredefinedMapCatalog.BuiltIn.Get("pocket-meadow").Definition;
+        var snapshot = new LocalGameSession(map, RuleSet.KnightSupport).Current;
+        var common = snapshot.EligiblePositions[0];
+        var omitted = snapshot.EligiblePositions[1];
+        Assert.Equal(MatchPhase.Main, snapshot.PreviewDraft(omitted, common).Phase);
+        Assert.Equal(MatchPhase.OpeningRestartRequired, snapshot.PreviewDraft(omitted, omitted).Phase);
+
+        var complete = AnalyzeDraft(snapshot, Profile(1, 5, 1, 3));
+        Assert.Equal(new CpuReplyAnalysis(common, 1), Assert.Single(complete.Replies));
+        Assert.Equal(3, complete.ResolvedPairs);
+        Assert.False(complete.BudgetExhausted);
+        var rating = complete.Actions.Single(action => action.Position == omitted);
+        Assert.Equal(0, rating.Expected, 12);
+        Assert.Equal(-1, rating.Adverse, 12);
+        Assert.True(rating.CollisionChecked);
+
+        var profile = Profile(1, 5, 1, 2);
+        var fallback = Engine.DecideWithDiagnostics(snapshot, One, profile, new Random(42));
+        Assert.Equal(0, fallback.Search!.Depth);
+        Assert.Equal(2, fallback.Search.ResolvedPairs);
+        Assert.True(fallback.Search.BudgetExhausted);
+        Assert.Empty(fallback.Search.Actions);
+        Assert.Contains(fallback.Decision!.Value.Position, snapshot.EligiblePositions);
+        Assert.All(fallback.Candidates, candidate => Assert.True(candidate.Probability > 0));
+
+        var timed = new CpuDecisionEngine(TimeSpan.FromTicks(1))
+            .DecideWithDiagnostics(snapshot, One, Monster, new Random(42));
+        Assert.True(timed.Search!.TimeLimitReached);
+        Assert.Equal(0, timed.Search.Depth);
+        Assert.Empty(timed.Search.Actions);
+        Assert.Contains(timed.Decision!.Value.Position, snapshot.EligiblePositions);
+    }
+
+    [Fact]
+    public void DraftPreviewLoopObservesCancellation()
+    {
+        var map = PredefinedMapCatalog.BuiltIn.Get("broadshield-field").Definition;
+        var snapshot = new LocalGameSession(map, RuleSet.KnightSupport).Current;
+        using var source = new CancellationTokenSource();
+        var search = new SimultaneousSearch(snapshot, One, Two, Monster, source.Token, 0, null);
+        var ranked = snapshot.EligiblePositions.Select(position => new CpuCandidate(position, default, 0, 0)).ToArray();
+        source.Cancel();
+        Assert.Throws<OperationCanceledException>(() => search.Analyze(snapshot, ranked, ranked, diagnostics: true));
+    }
+
+    private static CpuSearchReport AnalyzeDraft(GameSessionSnapshot snapshot, CpuProfile profile)
+    {
+        var ranked = snapshot.EligiblePositions.Select(position => new CpuCandidate(position, default, 0, 0)).ToArray();
+        return new SimultaneousSearch(snapshot, One, Two, profile, default, 0, null)
+            .Analyze(snapshot, ranked, ranked, diagnostics: true).Report!;
+    }
+
     private static StrategicPosition.PositionFeatures Features(BoardState board)
     {
         var state = MainPhaseState.Evaluate(board, RuleSet.KnightSupport);

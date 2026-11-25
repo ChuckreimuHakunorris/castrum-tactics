@@ -41,10 +41,12 @@ internal sealed class SimultaneousSearch
         CpuCandidate[] replies;
         if (opening)
         {
-            // Draft starts have different long-term consequences. Compare all when the budget permits.
             choices = own;
-            replies = opponent.Take(Math.Min(_options.OpponentCandidates + 2,
-                Math.Max(1, _options.PairBudget / own.Length))).ToArray();
+            int replyCount = Math.Min(opponent.Length, _options.OpponentCandidates + 2);
+            // Both sides share the same starts. Every start outside the common replies needs one extra preview.
+            while (replyCount > 1 && (long)choices.Length * replyCount + choices.Length - replyCount > _options.PairBudget)
+                replyCount--;
+            replies = opponent[..replyCount];
         }
         else
         {
@@ -147,12 +149,15 @@ internal sealed class SimultaneousSearch
 
     private Rating? RateDraft(GameSessionSnapshot snapshot, CpuCandidate choice, CpuCandidate[] replies, double[] weights)
     {
+        bool collision = replies.Any(r => r.Position == choice.Position);
+        bool extra = !collision && snapshot.EligiblePositions.Contains(choice.Position);
+        int count = replies.Length + (extra ? 1 : 0);
         double expected = 0, adverse = double.PositiveInfinity;
         int area = snapshot.Board.Width * snapshot.Board.Height;
-        for (int i = 0; i < replies.Length; i++)
+        for (int i = 0; i < count; i++)
         {
             if (!SpendPair()) return null;
-            BoardPosition reply = replies[i].Position;
+            BoardPosition reply = i < replies.Length ? replies[i].Position : choice.Position;
             var next = _player == PlayerId.PlayerOne
                 ? snapshot.PreviewDraft(choice.Position, reply)
                 : snapshot.PreviewDraft(reply, choice.Position);
@@ -174,14 +179,14 @@ internal sealed class SimultaneousSearch
                     state?.GetLegalSelections(PlayerId.PlayerOne) ?? empty,
                     state?.GetLegalSelections(PlayerId.PlayerTwo) ?? empty, _token, opening: true).Score(_player, opening: true);
             }
-            expected += weights[i] * value;
+            if (i < replies.Length) expected += weights[i] * value;
             adverse = Math.Min(adverse, value);
         }
         // Opening scores are normalized to preserve softmax variation on large maps.
         double scale = Math.Max(4, Math.Sqrt(area));
         double prior = 0.25 * choice.Score;
         return new(choice, expected / scale + prior, adverse / scale + prior,
-            replies.Any(r => r.Position == choice.Position), 1, 1, []);
+            collision || extra, 1, 1, []);
     }
 
     private Rating? RateMain(MainPhaseState state, CpuCandidate choice, CpuCandidate[] replies, double[] weights,

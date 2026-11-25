@@ -73,6 +73,33 @@ After an initial one-turn Hard lost its adjacent comparison with Normal (2–4�
 
 Each stronger level led overall in this sample. Normal split Twin Basins with Easy. Monster beat Very Hard on Banner Plain and drew on Pocket Meadow and Twin Basins. These matches establish a provisional ladder with substantial map and position effects.
 
+## Draft collision correction
+
+The paired comparison uses the initial 8C implementation at `f152749` and the corrected draft search. Easy, Normal, and Monster each played four seed indices (8–11) in both seats on five maps, for 120 matches per version. The rival used frozen Normal in the draft and the archived Probe in Main. The maps were Pocket Meadow (2 starts), Silver Bracken (10), Broadshield Field (11), Vesper Barrows (12), and Sixteen Standards (16).
+
+Build the Release harness from each revision, then run the following commands once for each difficulty and version. Use the matching values for `difficulty` and `version`.
+
+```sh
+dotnet build Benchmarks/CastrumTactics.Benchmarks.csproj -c Release
+dotnet Benchmarks/bin/Release/net10.0/CastrumTactics.Benchmarks.dll match --maps pocket-meadow,broadshield-field,silver-bracken,vesper-barrows --first "strategic:$difficulty" --second probe --seed 8 --count 4 --mode draft > "$version-$difficulty.jsonl"
+dotnet Benchmarks/bin/Release/net10.0/CastrumTactics.Benchmarks.dll match --maps sixteen-standards --first "strategic:$difficulty" --second probe --seed 8 --count 4 --mode draft > "$version-sixteen-$difficulty.jsonl"
+python Benchmarks/summarize.py "$version-$difficulty.jsonl" "$version-sixteen-$difficulty.jsonl"
+```
+
+Collision rates use submitted draft rounds. Automatically resolved final collisions are forced by the rules and excluded from that denominator. A failed draft requires a restart. Opening latency and preview counts refer to the strategic CPU. Latency is wall-clock time on the Windows system described below. Draft paths and the mix of positions can differ between versions.
+
+| Difficulty | Collisions before → after | Failed drafts | Reached Main | Median / P95 / max latency before → after | Median / max previews before → after |
+| --- | ---: | ---: | ---: | --- | --- |
+| Easy | 32/208 → 38/210 | 4/40 → 4/40 | 36/40 → 36/40 | 1.14 / 5.99 / 11.53 → 1.15 / 7.02 / 13.23 ms | 42 / 64 → 43 / 64 |
+| Normal | 54/216 → 54/216 | 4/40 → 4/40 | 36/40 → 36/40 | 1.42 / 7.71 / 16.67 → 1.37 / 7.15 / 22.08 ms | 49 / 112 → 49 / 118 |
+| Monster | 60/220 → 60/220 | 4/40 → 4/40 | 36/40 → 36/40 | 1.28 / 6.60 / 36.91 → 1.28 / 5.97 / 27.80 ms | 49 / 192 → 49 / 196 |
+
+Overall, collisions rose from 146/644 submitted rounds (22.7%) to 152/646 (23.5%). All 12 failed drafts in each version were on Pocket Meadow, where the common shortlist already covered both starts. There were 108 transitions to Main and zero immediately scored openings in each version. Easy changed 10 draft histories on Sixteen Standards and Vesper Barrows. All six additional collisions were on Sixteen Standards. Normal and Monster reproduced their original draft histories. A collision can deny a valuable start, so its frequency alone does not establish draft quality.
+
+On the first Sixteen Standards decision, Easy narrowed the common replies from four to three and used 61 previews instead of 64. Normal narrowed from seven to six and used 106 instead of 112. Monster kept 12 common replies and used 196 instead of 192. These include the omitted same-square previews. Median times were close across the sample, while the high-percentile and maximum times moved in both directions. The configured pair caps stayed fixed.
+
+All 240 histories replayed through the domain. The local JSON Lines are in the ignored `exports/m8c-draft-collision` directory.
+
 ## Windows search performance
 
 The following Release-build measurements use Windows x64, Intel Core i5-7500 at 3.40 GHz, .NET SDK 10.0.404 and runtime 10.0.15. The harness warms on Pocket Meadow and times successive decisions in full fixed-draft matches with diagnostics enabled. These samples include early and late states. Allocations are the calling thread's bytes per decision, including simulated boards and diagnostics. They measure allocation traffic rather than retained heap size.
