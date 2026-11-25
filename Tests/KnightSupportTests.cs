@@ -1,3 +1,4 @@
+using CastrumTactics.Development;
 using CastrumTactics.Domain.Session;
 using Xunit;
 
@@ -185,7 +186,7 @@ public sealed class KnightSupportTests
     [Fact]
     public void SessionPublishesTheSameEnforcedBoardInBothSubmissionOrders()
     {
-        var map = PredefinedMapCatalog.BuiltIn.Get("pocket-meadow").Definition;
+        var map = HistoricalBattlefields.Get("pocket-meadow").Definition;
         var forward = new LocalGameSession(map, RuleSet.KnightSupport);
         var reverse = new LocalGameSession(map, RuleSet.KnightSupport);
         var invasion = new BoardPosition(2, 0);

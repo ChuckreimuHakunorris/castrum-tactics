@@ -18,6 +18,12 @@ JSON Lines include map, ruleset, opponents, seats and seeds, phase outcomes, fin
 
 The local run's replayable records, replay fixtures, and rendered Windows captures are in the ignored `exports/m8c-verification` directory.
 
+### Retired battlefield fixtures
+
+Milestone 8C.1 moved retired layouts byte-for-byte into `Benchmarks/Reference/Maps/`. The development harness resolves historical IDs for `match`, `replay`, and `fixtures`. The commands above continue to accept Pocket Meadow, Little Crossing, and Barrow Ring. The application catalog and map selector exclude these fixtures. Historical results still refer to the layouts and opponents originally recorded. [Retired battlefield list](MapFormat.md#retired-battlefields)
+
+The 8C.1 verification replayed 596 saved match histories. It also reran the 18 fixed-draft Monster versus Probe matches on Pocket Meadow, Little Crossing, and Barrow Ring with seed indices 5–7 in both seats. Actions, results, and search effort matched the earlier records. Timing and allocation samples were excluded from that comparison.
+
 ### Frozen controls and provenance
 
 The benchmark sources under `Benchmarks/Frozen` are the original five AI files from `afb0dcbab5b789ed8820017c84648ed4dd3bbe14`. A separate assembly alias keeps frozen Normal's rankings independent of the production evaluator. `Benchmarks/ArchivedProbe.cs` preserves the archived Probe functions and counts their pair resolutions. Probe takes all own actions up to ten, otherwise the top ten from frozen Normal. It takes all replies up to eight, otherwise the top six from frozen Normal, and adds a legal omitted collision. Its original score is 65% mean and 35% worst with seeded ties. The nonterminal weights are 0.95 secured lead, 0.65 knight lead, 0.50 anchor lead, and 0.25 legal-move lead. Terminal values are ±150 plus margin, or zero for a draw.

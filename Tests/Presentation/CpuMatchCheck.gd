@@ -1,6 +1,6 @@
 extends "res://Tests/Presentation/DraftLayoutCheck.gd"
 
-const SMALL_BOARD := Vector2(3, 3)
+const MEADOW_BOARD := Vector2(6, 5)
 const RECTANGULAR_BOARD := Vector2(7, 5)
 const TURN_LIMIT := 2400
 
@@ -23,7 +23,7 @@ func run() -> void:
 	rectangular.queue_free()
 	await process_frame
 
-	var game := spawn("pocket-meadow", 0)
+	var game := spawn("open-meadow", 0)
 	# Hold the main-thread pump so the human can highlight a tile before CPU submission.
 	game.set_process(false)
 	await settle()
@@ -39,7 +39,7 @@ func run() -> void:
 	expect(one.disabled and two.disabled and "Thinking" in two.text, "CPU mode exposed player switching or omitted thinking status.")
 	expect(difficulty.item_count == 5 and "Normal" in two.text, "Missing current Normal difficulty.")
 	check_controls_fit([submit, new_match], [phase])
-	choose(board, Vector2.ZERO, SMALL_BOARD, true)
+	choose(board, Vector2.ZERO, MEADOW_BOARD, true)
 	expect(not submit.disabled, "Human input was disabled while the CPU was thinking.")
 	var board_rect := board.get_global_rect()
 	var grid_before: Rect2 = board.call("GetRenderedGridBounds")
@@ -50,38 +50,44 @@ func run() -> void:
 	expect(board.get_global_rect() == board_rect and board.call("GetRenderedGridBounds") == grid_before,
 		"CPU submission moved the battlefield.")
 	expect(piece_count(board) == 0, "A pending CPU coordinate appeared on the battlefield.")
-	choose(board, Vector2.ZERO, SMALL_BOARD, true)
+	choose(board, Vector2.ZERO, MEADOW_BOARD, true)
 	if not await wait_until(func(): return phase.text == "Main · Turn 1"):
 		return
-	expect(submit.disabled and piece_count(board) == 2, "Opening resolution did not show both knights and clear the selection.")
-	check_banner(board, SMALL_BOARD, ["0", "0"])
+	expect(submit.disabled and piece_count(board) == 3 and
+		piece_art_at(board, Vector2(2, 2), MEADOW_BOARD) == "grave.png",
+		"Opening resolution did not show both knights and the forced collision or clear the selection.")
+	check_banner(board, MEADOW_BOARD, ["0", "0"])
 	await capture("main-portrait")
 
-	var moves := [Vector2(0, 0), Vector2(1, 0), Vector2(1, 0), Vector2(0, 1), Vector2(0, 1), Vector2(0, 2),
-		Vector2(1, 2), Vector2(2, 1), Vector2(2, 0), Vector2(2, 1), Vector2(1, 2)]
-	var scores := [["1", "0"], ["1", "0"], ["1", "0"], ["1", "1"], ["2", "2"]]
+	var moves := [Vector2(0, 0), Vector2(1, 0), Vector2(1, 0), Vector2(2, 0), Vector2(2, 0),
+		Vector2(3, 0), Vector2(3, 0), Vector2(4, 0), Vector2(4, 0), Vector2(2, 1),
+		Vector2(5, 0), Vector2(5, 0), Vector2(0, 1), Vector2(4, 1), Vector2(0, 1),
+		Vector2(1, 1), Vector2(1, 1), Vector2(3, 1), Vector2(3, 1), Vector2(3, 2),
+		Vector2(5, 1), Vector2(5, 1), Vector2(0, 2), Vector2(0, 2), Vector2(1, 2),
+		Vector2(1, 2), Vector2(5, 2), Vector2(5, 2), Vector2(2, 3), Vector2(2, 3)]
+	var scores := [["1", "0"], ["1", "1"], ["2", "1"], ["2", "1"], ["3", "1"]]
 	root.size = Vector2i(1000, 690)
 	await settle()
 	for index in moves.size():
 		var previous_phase := phase.text
-		choose(board, moves[index], SMALL_BOARD)
+		choose(board, moves[index], MEADOW_BOARD)
 		expect(not submit.disabled, "Expected a legal human target in %s." % previous_phase)
 		if index % 2 == 0:
-			choose(board, moves[index], SMALL_BOARD)
+			choose(board, moves[index], MEADOW_BOARD)
 		else:
 			click(submit.get_global_rect().get_center())
 		if not await wait_until(func(): return phase.text != previous_phase):
 			return
 		if index < scores.size():
-			check_banner(board, SMALL_BOARD, scores[index])
-	expect(phase.text == "Match complete" and game.get_node("%Status").text == "Draw", "Wrong seeded CPU match outcome.")
-	check_banner(board, SMALL_BOARD, ["2", "2"])
+			check_banner(board, MEADOW_BOARD, scores[index])
+	expect(phase.text == "Match complete" and game.get_node("%Status").text == "CPU wins", "Wrong seeded CPU match outcome.")
+	check_banner(board, MEADOW_BOARD, ["11", "12"])
 	await capture("finished-landscape")
 
 	click(restart.get_global_rect().get_center())
 	await settle()
 	expect(phase.text == "Draft · Round 1" and "Normal" in two.text, "Restart changed the difficulty or phase.")
-	check_banner(board, SMALL_BOARD, ["0", "0"])
+	check_banner(board, MEADOW_BOARD, ["0", "0"])
 	game.set_process(false)
 	click(new_match.get_global_rect().get_center())
 	expect(confirm.visible and difficulty.is_visible_in_tree() and "Normal" in two.text, "New Match bypassed confirmation.")
@@ -112,38 +118,40 @@ func run() -> void:
 	check_banner(board, Vector2(12, 10), ["0", "0"])
 	click(new_match.get_global_rect().get_center())
 	expect(entries.get_node("broadshield-field").button_pressed, "CPU mode forgot the selected map.")
-	entries.get_node("pocket-meadow").pressed.emit()
+	entries.get_node("open-meadow").pressed.emit()
 	confirm.get_ok_button().pressed.emit()
 	# StartMatch restores the CPU pump. Pause again before the next frame to inspect the replacement.
 	game.set_process(false)
 	await settle()
-	expect("Monster" in two.text and phase.tooltip_text.contains("Pocket Meadow"),
+	expect("Monster" in two.text and phase.tooltip_text.contains("Open Meadow"),
 		"Confirmed replacement ignored the selected difficulty or fixed map.")
 	expect(phase.text == "Draft · Round 1" and "Thinking" in two.text and submit.disabled and piece_count(board) == 0,
 		"Work or input from the replaced match reached the new match.")
-	check_banner(board, SMALL_BOARD, ["0", "0"])
+	check_banner(board, MEADOW_BOARD, ["0", "0"])
 	game.set_process(true)
-	if not await wait_until(func(): return "Submitted" in two.text):
-		return
-	choose(board, Vector2(2, 2), SMALL_BOARD)
-	click(submit.get_global_rect().get_center())
+	for collision: Vector2 in [Vector2(5, 4), Vector2(2, 2)]:
+		if not await wait_until(func(): return "Submitted" in two.text):
+			return
+		choose(board, collision, MEADOW_BOARD)
+		click(submit.get_global_rect().get_center())
+		await settle()
 	if not await wait_until(func(): return phase.text == "Draft ended"):
 		return
 	expect(restart.text == "Restart Draft" and not submit.visible, "A failed draft did not require explicit restart.")
-	check_banner(board, SMALL_BOARD, ["0", "0"])
+	check_banner(board, MEADOW_BOARD, ["0", "0"])
 	click(restart.get_global_rect().get_center())
 	await settle()
 	expect(phase.text == "Draft · Round 1" and "Monster" in two.text, "Draft restart lost the selected profile.")
-	check_banner(board, SMALL_BOARD, ["0", "0"])
+	check_banner(board, MEADOW_BOARD, ["0", "0"])
 	game.queue_free()
 	await process_frame
 	await check_knight_support_cpu()
 	if not failed:
-		print("Verified the seeded Classic CPU match (11 main turns, 2–2 draw), Knight Support play, map replacement, restarts, and banner alignment.")
+		print("Verified the seeded Classic CPU match (30 main turns, 11–12 CPU win), Knight Support play, map replacement, restarts, and banner alignment.")
 		quit()
 
 func check_knight_support_cpu() -> void:
-	var game := spawn("pocket-meadow", 1, 3)
+	var game := spawn("open-meadow", 1, 3)
 	game.set_process(false)
 	await settle()
 	var two: Button = game.get_node("%PlayerTwo")
@@ -156,11 +164,13 @@ func check_knight_support_cpu() -> void:
 	expect(badge.text == "Knight Support" and "Very Hard" in two.text and "Thinking" in two.text,
 		"Knight Support CPU fixture initialized incorrectly.")
 	game.set_process(true)
-	if not await wait_until(func(): return "Submitted" in two.text):
-		return
-	# With the fixed seed and symmetric starts, this choice collides with the CPU.
-	choose(board, Vector2(2, 2), SMALL_BOARD)
-	choose(board, Vector2(2, 2), SMALL_BOARD)
+	# The seed gives these CPU choices. The final remaining start then collides automatically.
+	for collision: Vector2 in [Vector2(5, 4), Vector2(2, 2)]:
+		if not await wait_until(func(): return "Submitted" in two.text):
+			return
+		choose(board, collision, MEADOW_BOARD)
+		choose(board, collision, MEADOW_BOARD)
+		await settle()
 	expect(phase.text == "Draft ended", "Seeded Knight Support collision did not fail the draft.")
 	expect(game.get_node("%Detail").text == "No starting castles were placed.", "Failed draft named the wrong starting piece.")
 	click(game.get_node("%Restart").get_global_rect().get_center())
@@ -168,18 +178,18 @@ func check_knight_support_cpu() -> void:
 		return
 	expect(badge.text == "Knight Support" and "Very Hard" in two.text, "Restart lost the ruleset or difficulty.")
 	# Restart advances the seed stream. This time the CPU selects the opposite corner.
-	choose(board, Vector2(2, 2), SMALL_BOARD)
-	choose(board, Vector2(2, 2), SMALL_BOARD)
+	choose(board, Vector2(2, 2), MEADOW_BOARD)
+	choose(board, Vector2(2, 2), MEADOW_BOARD)
 	expect(phase.text == "Main · Turn 1", "Seeded Knight Support restart did not reach Main.")
-	expect(piece_art_at(board, Vector2.ZERO, SMALL_BOARD) == "castle_base.png" and
-		piece_art_at(board, Vector2(2, 2), SMALL_BOARD) == "castle_base.png", "CPU match did not render starting castles.")
-	check_banner(board, SMALL_BOARD, ["1", "1"])
+	expect(piece_art_at(board, Vector2.ZERO, MEADOW_BOARD) == "castle_base.png" and
+		piece_art_at(board, Vector2(2, 2), MEADOW_BOARD) == "castle_base.png", "CPU match did not render starting castles.")
+	check_banner(board, MEADOW_BOARD, ["1", "1"])
 	var first_placement := Vector2(1, 2)
-	choose(board, first_placement, SMALL_BOARD)
-	choose(board, first_placement, SMALL_BOARD)
+	choose(board, first_placement, MEADOW_BOARD)
+	choose(board, first_placement, MEADOW_BOARD)
 	if not await wait_until(func(): return phase.text == "Main · Turn 2"):
 		return
-	expect(piece_art_at(board, first_placement, SMALL_BOARD) == "knight_base.png",
+	expect(piece_art_at(board, first_placement, MEADOW_BOARD) == "knight_base.png",
 		"A castle-supported placement did not survive the first CPU turn.")
 	click(new_match.get_global_rect().get_center())
 	expect(difficulty.selected == 3, "Dialog did not remember the live Knight Support difficulty.")
