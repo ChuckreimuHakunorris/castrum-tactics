@@ -38,7 +38,7 @@ To play **Classic** with starting knights, set **Rules** to **Classic** in the m
 
 ```sh
 godot --path . -- --mode cpu --ruleset knight-support --map demonstration --seed 42
-godot --path . -- --mode local --ruleset classic --map pocket-meadow
+godot --path . -- --mode local --ruleset classic --map open-meadow
 ```
 
 ## Play a local two-human match

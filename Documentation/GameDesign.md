@@ -241,7 +241,7 @@ The match banner displays **all secured playable squares** for the corresponding
 
 ## 7. Maps
 
-The 100 predefined battlefields range from 3 × 3 to 12 × 12. Normal startup draws uniformly from the full catalog. New Match offers Random Map and an alphabetical catalog with terrain and draft-position previews. Confirmation applies the choice and remembers it for the next dialog. Both restart actions reuse the active battlefield. [Predefined maps](MapFormat.md)
+The 100 predefined battlefields include open compact maps such as the 5 × 5 Commons and large boards up to 12 × 12. Long Pasture retains its open 8 × 4 layout. Normal startup draws uniformly from the production catalog. New Match offers Random Map and an alphabetical catalog with terrain and draft-position previews. Confirmation applies the choice and remembers it for the next dialog. Both restart actions reuse the active battlefield. Retired maps remain available as development fixtures for historical games. [Predefined maps](MapFormat.md)
 
 Maps are data-driven and should not be hard-coded into board logic.
 
@@ -289,7 +289,7 @@ A basic map editor is planned relatively early and should eventually allow a use
 
 The built-in maps use JSON with terrain and starting positions encoded as rows of characters. The domain loads them into immutable map definitions before starting a match. A format and versioning strategy for user-created maps remains an editor design decision.
 
-Favor open battlefields at least 8 × 8 in square and rectangular formats. Use irregular rock formations and generous openings to leave routes for flanking, expansion, and mutually supported formations. Use narrow passages where they create a local decision. Offer interior, central, peripheral, sheltered, and exposed castle sites. Castles and draft graves immediately affect territory connectivity, so evaluate the resulting routes across several drafts.
+Favor open battlefields at least 8 × 8 in square and rectangular formats. Use irregular rock formations and generous openings to leave routes for flanking, expansion, and mutually supported formations. Use narrow passages where they create a local decision and leave room elsewhere to develop and redirect a formation. Offer interior, central, peripheral, sheltered, and exposed castle sites. Castles and draft graves immediately affect territory connectivity, so evaluate the resulting routes across several drafts. Knight Support playtesting retired the smallest boards and layouts that funneled most play down a few narrow routes. This guides the built-in catalog and leaves structural map rules independent.
 
 Online map sharing is a later feature.
 

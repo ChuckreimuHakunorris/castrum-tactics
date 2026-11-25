@@ -1,3 +1,4 @@
+using CastrumTactics.Development;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using CastrumTactics.Domain.Tests;
@@ -250,7 +251,7 @@ public sealed class StrategicCpuTests
     [Fact]
     public void DraftCollisionCompletesOrFallsBackWhenTheLastPreviewDoesNotFit()
     {
-        var map = PredefinedMapCatalog.BuiltIn.Get("pocket-meadow").Definition;
+        var map = HistoricalBattlefields.Get("pocket-meadow").Definition;
         var snapshot = new LocalGameSession(map, RuleSet.KnightSupport).Current;
         var common = snapshot.EligiblePositions[0];
         var omitted = snapshot.EligiblePositions[1];
@@ -314,7 +315,7 @@ public sealed class StrategicCpuTests
 
     private static LocalGameSession PocketMeadow()
     {
-        var session = new LocalGameSession(PredefinedMapCatalog.BuiltIn.Get("pocket-meadow").Definition, RuleSet.KnightSupport);
+        var session = new LocalGameSession(HistoricalBattlefields.Get("pocket-meadow").Definition, RuleSet.KnightSupport);
         Pair(session, new(0, 0), new(2, 2));
         Pair(session, new(0, 1), new(1, 1));
         Pair(session, new(1, 1), new(0, 1));

@@ -1,3 +1,4 @@
+using CastrumTactics.Development;
 using System.Threading.Channels;
 using CastrumTactics.AI;
 using CastrumTactics.Domain;
@@ -44,7 +45,7 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
     public void LaunchOverridesComposeAndInvalidArgumentsAreRejected()
     {
         var editor = new MatchConfiguration(difficulty: CpuDifficulty.Hard);
-        var launch = MatchLaunchOptions.Parse(["--map", "pocket-meadow", "--mode", "local", "--seed", "-5",
+        var launch = MatchLaunchOptions.Parse(["--map", "bellflower-reach", "--mode", "local", "--seed", "-5",
             "--ruleset", "knight-support"],
             editor, "demonstration", 1);
         Assert.Equal((GameMode.LocalMultiplayer, CpuDifficulty.Hard), (launch.Configuration.Mode, launch.Configuration.Difficulty));
@@ -52,15 +53,16 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
         Assert.Equal(RuleSet.KnightSupport, MatchLaunchOptions.Parse([], launch.Configuration, null, null).Configuration.RuleSet);
         Assert.Equal(RuleSet.Classic, MatchLaunchOptions.Parse(["--ruleset", "classic"], launch.Configuration, null, null)
             .Configuration.RuleSet);
-        Assert.Equal("pocket-meadow", launch.GetInitialMapChoice()?.Id);
+        Assert.Equal("bellflower-reach", launch.GetInitialMapChoice()?.Id);
         Assert.Equal(-5, launch.Seed);
         Assert.Equal("demonstration", MatchLaunchOptions.Parse([], editor, "demonstration", null).GetInitialMapChoice()?.Id);
         Assert.Null(MatchLaunchOptions.Parse([], editor, "", null).GetInitialMapChoice());
         Assert.Throws<KeyNotFoundException>(() => MatchLaunchOptions.Parse(["--map", "missing"], editor, null, null));
+        Assert.Throws<KeyNotFoundException>(() => MatchLaunchOptions.Parse(["--map", "pocket-meadow"], editor, null, null));
         string[][] invalid =
         [
             ["--mode", "unknown"], ["--mode"], ["--map", "--mode", "local"], ["--seed", "2147483648"],
-            ["--map", "pocket-meadow", "--map", "demonstration"], ["--unknown"], ["--ruleset"],
+            ["--map", "bellflower-reach", "--map", "demonstration"], ["--unknown"], ["--ruleset"],
             ["--ruleset", "unsupported"], ["--ruleset", "classic", "--ruleset", "knight-support"]
         ];
         Assert.All(invalid, args => Assert.Throws<ArgumentException>(() => MatchLaunchOptions.Parse(args, editor, null, null)));
@@ -287,7 +289,7 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
     }
 
     private static LocalGameSession CreateSession(RuleSet ruleSet = RuleSet.Classic) =>
-        new(PredefinedMapCatalog.BuiltIn.Get("pocket-meadow").Definition, ruleSet);
+        new(HistoricalBattlefields.Get("pocket-meadow").Definition, ruleSet);
 
     private static CpuMatchCoordinator Start(LocalGameSession session, ControlledCpu source)
     {

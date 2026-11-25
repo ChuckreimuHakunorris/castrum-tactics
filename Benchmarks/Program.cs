@@ -3,6 +3,7 @@ extern alias frozen;
 using System.Diagnostics;
 using System.Text.Json;
 using CastrumTactics.AI;
+using CastrumTactics.Development;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using Frozen = frozen::CastrumTactics.AI;
@@ -75,7 +76,7 @@ internal static class Program
             _ => throw new ArgumentException("Expected knight-support or classic rules.")
         };
 
-        var warmup = new LocalGameSession(PredefinedMapCatalog.BuiltIn.Get("pocket-meadow").Definition, rules);
+        var warmup = new LocalGameSession(HistoricalBattlefields.Get("pocket-meadow").Definition, rules);
         var warmRandom = new Random(42);
         for (int i = 0; i < 16; i++) _ = Decide(warmup.Current, Red, first, warmRandom);
         Play(warmup, "A1", "C3");
@@ -87,7 +88,7 @@ internal static class Program
 
         foreach (string id in maps)
         {
-            MapDefinition map = PredefinedMapCatalog.BuiltIn.Get(id).Definition;
+            MapDefinition map = HistoricalBattlefields.Resolve(id).Definition;
             string? fixedStarts = fixedDraft ? starts ?? ArchivedStarts.GetValueOrDefault(id) ?? FindStarts(map, rules) : null;
             for (int i = 0; i < count; i++)
             {
@@ -308,7 +309,7 @@ internal static class Program
         foreach (string line in File.ReadLines(path))
         {
             var record = JsonSerializer.Deserialize<MatchRecord>(line, Json)!;
-            var session = new LocalGameSession(PredefinedMapCatalog.BuiltIn.Get(record.Map).Definition,
+            var session = new LocalGameSession(HistoricalBattlefields.Resolve(record.Map).Definition,
                 Enum.Parse<RuleSet>(record.Ruleset));
             RoundRecord? forced = null;
             foreach (RoundRecord round in record.Rounds)
@@ -351,7 +352,7 @@ internal static class Program
     }
 
     private static LocalGameSession Start(string map) =>
-        new(PredefinedMapCatalog.BuiltIn.Get(map).Definition, RuleSet.KnightSupport);
+        new(HistoricalBattlefields.Resolve(map).Definition, RuleSet.KnightSupport);
 
     private static void Play(LocalGameSession session, string red, string blue)
     {

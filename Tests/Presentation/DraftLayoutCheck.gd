@@ -52,11 +52,11 @@ func run() -> void:
 		quit()
 
 func check_knight_support_local() -> void:
-	var dimensions := Vector2(3, 3)
+	var dimensions := Vector2(6, 5)
 	root.size = Vector2i(410, 720)
 	var game := MATCH_SCENE.instantiate()
 	game.set("Mode", 1)
-	game.set("MapIdOverride", "pocket-meadow")
+	game.set("MapIdOverride", "open-meadow")
 	root.add_child(game)
 	await settle()
 	var board: Control = game.get_node("%BoardRenderer")
@@ -89,7 +89,7 @@ func check_knight_support_local() -> void:
 		await play(board, two, submit, collision, dimensions)
 	expect(phase.text == "Match complete" and game.get_node("%Status").text == "Player Two wins",
 		"Knight Support showed the wrong final outcome.")
-	check_banner(board, dimensions, ["1", "4"])
+	check_banner(board, dimensions, ["1", "24"])
 	click(game.get_node("%Restart").get_global_rect().get_center())
 	await settle()
 	expect(phase.text == "Draft · Round 1" and badge.text == "Knight Support", "Restart lost the active ruleset.")
@@ -122,6 +122,9 @@ func check_map_selection() -> void:
 	var preview: Control = dialog.get_node("Content/Settings/MapSelection/Preview/Board")
 	var new_match: Button = game.get_node("%NewMatch")
 	expect(entries.get_child_count() == 101, "The list must contain Random Map and every predefined battlefield.")
+	for retired in ["pocket-meadow", "little-crossing", "serpent-cut"]:
+		expect(not entries.has_node(retired), "A retired battlefield is still selectable: %s." % retired)
+	expect(entries.has_node("wrenfield"), "The replacement battlefield is missing.")
 	var previous := ""
 	for entry: Button in entries.get_children().slice(1):
 		expect(previous.naturalnocasecmp_to(entry.text) <= 0, "Map entries are out of order.")
@@ -206,13 +209,13 @@ func check_map_selection() -> void:
 	expect(entries.get_node("granite-orchard").button_pressed, "The dialog forgot the confirmed map choice.")
 	expect(entries.get_node("granite-orchard").get_global_rect().intersects(picker.get_node("Scroll").get_global_rect()),
 		"The remembered map was outside the visible list.")
-	entries.get_node("flint-crescent").pressed.emit()
+	entries.get_node("wrenfield").pressed.emit()
 	dialog.get_ok_button().pressed.emit()
 	root.size = Vector2i(550, 900)
 	await settle()
-	expect(active_map.text == "Flint Crescent — 10 × 10", "A second explicit map did not load.")
-	check_banner(board, Vector2(10, 10), ["0", "0"])
-	await capture("battlefield-flint-crescent")
+	expect(active_map.text == "Wrenfield — 8 × 9", "A second explicit map did not load.")
+	check_banner(board, Vector2(8, 9), ["0", "0"])
+	await capture("battlefield-wrenfield")
 	click(new_match.get_global_rect().get_center())
 	await settle()
 	entries.get_node("random").pressed.emit()
@@ -278,9 +281,9 @@ func capture(file_name: String) -> void:
 		"Could not save the %s screenshot." % file_name)
 
 func check_board_extremes() -> void:
-	for sample in [["pocket-meadow", 3, Vector2(2, 2)], ["twelve-towers", 12, Vector2(11, 11)]]:
-		var edge: int = sample[1]
-		var dimensions := Vector2(edge, edge)
+	for sample in [["open-meadow", Vector2(6, 5), Vector2(2, 2)], ["twelve-towers", Vector2(12, 12), Vector2(11, 11)]]:
+		var dimensions: Vector2 = sample[1]
+		var large := dimensions.x == 12
 		root.size = Vector2i(360, 640)
 		var game := MATCH_SCENE.instantiate()
 		game.set("Mode", 1)
@@ -294,8 +297,8 @@ func check_board_extremes() -> void:
 		var phase: Label = game.get_node("%Phase")
 		var one: Button = game.get_node("%PlayerOne")
 		var two: Button = game.get_node("%PlayerTwo")
-		expect(phase.tooltip_text.ends_with("(%d × %d)" % [edge, edge]), "Wrong map size loaded.")
-		if edge == 12:
+		expect(phase.tooltip_text.ends_with("(%d × %d)" % [dimensions.x, dimensions.y]), "Wrong map size loaded.")
+		if large:
 			choose(board, Vector2(2, 2), dimensions)
 			await settle()
 			expect(submit.disabled, "An inaccessible tile was selectable.")
@@ -315,9 +318,9 @@ func check_board_extremes() -> void:
 		expect(not submit.disabled, "Bottom-right start did not register on %s." % sample[0])
 		click(submit.get_global_rect().get_center())
 		await settle()
-		var expected_phase := "Main · Turn 1" if edge == 3 else "Draft · Round 2"
+		var expected_phase := "Draft · Round 2" if large else "Main · Turn 1"
 		expect(phase.text == expected_phase, "Opening round did not resolve on %s." % sample[0])
-		if edge == 12:
+		if large:
 			for y in [0, 3, 8, 11]:
 				for x in [0, 5, 11]:
 					var position := Vector2(x, y)

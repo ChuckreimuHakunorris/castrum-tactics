@@ -1,0 +1,8 @@
+<Project>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)HistoricalBattlefields.cs" Link="HistoricalBattlefields.cs"
+             Condition="'$(MSBuildProjectName)' != 'CastrumTactics.Benchmarks'" />
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Maps/*.json"
+                      LogicalName="CastrumTactics.HistoricalBattlefields.%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
