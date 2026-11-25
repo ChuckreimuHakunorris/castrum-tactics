@@ -8,7 +8,7 @@ using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using Frozen = frozen::CastrumTactics.AI;
 
-internal static class Program
+internal static partial class Program
 {
     private const PlayerId Red = PlayerId.PlayerOne;
     private const PlayerId Blue = PlayerId.PlayerTwo;
@@ -30,10 +30,11 @@ internal static class Program
                 case "match": RunMatches(args[1..]); break;
                 case "fixtures": RunFixtures(); break;
                 case "replay" when args.Length == 2: Replay(args[1]); break;
+                case "tournament": return RunTournamentCommand(args[1..]);
                 default:
                     Console.Error.WriteLine("Use match [--maps id,id --first strategic:Monster --second probe --seed 1 " +
                         "--count 2 --mode fixed|draft --starts A1/C3 --rules knight-support|classic --swap true|false], " +
-                        "fixtures, or replay <matches.jsonl>.");
+                        "fixtures, replay <matches.jsonl>, or tournament --help.");
                     return 2;
             }
             return 0;
@@ -174,20 +175,21 @@ internal static class Program
 
     // A conservative descriptive proxy, evaluated outside the decision stopwatch.
     private static bool IsInteriorPlacement(StrategicPosition position, MainPhaseState before, MainPhaseState after,
-        PlayerId side, BoardPosition action)
+        PlayerId side, BoardPosition action, CancellationToken token = default)
     {
         if (after.Board.GetCell(action).Owner != side) return false;
         var one = before.GetLegalSelections(Red);
         var two = before.GetLegalSelections(Blue);
-        var initial = position.Evaluate(before.Board, before.Territory, one, two, default).Contributions(side);
+        var initial = position.Evaluate(before.Board, before.Territory, one, two, token).Contributions(side);
         if (position.InfluenceLead(action, side) < 3) return false;
         var successor = position.Evaluate(after.Board, after.Territory, after.GetLegalSelections(Red),
-            after.GetLegalSelections(Blue), default).Contributions(side);
+            after.GetLegalSelections(Blue), token).Contributions(side);
         return successor.Secured <= initial.Secured && successor.Influence <= initial.Influence + 0.1 &&
             successor.Mobility <= initial.Mobility + 0.1 && successor.Formation <= initial.Formation + 0.25;
     }
 
-    private static DecisionRecord Decide(GameSessionSnapshot snapshot, PlayerId player, Opponent opponent, Random random)
+    private static DecisionRecord Decide(GameSessionSnapshot snapshot, PlayerId player, Opponent opponent, Random random,
+        CancellationToken token = default)
     {
         long allocated = GC.GetAllocatedBytesForCurrentThread();
         long start = Stopwatch.GetTimestamp();
@@ -197,19 +199,20 @@ internal static class Program
         {
             case "strategic":
                 CpuDecisionReport decision = Engine.DecideWithDiagnostics(snapshot, player,
-                    CpuDifficultyProfiles.Get(opponent.Difficulty), random);
+                    CpuDifficultyProfiles.Get(opponent.Difficulty), random, token);
                 choice = decision.Decision!.Value.Position;
                 depth = decision.Search?.Depth ?? 0;
                 pairs = decision.Search?.ResolvedPairs ?? 0;
                 break;
             case "probe" when snapshot.Phase == MatchPhase.Main:
+                token.ThrowIfCancellationRequested();
                 choice = ArchivedProbe.Probe(snapshot, player, random, out pairs);
                 depth = 1;
                 break;
             default:
                 var level = opponent.Kind == "probe" ? Frozen.CpuDifficulty.Normal :
                     (Frozen.CpuDifficulty)opponent.Difficulty;
-                choice = Baseline.Decide(snapshot, player, Frozen.CpuDifficultyProfiles.Get(level), random)!.Value.Position;
+                choice = Baseline.Decide(snapshot, player, Frozen.CpuDifficultyProfiles.Get(level), random, token)!.Value.Position;
                 break;
         }
         double elapsed = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
@@ -354,12 +357,20 @@ internal static class Program
     private static LocalGameSession Start(string map) =>
         new(HistoricalBattlefields.Resolve(map).Definition, RuleSet.KnightSupport);
 
-    private static void Play(LocalGameSession session, string red, string blue)
+    private static void Play(LocalGameSession session, string red, string blue, bool blueFirst = false)
     {
         var snapshot = session.Current;
         bool opening = snapshot.Phase == MatchPhase.Opening;
-        Submit(Red, red);
-        Submit(Blue, blue);
+        if (blueFirst)
+        {
+            Submit(Blue, blue);
+            Submit(Red, red);
+        }
+        else
+        {
+            Submit(Red, red);
+            Submit(Blue, blue);
+        }
 
         void Submit(PlayerId player, string move)
         {

@@ -140,3 +140,7 @@ If the worker faults, returns no valid proposal, or the command is rejected, the
 ## Milestone 8C evaluation
 
 Evaluate pairs of opposing choices through the authoritative simultaneous resolver, using `MainPhaseState.Evaluate(snapshot.Board, snapshot.RuleSet)` and carrying that ruleset forward through each hypothetical turn. Reuse the static features for ranking and fallback. The current engine has fixed collision and exposure costs, a static opening appeal model, and local gate estimates that can miss longer paths. Include exact territory and board-wide support effects when comparing plausible opposing replies. Seeded legality and completion checks measure playability. Competitive strength needs separate playtesting.
+
+## Tournament evaluation
+
+The development harness wraps CPU implementations as versioned opponents using the same immutable snapshot boundary as the application coordinator. It owns experiment profiles, timing, randomness, match scheduling and persistence. The frozen 8C evaluator, search and profiles build as their own assembly. See [CPU tournaments](CpuTournaments.md) for provenance, diagnostics and experimental workflows.

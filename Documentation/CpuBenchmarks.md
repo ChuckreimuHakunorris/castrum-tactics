@@ -1,5 +1,7 @@
 # Milestone 8C CPU benchmarking
 
+For new CPU comparisons, use the [8D.1 tournament runner](CpuTournaments.md). The commands and results below remain available to reproduce the original 8C work.
+
 ## Reproduction
 
 From the repository root with the .NET 10 SDK, build the development-only harness in Release. The executable supports `strategic:<difficulty>`, `static:<difficulty>`, and `probe`. The five labels are Easy, Normal, Hard, VeryHard, and Monster.

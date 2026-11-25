@@ -94,6 +94,12 @@ See the [game design](Documentation/GameDesign.md) and [art direction](Documenta
 
 With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain, local session, CPU, and presentation tests. The tests run without the Godot editor or runtime. All five CPU difficulties use simultaneous search under Knight Support. Deprecated Classic is available for development and uses the legacy static policy. See the [CPU architecture](Documentation/CpuArchitecture.md), [benchmark commands and results](Documentation/CpuBenchmarks.md), and [session architecture](Documentation/SessionArchitecture.md).
 
+The [CPU tournament guide](Documentation/CpuTournaments.md) covers headless round robins, frozen baseline comparisons, fixed and natural drafts, resumable parallel runs, and replay. Preview the example schedule with the .NET 10 SDK.
+
+```sh
+dotnet run -c Release --project Benchmarks -- tournament dry-run --config Benchmarks/Examples/round-robin.json
+```
+
 After building and importing assets with `godot --headless --path . --import`, run the same two Godot 4.7.2 .NET regressions as CI.
 
 ```sh
