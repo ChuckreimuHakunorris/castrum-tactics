@@ -23,7 +23,7 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
         var defaults = new MatchConfiguration();
         Assert.Equal(GameMode.VersusCpu, defaults.Mode);
         Assert.Equal(CpuDifficulty.Normal, defaults.Difficulty);
-        Assert.Equal(RuleSet.Classic, defaults.RuleSet);
+        Assert.Equal(RuleSet.KnightSupport, defaults.RuleSet);
         Assert.True(defaults.AllowsHumanInput(Human));
         Assert.False(defaults.AllowsHumanInput(Cpu));
         var swapped = new MatchConfiguration(humanPlayer: Cpu);
@@ -52,9 +52,10 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
         Assert.Equal(RuleSet.KnightSupport, MatchLaunchOptions.Parse([], launch.Configuration, null, null).Configuration.RuleSet);
         Assert.Equal(RuleSet.Classic, MatchLaunchOptions.Parse(["--ruleset", "classic"], launch.Configuration, null, null)
             .Configuration.RuleSet);
-        Assert.Equal("pocket-meadow", launch.SelectMap().Id);
+        Assert.Equal("pocket-meadow", launch.GetInitialMapChoice()?.Id);
         Assert.Equal(-5, launch.Seed);
-        Assert.Equal("demonstration", MatchLaunchOptions.Parse([], editor, "demonstration", null).SelectMap().Id);
+        Assert.Equal("demonstration", MatchLaunchOptions.Parse([], editor, "demonstration", null).GetInitialMapChoice()?.Id);
+        Assert.Null(MatchLaunchOptions.Parse([], editor, "", null).GetInitialMapChoice());
         Assert.Throws<KeyNotFoundException>(() => MatchLaunchOptions.Parse(["--map", "missing"], editor, null, null));
         string[][] invalid =
         [

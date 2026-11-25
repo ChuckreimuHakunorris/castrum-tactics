@@ -117,7 +117,7 @@ Versus CPU uses a separate coordinator in the application. It starts work agains
 
 ### Match configuration
 
-An immutable [`MatchConfiguration`](xref:CastrumTactics.Match.MatchConfiguration) captures mode, human faction, CPU profile choice, and the domain ruleset. Normal startup uses Classic Versus CPU, with Player One as human and Normal difficulty. In Local Multiplayer either player can use the toggle. Versus CPU keeps the configured human active and shows passive **You** and **CPU** status cards.
+An immutable [`MatchConfiguration`](xref:CastrumTactics.Match.MatchConfiguration) captures mode, human faction, CPU profile choice, and the domain ruleset. Normal startup uses Knight Support Versus CPU, with Player One as human and Normal difficulty. In Local Multiplayer either player can use the toggle. Versus CPU keeps the configured human active and shows passive **You** and **CPU** status cards.
 
 Call `Configure` on the scene before adding it to the tree. In this example `matchScene` is the instantiated [`Main`](xref:Global.Main) scene.
 
@@ -130,6 +130,8 @@ matchScene.Configure(new MatchConfiguration(GameMode.LocalMultiplayer, ruleSet: 
 ```
 
 The editor exposes **Mode**, **Human Player**, **Difficulty**, **Rules**, and **Map Id Override**. Command-line overrides after `--` accept `--mode cpu` or `--mode local`, `--ruleset classic` or `--ruleset knight-support`, `--map <id>`, and `--seed <int>`. These flags take precedence over startup defaults. Unknown options and invalid values fail startup with a diagnostic.
+
+The scene keeps the map-selection preference independently of the active session. The startup override initializes that preference, and confirming a map or Random Map replaces it. The dialog reads immutable catalog definitions for its static preview. Cancel discards pending settings. Confirmation creates a session from the selected definition, or samples the full catalog if Random Map is active.
 
 ### 4.2 Online multiplayer
 
@@ -180,7 +182,7 @@ A submission acknowledgment and a completed turn are distinct events.
 
 A [`GameSessionSnapshot`](xref:CastrumTactics.Domain.Session.GameSessionSnapshot) publishes the fixed ruleset, immutable board, phase, round identifier, turn counts, and each player's submission flag. `EligiblePositions` is the shared opening list. `GetMainPhaseLegalSelections` supplies player-specific targets during Main. Main and Finished snapshots include territory and its secured totals. Draft snapshots expose zero scores. Finished also includes the final outcome. Pending coordinates stay private. Rejected commands leave the current snapshot and pending choices intact.
 
-Changing the active player in Local Multiplayer clears the provisional highlight and refreshes their targets. In Versus CPU a CPU submission preserves the human highlight until the round advances. `RestartDraft` accepts the current round identifier in `OpeningRestartRequired` or `Finished`. It restores the original map and clears pending choices, turn counts, territory, and final result. The identifier advances, and the scene restores the starting human input owner with the same ruleset and difficulty. In both modes, confirming New Match creates a new session under the selected ruleset and draws a fresh map unless an override is active. Versus CPU also applies the selected difficulty and disposes the previous coordinator. Dialog changes take effect on confirmation.
+Changing the active player in Local Multiplayer clears the provisional highlight and refreshes their targets. In Versus CPU a CPU submission preserves the human highlight until the round advances. `RestartDraft` accepts the current round identifier in `OpeningRestartRequired` or `Finished`. It restores the original map and clears pending choices, turn counts, territory, and final result. The identifier advances, and the scene restores the starting human input owner with the same ruleset and difficulty. In both modes, confirming New Match creates a session with the remembered ruleset and the newly confirmed battlefield preference. Versus CPU disposes the old coordinator and applies the confirmed difficulty to the replacement.
 
 ## 7. Architectural constraints
 

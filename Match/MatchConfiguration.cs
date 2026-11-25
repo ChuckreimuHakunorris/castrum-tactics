@@ -20,14 +20,14 @@ public enum GameMode
 /// <summary>Defines immutable input ownership, CPU difficulty, and gameplay rules for one match.</summary>
 public sealed class MatchConfiguration
 {
-    /// <summary>Creates a match configuration, defaulting to Classic with Player One against a Normal CPU.</summary>
+    /// <summary>Creates a match configuration, defaulting to Knight Support with Player One against a Normal CPU.</summary>
     /// <param name="mode">The input mode for the match.</param>
     /// <param name="humanPlayer">The sole human player in Versus CPU.</param>
     /// <param name="difficulty">The CPU profile selected at match creation.</param>
     /// <param name="ruleSet">The gameplay rules selected independently of input mode and difficulty.</param>
     /// <exception cref="ArgumentOutOfRangeException">A supplied value is undefined.</exception>
     public MatchConfiguration(GameMode mode = GameMode.VersusCpu, PlayerId humanPlayer = PlayerId.PlayerOne,
-        CpuDifficulty difficulty = CpuDifficulty.Normal, RuleSet ruleSet = RuleSet.Classic)
+        CpuDifficulty difficulty = CpuDifficulty.Normal, RuleSet ruleSet = RuleSet.KnightSupport)
     {
         if (!Enum.IsDefined(mode)) throw new ArgumentOutOfRangeException(nameof(mode));
         if (!Enum.IsDefined(humanPlayer)) throw new ArgumentOutOfRangeException(nameof(humanPlayer));
@@ -122,6 +122,5 @@ internal sealed record MatchLaunchOptions(MatchConfiguration Configuration, stri
         return new(new(mode, configuration.HumanPlayer, configuration.Difficulty, ruleSet), mapId, seed);
     }
 
-    internal PredefinedMap SelectMap() => MapId is { } id
-        ? PredefinedMapCatalog.BuiltIn.Get(id) : PredefinedMapCatalog.BuiltIn.SelectRandom();
+    internal PredefinedMap? GetInitialMapChoice() => MapId is { } id ? PredefinedMapCatalog.BuiltIn.Get(id) : null;
 }

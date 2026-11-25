@@ -15,6 +15,7 @@ func run() -> void:
 		for player in ["One", "Two"]:
 			var game := MATCH_SCENE.instantiate()
 			game.set("Mode", 1) # LocalMultiplayer
+			game.set("Rules", 0) # Classic
 			game.set("MapIdOverride", "demonstration")
 			for label_name in ["%Status", "%Detail"]:
 				var label: Label = game.get_node(label_name)
@@ -33,6 +34,7 @@ func run() -> void:
 	print("Draft layout stayed fixed for both players at all three window sizes.")
 	var game := MATCH_SCENE.instantiate()
 	game.set("Mode", 1)
+	game.set("Rules", 0)
 	game.set("MapIdOverride", "demonstration")
 	root.size = Vector2i(720, 1080)
 	root.add_child(game)
@@ -44,7 +46,9 @@ func run() -> void:
 	if not failed:
 		await check_knight_support_local()
 	if not failed:
-		print("Verified the Classic walkthrough, Knight Support eliminations and scores, draft revision, resize, restarts, and board size extremes.")
+		await check_map_selection()
+	if not failed:
+		print("Verified the Classic walkthrough, Knight Support eliminations and scores, draft revision, restarts, map selection and previews.")
 		quit()
 
 func check_knight_support_local() -> void:
@@ -61,18 +65,7 @@ func check_knight_support_local() -> void:
 	var one: Button = game.get_node("%PlayerOne")
 	var two: Button = game.get_node("%PlayerTwo")
 	var submit: Button = game.get_node("%Submit")
-	var dialog: ConfirmationDialog = game.get_node("ConfirmNewMatch")
-	var rules: OptionButton = game.get_node("%RuleSetChoice")
-	click(game.get_node("%NewMatch").get_global_rect().get_center())
-	await settle()
-	expect(dialog.visible and not game.get_node("%DifficultyChoice").visible and rules.selected == 0,
-		"Local New Match did not offer the current ruleset without CPU difficulty.")
-	rules.select(1)
-	rules.item_selected.emit(1)
-	expect(badge.text == "Classic", "Editing rules changed the active local match.")
-	dialog.get_ok_button().pressed.emit()
-	await settle()
-	expect(badge.text == "Knight Support", "Local New Match ignored Knight Support.")
+	expect(badge.text == "Knight Support", "Local startup did not default to Knight Support.")
 	await play(board, one, submit, Vector2.ZERO, dimensions)
 	await play(board, two, submit, Vector2(2, 2), dimensions)
 	expect(phase.text == "Main · Turn 1", "Knight Support did not enter Main after the draft.")
@@ -112,6 +105,178 @@ func piece_art_at(board: Control, coordinate: Vector2, dimensions: Vector2) -> S
 			return child.texture.resource_path.get_file()
 	return ""
 
+func check_map_selection() -> void:
+	var game := MATCH_SCENE.instantiate()
+	game.set("Mode", 1)
+	game.set("Rules", 0)
+	game.set("MapIdOverride", "demonstration")
+	root.add_child(game)
+	var active_map: Label = game.get_node("%ActiveMap")
+	var badge: Label = game.get_node("%RuleSetBadge")
+	var board: Control = game.get_node("%BoardRenderer")
+	var dialog: ConfirmationDialog = game.get_node("ConfirmNewMatch")
+	var picker := dialog.get_node("Content/Settings/MapSelection/Picker")
+	var entries := picker.get_node("Scroll/Entries")
+	var filter: LineEdit = picker.get_node("Filter")
+	var caption: Label = dialog.get_node("Content/Settings/MapSelection/Preview/Caption")
+	var preview: Control = dialog.get_node("Content/Settings/MapSelection/Preview/Board")
+	var new_match: Button = game.get_node("%NewMatch")
+	expect(entries.get_child_count() == 101, "The list must contain Random Map and every predefined battlefield.")
+	var previous := ""
+	for entry: Button in entries.get_children().slice(1):
+		expect(previous.naturalnocasecmp_to(entry.text) <= 0, "Map entries are out of order.")
+		previous = entry.text
+
+	for window_size: Vector2i in [Vector2i(410, 720), Vector2i(410, 530), Vector2i(1000, 500), Vector2i(320, 240)]:
+		root.size = window_size
+		await settle()
+		click(new_match.get_global_rect().get_center())
+		await settle()
+		expect(dialog.visible and "Leave this match" in dialog.get_node("Content/Settings/Prompt").text and
+			not dialog.get_node("Content/Settings/MapSelection/Preview/DifficultyChoice").visible, "The local dialog omitted confirmation or exposed CPU difficulty.")
+		expect(entries.get_node("demonstration").button_pressed, "Startup map override was not preselected.")
+		expect(entries.get_node("demonstration").get_global_rect().intersects(picker.get_node("Scroll").get_global_rect()),
+			"The startup map was selected but outside the visible list.")
+		await check_map_list_scroll(dialog, picker.get_node("Scroll"), entries, caption)
+		for sample in [["flint-crescent", Vector2(10, 10), Vector2i(5, 1), Vector2i(3, 1)],
+				["granite-orchard", Vector2(12, 10), Vector2i(2, 2), Vector2i(1, 1)]]:
+			var entry: Button = entries.get_node(sample[0])
+			filter.text = entry.text.split(" — ")[0]
+			filter.text_changed.emit(filter.text)
+			await settle()
+			expect(entries.get_children().filter(func(child): return child.visible).size() == 2,
+				"The filter did not narrow the list to one map plus Random Map.")
+			entry.pressed.emit()
+			await settle()
+			var bounds: Rect2 = preview.call("GetGridBounds")
+			var dimensions: Vector2 = sample[1]
+			expect(bounds.has_area() and is_equal_approx(bounds.size.x / dimensions.x, bounds.size.y / dimensions.y),
+				"The selected map preview did not keep square tiles.")
+			expect(caption.text == entry.text and preview.call("GetTileKind", 0, 0) == "Ground" and
+				preview.call("GetTileKind", sample[2].x, sample[2].y) == "Rock" and
+				preview.call("GetTileKind", sample[3].x, sample[3].y) == "Start",
+				"The preview did not show the selected map's name, dimensions, ground, rocks, or starts.")
+			expect(active_map.text.begins_with("Demonstration") and badge.text == "Classic",
+				"Editing the dialog changed the active match.")
+			if window_size == Vector2i(410, 720) and sample[0] == "flint-crescent":
+				await capture("new-match-portrait")
+		var local_window := Rect2(Vector2.ZERO, Vector2(dialog.size))
+		var viewport: Rect2 = game.get_viewport_rect()
+		var dialog_rect := Rect2(Vector2(dialog.position), Vector2(dialog.size))
+		var ok := dialog.get_ok_button().get_global_rect()
+		var cancel := dialog.get_cancel_button().get_global_rect()
+		expect(viewport.encloses(dialog_rect) and local_window.encloses(ok) and local_window.encloses(cancel)
+			and not ok.intersects(cancel), "Dialog or confirmation controls overflowed at %s: %s" % [window_size, dialog_rect])
+		if window_size == Vector2i(410, 720):
+			expect(dialog.size.y == 660, "The portrait dialog did not use its taller layout.")
+		elif window_size == Vector2i(410, 530):
+			expect(dialog.size.y < 660, "The portrait dialog must shrink when vertical space is limited.")
+		if window_size == Vector2i(1000, 500):
+			await capture("new-match-landscape")
+		dialog.get_cancel_button().pressed.emit()
+		await settle()
+		expect(not dialog.visible and active_map.text.begins_with("Demonstration"), "Cancel changed the battlefield.")
+
+	root.size = Vector2i(1000, 690)
+	await settle()
+	click(new_match.get_global_rect().get_center())
+	await settle()
+	entries.get_node("granite-orchard").pressed.emit()
+	dialog.get_ok_button().pressed.emit()
+	await settle()
+	expect(active_map.text == "Granite Orchard — 12 × 10" and badge.text == "Classic",
+		"The explicit map did not replace the startup override or preserve Classic.")
+	check_banner(board, Vector2(12, 10), ["0", "0"])
+	await capture("battlefield-granite-orchard")
+	var one: Button = game.get_node("%PlayerOne")
+	var two: Button = game.get_node("%PlayerTwo")
+	var submit: Button = game.get_node("%Submit")
+	var definition: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://Maps/granite-orchard.json"))
+	for y in definition.layout.size():
+		for x in int(definition.width):
+			if definition.layout[y][x] == "S" and submit.visible:
+				await play(board, one, submit, Vector2(x, y), Vector2(12, 10))
+				await play(board, two, submit, Vector2(x, y), Vector2(12, 10))
+	click(game.get_node("%Restart").get_global_rect().get_center())
+	await settle()
+	expect(active_map.text == "Granite Orchard — 12 × 10" and badge.text == "Classic" and
+		game.get_node("%Phase").text == "Draft · Round 1", "Restart Draft lost the chosen battlefield or Classic.")
+	click(new_match.get_global_rect().get_center())
+	await settle()
+	expect(entries.get_node("granite-orchard").button_pressed, "The dialog forgot the confirmed map choice.")
+	expect(entries.get_node("granite-orchard").get_global_rect().intersects(picker.get_node("Scroll").get_global_rect()),
+		"The remembered map was outside the visible list.")
+	entries.get_node("flint-crescent").pressed.emit()
+	dialog.get_ok_button().pressed.emit()
+	root.size = Vector2i(550, 900)
+	await settle()
+	expect(active_map.text == "Flint Crescent — 10 × 10", "A second explicit map did not load.")
+	check_banner(board, Vector2(10, 10), ["0", "0"])
+	await capture("battlefield-flint-crescent")
+	click(new_match.get_global_rect().get_center())
+	await settle()
+	entries.get_node("random").pressed.emit()
+	expect(not preview.visible and caption.text == "Random Map", "Random Map displayed a specific map preview.")
+	dialog.get_ok_button().pressed.emit()
+	await settle()
+	click(new_match.get_global_rect().get_center())
+	await settle()
+	expect(entries.get_node("random").button_pressed and not preview.visible and
+		entries.get_children().slice(1).any(func(entry): return entry.text == active_map.text),
+		"The Random preference did not stick or the active battlefield label is missing.")
+	dialog.get_cancel_button().pressed.emit()
+	game.queue_free()
+	await process_frame
+
+func check_map_list_scroll(dialog: Window, scroll: ScrollContainer, entries: VBoxContainer, caption: Label) -> void:
+	scroll.scroll_vertical = 0
+	await settle()
+	var original_caption := caption.text
+	var row: Button = entries.get_node("alder-common")
+	var visible_row := row.get_global_rect().intersection(scroll.get_global_rect())
+	expect(visible_row.has_area(), "The map row must be visible before starting a drag.")
+	var start := visible_row.get_center()
+	var offset := Vector2(0, -30)
+	var emulate := Input.emulate_touch_from_mouse
+	Input.emulate_touch_from_mouse = true
+	var motion := InputEventMouseMotion.new()
+	motion.position = start
+	dialog.push_input(motion, true)
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.position = start
+	press.pressed = true
+	dialog.push_input(press, true)
+	motion.position = start + offset
+	motion.relative = offset
+	motion.button_mask = MOUSE_BUTTON_MASK_LEFT
+	dialog.push_input(motion, true)
+	press.position = motion.position
+	press.pressed = false
+	dialog.push_input(press, true)
+	Input.emulate_touch_from_mouse = emulate
+	await settle()
+	expect(scroll.scroll_vertical > 0 and caption.text == original_caption,
+		"A drag starting on a map row did not scroll, or selected the row.")
+	scroll.scroll_vertical = 0
+	await settle()
+	var tap := InputEventScreenTouch.new()
+	tap.position = start
+	tap.pressed = true
+	dialog.push_input(tap, true)
+	tap.pressed = false
+	dialog.push_input(tap, true)
+	expect(caption.text == row.text, "A tap on the map row did not update the preview.")
+
+func capture(file_name: String) -> void:
+	var directory := OS.get_environment("CASTRUM_M8B_SCREENSHOTS")
+	if directory.is_empty():
+		return
+	await RenderingServer.frame_post_draw
+	var image := root.get_texture().get_image()
+	expect(image != null and image.save_png(directory.path_join(file_name + ".png")) == OK,
+		"Could not save the %s screenshot." % file_name)
+
 func check_board_extremes() -> void:
 	for sample in [["pocket-meadow", 3, Vector2(2, 2)], ["twelve-towers", 12, Vector2(11, 11)]]:
 		var edge: int = sample[1]
@@ -119,6 +284,7 @@ func check_board_extremes() -> void:
 		root.size = Vector2i(360, 640)
 		var game := MATCH_SCENE.instantiate()
 		game.set("Mode", 1)
+		game.set("Rules", 0)
 		game.set("MapIdOverride", sample[0])
 		root.add_child(game)
 		await settle()
@@ -294,7 +460,7 @@ func check_draft_submission(game: Node, player: String) -> bool:
 		board, panel, detail.get_parent(), game.get_node("%PlayerOne"), game.get_node("%PlayerTwo"), submit
 	]
 	await settle()
-	expect(game.get_node("%NewMatch").visible and not game.get_node("%DifficultyChoice").visible,
+	expect(game.get_node("%NewMatch").visible and not game.get_node("ConfirmNewMatch/Content/Settings/MapSelection/Preview/DifficultyChoice").visible,
 		"Local mode must offer New Match without CPU difficulty.")
 	check_banner(board, Vector2(7, 5), ["0", "0"])
 	var banner: Control = board.get_node("TerritoryScoreBanner")

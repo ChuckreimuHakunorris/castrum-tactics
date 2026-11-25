@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using CastrumTactics.Domain.Session;
 using Xunit;
 
@@ -6,6 +8,16 @@ namespace CastrumTactics.Domain.Tests;
 public sealed class PredefinedMapCatalogTests
 {
     private const string Sample = """{"id":"sample","name":"Sample","width":4,"height":3,"layout":["S.#.","...S","##.."]}""";
+    private const string OriginalIds = """
+        banner-plain barrow-ring blockhouse braided-ridges broken-corner corner-watch crag-cross
+        crescent-quarry deep-steps demonstration edge-harbor four-posts gate-of-reeds great-divide
+        highland-forks island-keep lantern-lane little-crossing long-pasture long-ravine market-march
+        narrow-yard open-meadow outer-wall pocket-meadow quarry-mouth ridge-gates ring-field
+        ring-of-stone river-bend saddle-pass salt-way scattered-cairns serpent-cut seven-cairns
+        sixteen-standards split-orchard stone-center stone-islands the-commons the-crossroads three-banners
+        three-fiefs three-terraces toll-gate twelve-towers twin-basins twin-ledges watch-road
+        western-cut
+        """;
 
     [Fact]
     public void ParsesRectangularTerrainAndStartsInRowColumnOrder()
@@ -64,9 +76,18 @@ public sealed class PredefinedMapCatalogTests
     public void BuiltInMapsCoverEverySizeBandAndPreserveTheDemonstration()
     {
         var catalog = PredefinedMapCatalog.BuiltIn;
-        Assert.Equal(50, catalog.Maps.Count);
-        Assert.Equal(50, catalog.Maps.Select(map => map.Id).Distinct().Count());
-        var sizes = catalog.Maps.Select(map => Math.Max(map.Definition.Width, map.Definition.Height)).ToArray();
+        Assert.Equal(100, catalog.Maps.Count);
+        Assert.Equal(100, catalog.Maps.Select(map => map.Id).Distinct().Count());
+        Assert.Equal(100, catalog.Maps.Select(Layout).Distinct().Count());
+        var originals = OriginalIds.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(catalog.Get).ToArray();
+        Assert.Equal(50, originals.Length);
+        // Canonicalize the original definitions so formatting changes don't obscure a name, terrain, or start regression.
+        string baseline = string.Concat(originals.Select(map =>
+            $"{map.Id}|{map.Name}|{map.Definition.Width}|{map.Definition.Height}|{Layout(map)}\n"));
+        Assert.Equal("B796113653E09CC32EBB40EE4C2BFC7DA27956CC6BF0D47AB7F85A283780D95F",
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(baseline))));
+        var sizes = originals.Select(map => Math.Max(map.Definition.Width, map.Definition.Height)).ToArray();
         Assert.Equal(10, sizes.Count(size => size <= 4));
         Assert.Equal(15, sizes.Count(size => size is >= 5 and <= 7));
         Assert.Equal(15, sizes.Count(size => size is >= 8 and <= 10));
@@ -90,32 +111,96 @@ public sealed class PredefinedMapCatalogTests
     }
 
     [Fact]
+    public void ExpansionContainsLargeBoardsAndVariedStartingPositions()
+    {
+        var originalIds = OriginalIds.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).ToHashSet();
+        var added = PredefinedMapCatalog.BuiltIn.Maps.Where(map => !originalIds.Contains(map.Id))
+            .Select(map => map.Definition).ToArray();
+        Assert.Equal(50, added.Length);
+        Assert.All(added, map =>
+        {
+            Assert.InRange(map.Width, 8, 12);
+            Assert.InRange(map.Height, 8, 12);
+        });
+        Assert.Contains(added, map => map.Width == map.Height);
+        Assert.Contains(added, map => map.Width > map.Height);
+        Assert.Contains(added, map => map.Width < map.Height);
+        Assert.Contains(added, map => InteriorCount(map) == map.StartingPositions.Count);
+        Assert.Contains(added, map => InteriorCount(map) * 2 > map.StartingPositions.Count &&
+            InteriorCount(map) < map.StartingPositions.Count);
+        Assert.Contains(added, map => InteriorCount(map) * 2 <= map.StartingPositions.Count);
+        Assert.True(added.Select(map => map.StartingPositions.Count).Distinct().Count() > 1);
+    }
+
+    [Fact]
     public void SeededSelectionIsRepeatableAndReturnsCatalogEntries()
     {
         var catalog = PredefinedMapCatalog.BuiltIn;
         var first = new Random(47);
         var second = new Random(47);
-        for (int i = 0; i < 100; i++)
+        var seen = new HashSet<string>();
+        for (int i = 0; i < 2000; i++)
         {
             PredefinedMap map = catalog.SelectRandom(first);
             Assert.Same(map, catalog.SelectRandom(second));
             Assert.Same(map, catalog.Get(map.Id));
+            seen.Add(map.Id);
         }
 
+        Assert.Equal(catalog.Maps.Count, seen.Count);
         Assert.Throws<KeyNotFoundException>(() => catalog.Get("unknown-map"));
     }
 
-    [Fact]
-    public void EveryMapAdmitsAnOpeningThatReachesNonterminalMainPlay()
+    [Theory]
+    [InlineData(RuleSet.Classic)]
+    [InlineData(RuleSet.KnightSupport)]
+    public void EveryMapAdmitsAnOpeningThatReachesNonterminalMainPlay(RuleSet ruleSet)
     {
         foreach (PredefinedMap map in PredefinedMapCatalog.BuiltIn.Maps)
         {
-            // Preserve one pair of knights and resolve the remaining starts as collisions.
+            // Preserve one owned piece per faction and resolve the remaining starts as collisions.
             bool playable = map.Definition.StartingPositions.SelectMany((first, index) =>
                 map.Definition.StartingPositions.Skip(index + 1).Select(second => (first, second)))
-                .Any(pair => FinishOpening(map.Definition, pair.first, pair.second).Current.Phase == MatchPhase.Main);
+                .Any(pair => FinishOpening(map.Definition, pair.first, pair.second, ruleSet).Current.Phase == MatchPhase.Main);
             Assert.True(playable, $"No tested opening on '{map.Id}' reached Main.");
         }
+    }
+
+    [Fact]
+    public void ExpansionSupportsSpreadAndCenterPriorityKnightSupportDrafts()
+    {
+        var originalIds = OriginalIds.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).ToHashSet();
+        foreach (PredefinedMap map in PredefinedMapCatalog.BuiltIn.Maps.Where(map => !originalIds.Contains(map.Id)))
+        {
+            MapDefinition definition = map.Definition;
+            for (int axis = 0; axis < 3; axis++)
+            {
+                var session = new LocalGameSession(definition, RuleSet.KnightSupport);
+                while (session.Current.Phase == MatchPhase.Opening)
+                {
+                    var current = session.Current;
+                    BoardPosition[] ranked = axis switch
+                    {
+                        0 => current.EligiblePositions.OrderBy(position => position.X).ToArray(),
+                        1 => current.EligiblePositions.OrderBy(position => position.Y).ToArray(),
+                        _ => current.EligiblePositions.OrderBy(position => CenterDistance(position, definition)).ToArray()
+                    };
+                    BoardPosition second = axis == 2 ? ranked[1] : ranked[^1];
+                    Assert.Equal(SessionCommandResult.Accepted,
+                        session.SubmitOpeningSelection(new(PlayerId.PlayerOne, ranked[0], current.RoundId)));
+                    Assert.Equal(SessionCommandResult.Accepted,
+                        session.SubmitOpeningSelection(new(PlayerId.PlayerTwo, second, current.RoundId)));
+                }
+
+                Assert.True(session.Current.Phase == MatchPhase.Main, $"Draft {axis} was terminal on '{map.Id}'.");
+                var cells = Positions(definition).Select(session.Current.Board.GetCell).ToArray();
+                foreach (PlayerId player in Enum.GetValues<PlayerId>())
+                    Assert.True(cells.Count(cell => cell.Piece == PieceType.Castle && cell.Owner == player) >= 2);
+            }
+        }
+
+        static int CenterDistance(BoardPosition position, MapDefinition map) =>
+            Math.Abs(2 * position.X - map.Width + 1) + Math.Abs(2 * position.Y - map.Height + 1);
     }
 
     [Theory]
@@ -152,9 +237,10 @@ public sealed class PredefinedMapCatalogTests
         }
     }
 
-    private static LocalGameSession FinishOpening(MapDefinition map, BoardPosition first, BoardPosition second)
+    private static LocalGameSession FinishOpening(MapDefinition map, BoardPosition first, BoardPosition second,
+        RuleSet ruleSet = RuleSet.Classic)
     {
-        var session = new LocalGameSession(map);
+        var session = new LocalGameSession(map, ruleSet);
         Resolve(first, second);
         while (session.Current.Phase == MatchPhase.Opening)
         {
@@ -174,6 +260,17 @@ public sealed class PredefinedMapCatalogTests
 
     private static int RockCount(MapDefinition map) =>
         Positions(map).Count(position => map.GetTerrain(position) == TerrainType.Inaccessible);
+
+    private static int InteriorCount(MapDefinition map) => map.StartingPositions.Count(position =>
+        position.X > 0 && position.Y > 0 && position.X < map.Width - 1 && position.Y < map.Height - 1);
+
+    private static string Layout(PredefinedMap map)
+    {
+        var definition = map.Definition;
+        var starts = definition.StartingPositions.ToHashSet();
+        return string.Join('/', Positions(definition).Chunk(definition.Width).Select(row => new string(row.Select(position =>
+            starts.Contains(position) ? 'S' : definition.GetTerrain(position) == TerrainType.Inaccessible ? '#' : '.').ToArray())));
+    }
 
     private static IEnumerable<BoardPosition> Positions(MapDefinition map) =>
         from y in Enumerable.Range(0, map.Height)

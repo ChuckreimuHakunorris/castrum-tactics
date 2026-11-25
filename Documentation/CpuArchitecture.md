@@ -38,6 +38,8 @@ The eight-neighbor divisor and the region share normalize counts. The opening ur
 
 ### Knight Support evaluation
 
+Knight Support is the official application ruleset and the primary target for future CPU tuning and competitive optimization. Classic remains available for development and regression testing.
+
 The engine reads the ruleset from the public snapshot. In the Knight Support draft it counts each existing castle once as a source in every region it borders. Castles establish footholds immediately, which lowers the urgency assigned to a first placement. The local gate estimate adds up to 0.25 to the opening territory feature to reflect the value of an invulnerable boundary.
 
 In Main, the **Formation** feature adds 0.25 for multiple supporters and 0.35 per adjacent castle for a prospective knight. Placing a second supporter or upgrading a sole supporter adds 0.25 per dependent friendly knight. Capturing a sole enemy supporter earns half that amount per dependent enemy knight to account for possible reinforcement or upgrades. Ground exhaustion increases that credit by 50%. Shared targets discount formation value by half. **Support Risk** adds 0.5 for a prospective knight whose sole supporter is a legal enemy target, with a 50% increase if the extra loss would exhaust the ground. A contested upgrade also gets 0.125 risk per friendly dependent vulnerable to a collision. Both features cap at 1.
@@ -106,7 +108,7 @@ Measured on Windows with an Intel Core i5-7500 at 3.40 GHz, .NET 10.0, and a Rel
 
 `RoundId` is scoped to one session. The coordinator checks session identity even if two sessions publish the same round ID. Superseded, terminal, restarted, and abandoned rounds invalidate outstanding requests and request cancellation. Retired workers have their faults observed and their cancellation sources disposed after they exit. A human submission or revision within the same unresolved round leaves the CPU's inputs and proposal valid. Both players use the same resolved pre-round board.
 
-If the worker faults, returns no valid proposal, or the command is rejected, the scene displays an error and lets the player start a New Match. The coordinator keeps its profile for the life of a match, including restarts. New Match applies the selected ruleset and profile to a new session and invalidates outstanding work from the previous session.
+If the worker faults, returns no valid proposal, or the command is rejected, the scene displays an error and lets the player start a New Match. The coordinator keeps its profile for the life of a match, including restarts. Confirming New Match cancels and invalidates outstanding work from the previous session and starts a new coordinator with the confirmed CPU profile and battlefield under the configured ruleset.
 
 ## Milestone 8C evaluation
 

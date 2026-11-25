@@ -6,6 +6,7 @@
 [ext_resource type="Shader" uid="uid://bdaiyenmrri88" path="res://Shaders/animated_background.gdshader" id="4_21xkr"]
 [ext_resource type="PackedScene" path="res://Scenes/UI/AnimatedBackground.tscn" id="4_background"]
 [ext_resource type="PackedScene" path="res://Scenes/UI/TerritoryScoreBanner.tscn" id="5_scores"]
+[ext_resource type="Script" path="res://Scenes/UI/NewMatchDialog.cs" id="6_new_match"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_animated"]
 shader = ExtResource("4_21xkr")
@@ -49,11 +50,13 @@ theme_override_constants/separation = 6
 layout_mode = 2
 mouse_filter = 2
 
-[node name="Title" type="Label" parent="Frame/Header" unique_id=155419634]
+[node name="ActiveMap" type="Label" parent="Frame/Header" unique_id=155419634]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"Title"
-text = "Castrum Tactics"
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
 
 [node name="PhaseBadge" type="PanelContainer" parent="Frame/Header" unique_id=1357744430]
 layout_mode = 2
@@ -77,7 +80,7 @@ theme_type_variation = &"BadgePanel"
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"PhaseLabel"
-text = "Classic"
+text = "Knight Support"
 
 [node name="Layout" type="BoxContainer" parent="Frame" unique_id=386620337]
 layout_mode = 2
@@ -182,32 +185,7 @@ text = "New Match"
 
 [node name="ConfirmNewMatch" type="ConfirmationDialog" parent="." unique_id=1801949549]
 title = "New Match"
-initial_position = 2
-size = Vector2i(300, 150)
 ok_button_text = "Start New Match"
-
-[node name="Settings" type="VBoxContainer" parent="ConfirmNewMatch"]
-theme_override_constants/separation = 8
-
-[node name="NewMatchPrompt" type="Label" parent="ConfirmNewMatch/Settings"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.88, 0.93, 1, 1)
-text = "Leave this match?"
-
-[node name="RuleSetChoice" type="OptionButton" parent="ConfirmNewMatch/Settings"]
-unique_name_in_owner = true
-layout_mode = 2
-accessibility_name = "Ruleset for the next match"
-
-[node name="RuleSetDescription" type="Label" parent="ConfirmNewMatch/Settings"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(240, 0)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.88, 0.93, 1, 1)
-autowrap_mode = 3
-
-[node name="DifficultyChoice" type="OptionButton" parent="ConfirmNewMatch/Settings" unique_id=363876356]
-unique_name_in_owner = true
-layout_mode = 2
-accessibility_name = "Difficulty for the next match"
+unresizable = true
+wrap_controls = false
+script = ExtResource("6_new_match")
