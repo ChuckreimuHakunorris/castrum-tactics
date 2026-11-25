@@ -1,5 +1,7 @@
 # Milestone 8C CPU benchmarking
 
+The [8D.2 search optimization report](CpuSearchOptimization.md) records equal-effort comparisons, wider and deeper experiments, and the final production policy.
+
 For new CPU comparisons, use the [8D.1 tournament runner](CpuTournaments.md). The commands and results below remain available to reproduce the original 8C work.
 
 ## Reproduction

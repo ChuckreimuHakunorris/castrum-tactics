@@ -234,8 +234,9 @@ public sealed class CpuDecisionEngine
     internal static CpuFeatures OpeningFeatures(TacticalBoard board, int index, PlayerId player, PlayerId opponent,
         bool knightSupport = false)
     {
-        int free = board.Neighbors(index).Count(neighbor => board.Cells[neighbor].IsPlayable &&
-            board.Cells[neighbor].Piece == PieceType.None);
+        int free = 0;
+        foreach (int neighbor in board.Neighbors(index))
+            if (board.Cells[neighbor].IsPlayable && board.Cells[neighbor].Piece == PieceType.None) free++;
         TacticalBoard.Region region = board.RegionAt(index);
         double extent = (double)region.Size / board.PlayableCount;
         double spread = 1.0 / (1 + region.Count(player) + board.Support(index, player));
@@ -334,7 +335,7 @@ public sealed class CpuDecisionEngine
                     board.SurvivalSupport(target, player) == 1)
                 {
                     formation += DependentKnightValue;
-                    if (upgrade && shared && board.SupportedTargets(index, PieceType.Knight).Contains(target))
+                    if (upgrade && shared && board.InSupportRange(index, target, PieceType.Knight))
                         supportRisk += DependentKnightValue * OpponentResponseDiscount;
                 }
             }

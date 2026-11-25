@@ -101,6 +101,11 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - A tournament plans reproducible matches before execution. Workers own their sessions and random streams, and the harness submits both choices against the same published round. It uses the production domain and keeps both historical AI generations in dedicated assemblies.
 - A versioned schedule manifest and checksummed per-match records allow interruption, resume and replay. Reporting separates scored matches from draft retries and tracks repeated action histories. Dedicated sequential timing measures decision cost independently of tournament throughput. [CPU tournament design and commands](CpuTournaments.md)
 
+## Milestone 8D.2 decisions
+
+- Continuations resolve simultaneous action pairs from the same immutable state at every depth. Iterative refinement keeps the last comparable tier when a deeper pass runs out of work.
+- Search reuses exact pairs within a single decision and preserves terminal proofs separately from heuristic ratings. Production Monster uses deeper refinement for provable wins on compact positions. The two-turn policy handles ordinary positions. The scene's worker ownership and deadline remain in place. [Search architecture](CpuArchitecture.md) · [Experiments](CpuSearchOptimization.md)
+
 ## Planned
 
 CPU tuning, a remote session, and ranked map validation remain future work.

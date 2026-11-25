@@ -1,3 +1,5 @@
+using System.Buffers;
+
 namespace CastrumTactics.Domain;
 
 /// <summary>Classifies eight-connected territory on resolved boards.</summary>
@@ -20,7 +22,23 @@ public static class TerritoryAnalyzer
         ArgumentNullException.ThrowIfNull(board);
 
         var control = new TerritoryControl[board.Height, board.Width];
-        var component = new List<BoardPosition>(Math.Min(144, control.Length));
+        BoardPosition[]? rented = null;
+        // The queue and component are the same traversal. The catalog fits on the stack.
+        Span<BoardPosition> component = control.Length <= 144 ? stackalloc BoardPosition[control.Length] :
+            (rented = ArrayPool<BoardPosition>.Shared.Rent(control.Length));
+        try
+        {
+            ClassifyBoard(board, control, component);
+        }
+        finally
+        {
+            if (rented is not null) ArrayPool<BoardPosition>.Shared.Return(rented);
+        }
+        return new TerritoryAnalysis(control);
+    }
+
+    private static void ClassifyBoard(BoardState board, TerritoryControl[,] control, Span<BoardPosition> component)
+    {
         for (int y = 0; y < board.Height; y++)
         {
             for (int x = 0; x < board.Width; x++)
@@ -45,20 +63,18 @@ public static class TerritoryAnalyzer
                 }
             }
         }
-
-        return new TerritoryAnalysis(control);
     }
 
     private static void ClassifyComponent(BoardState board, BoardPosition start, TerritoryControl[,] control,
-        List<BoardPosition> component)
+        Span<BoardPosition> component)
     {
         // On traversable cells the default value means unvisited. Mark on enqueue to visit each cell once.
-        component.Clear();
-        component.Add(start);
+        int count = 1;
+        component[0] = start;
         control[start.Y, start.X] = TerritoryControl.Neutral;
         Owners owners = Owners.None;
 
-        for (int i = 0; i < component.Count; i++)
+        for (int i = 0; i < count; i++)
         {
             BoardPosition position = component[i];
             owners |= OwnerOf(board.GetCell(position));
@@ -72,13 +88,13 @@ public static class TerritoryAnalyzer
                 else if (CanTraverse(cell) && control[neighbor.Y, neighbor.X] == TerritoryControl.Inaccessible)
                 {
                     control[neighbor.Y, neighbor.X] = TerritoryControl.Neutral;
-                    component.Add(neighbor);
+                    component[count++] = neighbor;
                 }
             }
         }
 
         TerritoryControl territory = Classify(owners);
-        foreach (BoardPosition position in component)
+        foreach (BoardPosition position in component[..count])
         {
             control[position.Y, position.X] = territory;
         }

@@ -11,6 +11,8 @@ items:
     href: CpuBenchmarks.md
   - name: CPU tournaments
     href: CpuTournaments.md
+  - name: CPU search optimization
+    href: CpuSearchOptimization.md
   - name: API Reference
     href: api/
     topicHref: api/index.md

@@ -28,9 +28,13 @@ The opening reads `EligiblePositions` and previews draft pairs with `GameSession
 | Normal | 1 | 8 / 6 | 120 | 0.24 | 1.4 |
 | Hard | 2 | 12 / 8 | 360 | 0.32 | 1.2 |
 | Very Hard | 2 | 14 / 9 | 500 | 0.36 | 1.1 |
-| Monster | 2 | 18 / 10 | 850 | 0.40 | 1.0 |
+| Monster | 2 normally, up to 3 for a provable win | 18 / 10 | 850 | 0.40 | 1.0 |
 
 Depth two uses up to four finalists for Hard and Very Hard, and six for Monster. Each finalist receives the same root replies as at depth one. Child search starts at width three or four, contracts to fit the remaining budget and can widen on boards up to 25 cells. A pair budget counts all authoritative simulations in one decision, including extra collisions. The scene worker also has a 450 ms elapsed safeguard between resolutions. The public parameterless engine used for benchmarking relies on deterministic pair budgets.
+
+Passes beyond depth two compare up to six configured finalists from the best completed tier. Each pass uses the same common root replies, ranks both players from each resolved child and charges every new pair to the same decision budget. A partial pass cannot replace the last completed comparison. [CpuSearchOptions](xref:CastrumTactics.AI.CpuSearchOptions) supports one through six turns and configurable continuation breadth. A legal same-square reply remains an adverse-only check when it is outside the common replies. An experimental check can test apparent immediate wins against omitted replies.
+
+A deeper win is proven only when one choice wins against every legal reply and, at each resulting public state, some continuation has the same property. Terminal outcomes remain separate from heuristic estimates. Production Monster enters the additional pass only on a root with at most six shortlisted own actions and six legal replies. It compares up to three finalists with continuation width up to six per side. If the pass cannot prove a win, it uses the established two-turn tier. The wider and fully heuristic deeper settings remain available for experiments. [8D.2 search experiments](CpuSearchOptimization.md)
 
 Draft search aims to compare all eligible starts. With `n` starts and `k` common replies, the complete pass costs `n × k + (n - k)` previews. The second term covers starts omitted from the common set. The search narrows the common list from at most two more replies than the Main limit until the pass fits, with a minimum of one common reply. If the remaining budget or elapsed time interrupts a row, only completed rows enter strategic sampling. When fewer than two rows finish on a multi-choice draft, the engine falls back to the static ranking to preserve opening diversity.
 
@@ -122,9 +126,9 @@ Each CPU samples independently. On the symmetric initial Banner Plain board all 
 
 ## Diagnostics and cost
 
-`DecideWithDiagnostics` returns the proposal, tactical terms, each candidate's final score and sampling probability, and optional search details. Search details include considered actions, common replies and their probabilities, collisions checked, expected and adverse outcomes, input position contributions, completed depth, simulated pairs, elapsed time, and the reason for any fallback. Candidates outside the comparable tier receive zero probability. Ordinary `Decide` skips the diagnostics collection.
+`DecideWithDiagnostics` returns the proposal, tactical terms, each candidate's final score and sampling probability, and optional search details. Search details include considered actions, common reply probabilities, collisions checked, expected and adverse outcomes, proven wins, input position contributions, selected and completed depths, new and reused pairs, elapsed time, and budget and time stops. A proof-only pass can finish and leave the selected depth unchanged. Candidates outside the comparable tier receive zero probability. Ordinary `Decide` skips the diagnostics collection.
 
-Each simulation creates a domain board and analyzes territory and legal sets once. A scratch workspace reuses the neighbor graph and propagation arrays across simulations. A depth-two call retains root children for continuation. The deterministic pair ceiling bounds this work on the catalog. [Measured latency and allocation](CpuBenchmarks.md)
+Each new simulation creates a domain board and analyzes territory and legal sets once. A scratch workspace reuses the neighbor graph and propagation arrays across simulations. Two-turn search retains root children. Deeper search can reuse up to 512 exact state-and-action pairs in one decision. The cache keys use immutable state identity and both coordinates, with a fixed acting player per decision. This also fixes the ruleset, terrain, ownership and health. The cache holds the resolved pair and immediate evaluation, so reuse does not depend on remaining depth. [Measured latency and allocation](CpuSearchOptimization.md)
 
 ## Milestone 8B integration lifecycle
 

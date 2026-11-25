@@ -153,9 +153,10 @@ public sealed class TournamentTests
     [InlineData("Hard")]
     [InlineData("VeryHard")]
     [InlineData("Monster")]
-    public void FrozenEightCMatchesProductionMovesAndSearchEffort(string difficulty)
+    public void FrozenEightCMatchesEquivalentProductionSettings(string difficulty)
     {
-        var config = Config with { Participants = [new("alpha", $"strategic:{difficulty}"), new("beta", "static:Normal")] };
+        var search = difficulty == "Monster" ? new SearchOverrides(Depth: 2) : null;
+        var config = Config with { Participants = [new("alpha", $"strategic:{difficulty}", Search: search), new("beta", "static:Normal")] };
         var frozenConfig = config with { Participants = [new("alpha", $"frozen8c:{difficulty}"), config.Participants[1]] };
         var live = PlanTournament(config);
         var frozen = PlanTournament(frozenConfig);
@@ -165,6 +166,36 @@ public sealed class TournamentTests
         Assert.Equal(a.HistoryDigest, b.HistoryDigest);
         Assert.Equal(a.Rounds.Select(r => (r.Red.Move, r.Red.Pairs, r.Red.Depth, r.Red.BudgetExhausted)),
             b.Rounds.Select(r => (r.Red.Move, r.Red.Pairs, r.Red.Depth, r.Red.BudgetExhausted)));
+    }
+
+    [Fact]
+    public void SearchOverridesRoundTripAndArePartOfTheManifestIdentity()
+    {
+        string file = NewPath();
+        try
+        {
+            File.WriteAllText(file, """
+                {"id":"override-test","format":"head-to-head","maps":{"ids":["pocket-meadow"]},
+                 "participants":[{"id":"cpu","opponent":"strategic:Monster","pairBudget":8000,"timeLimitMs":1500,
+                  "search":{"depth":4,"ownCandidates":22,"opponentCandidates":14,"continuationOwnCandidates":3,
+                  "continuationOpponentCandidates":2,"deepFinalists":2,"risk":0.35,"replyTemperature":1.2,
+                  "verifyTerminalWins":true,"requireFullRootReplies":false,"proofOnlyDeepening":false}},
+                  {"id":"frozen","opponent":"frozen8c:Monster"}]}
+                """);
+            var config = ReadJson<TournamentConfig>(file);
+            var plan = PlanTournament(config);
+            Assert.Equal(4, plan.Opponents["cpu"].Spec.Search!.Depth);
+            Assert.Equal(8000, plan.Opponents["cpu"].Spec.PairBudget);
+            Assert.Equal(1500, plan.Opponents["cpu"].Spec.TimeLimitMs);
+            var changed = config.Participants[0] with { Search = config.Participants[0].Search! with { Risk = 0.5 } };
+            var other = PlanTournament(config with { Participants = [changed, config.Participants[1]] });
+            Assert.NotEqual(MakeManifest(plan).Signature, MakeManifest(other).Signature);
+            Assert.Throws<ArgumentException>(() =>
+                PlanTournament(config with { Participants = [changed, config.Participants[1] with { Search = new(Depth: 2) }] }));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                PlanTournament(config with { Participants = [changed with { Search = new(Depth: 7) }, config.Participants[1]] }));
+        }
+        finally { File.Delete(file); }
     }
 
     [Fact]

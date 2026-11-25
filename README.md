@@ -100,6 +100,8 @@ The [CPU tournament guide](Documentation/CpuTournaments.md) covers headless roun
 dotnet run -c Release --project Benchmarks -- tournament dry-run --config Benchmarks/Examples/round-robin.json
 ```
 
+Monster can prove wins up to three simultaneous turns ahead on compact tactical positions. See the [8D.2 search optimization report](Documentation/CpuSearchOptimization.md) for the production settings, tournament results, and CLI examples for wider and deeper experiments.
+
 After building and importing assets with `godot --headless --path . --import`, run the same two Godot 4.7.2 .NET regressions as CI.
 
 ```sh
