@@ -201,7 +201,7 @@ When the selections target **different squares**, both legal actions resolve ind
 
 ### 5.5 Knight Support ruleset
 
-Classic is the default. Knight Support is experimental and changes starting pieces and knight survival in either input mode. The ruleset is fixed when the match starts.
+Knight Support is the official ruleset after human playtesting. It changes starting pieces and knight survival in either input mode. Classic remains available through development configuration. The ruleset is fixed when the match starts.
 
 1. A distinct pair of draft selections places two castles. They are stationary, invulnerable to ordinary capture, and reach all eight neighbors. Their normal territorial influence can cause a successful draft to finish immediately.
 2. A knight survives a main turn only if a friendly knight or castle occupies one of its eight adjacent squares on the post-action board. Castles always survive and supply permanent support. Two adjacent friendly knights can support each other anywhere on the board. Enemy pieces, graves, empty squares, inaccessible terrain, and the knight's own square supply no support.
@@ -239,7 +239,7 @@ The match banner displays **all secured playable squares** for the corresponding
 
 ## 7. Maps
 
-Local play starts on one of 50 uniformly selected predefined maps. The maps range from 3 × 3 to 12 × 12 and vary in terrain and candidate starts. Either restart action reuses the current map. New Match draws again unless an explicit map override is active. [Predefined maps](MapFormat.md)
+The 100 predefined battlefields range from 3 × 3 to 12 × 12. Normal startup draws uniformly from the full catalog. New Match offers Random Map and an alphabetical catalog with terrain and draft-position previews. Confirmation applies the choice and remembers it for the next dialog. Both restart actions reuse the active battlefield. [Predefined maps](MapFormat.md)
 
 Maps are data-driven and should not be hard-coded into board logic.
 
@@ -287,6 +287,8 @@ A basic map editor is planned relatively early and should eventually allow a use
 
 The built-in maps use JSON with terrain and starting positions encoded as rows of characters. The domain loads them into immutable map definitions before starting a match. A format and versioning strategy for user-created maps remains an editor design decision.
 
+Favor open battlefields at least 8 × 8 in square and rectangular formats. Use irregular rock formations and generous openings to leave routes for flanking, expansion, and mutually supported formations. Use narrow passages where they create a local decision. Offer interior, central, peripheral, sheltered, and exposed castle sites. Castles and draft graves immediately affect territory connectivity, so evaluate the resulting routes across several drafts.
+
 Online map sharing is a later feature.
 
 ### 7.3 Procedural maps
@@ -296,9 +298,9 @@ Procedural map generation is a possible later feature. Multiplayer procedural ma
 ## 8. Game modes and multiplayer direction
 
 - The game is designed for two players.
-- Normal startup on Windows and Android starts a Versus CPU match with the human as Player One and the CPU as Player Two at Normal difficulty. Both participants submit through the same simultaneous rules.
+- Normal startup on Windows and Android starts a Knight Support Versus CPU match with the human as Player One and the CPU as Player Two at Normal difficulty. Both participants submit through the same simultaneous rules.
 - Two humans can share one device in Local Multiplayer. This mode is available in the scene configuration, from code, and through the development command line.
-- The ruleset and CPU difficulty chosen in the New Match dialog apply to the new match after confirmation. Restarting the draft or match preserves both settings.
+- New Match applies the selected battlefield and, in Versus CPU, the selected difficulty after confirmation. The configured ruleset carries forward. Restarting the draft or match preserves all three.
 - The host selects the opening mode for a session, unless a ranked ruleset fixes it.
 - Casual/custom sessions should allow more flexibility.
 - Ranked play may enforce standardized rules and map eligibility.

@@ -73,9 +73,9 @@ public sealed class PredefinedMapCatalog
         string[] resources = assembly.GetManifestResourceNames()
             .Where(name => name.StartsWith(ResourcePrefix, StringComparison.Ordinal) && name.EndsWith(".json", StringComparison.Ordinal))
             .ToArray();
-        if (resources.Length != 50)
+        if (resources.Length != 100)
         {
-            throw new InvalidDataException($"Expected 50 built-in map resources, found {resources.Length}.");
+            throw new InvalidDataException($"Expected 100 built-in map resources, found {resources.Length}.");
         }
 
         return new PredefinedMapCatalog(resources.Select(resource =>

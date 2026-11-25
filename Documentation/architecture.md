@@ -4,7 +4,7 @@
 
 The Godot project references [CastrumTactics.Domain](xref:CastrumTactics.Domain) as a separate assembly. The Godot project's compile items exclude domain and test source files. The domain library targets .NET 8 and has no Godot or NuGet package dependencies. The xUnit test project exercises both rules and coordination in that assembly.
 
-[`Main`](xref:Global.Main) creates a [`LocalGameSession`](xref:CastrumTactics.Domain.Session.LocalGameSession) on one of 50 predefined maps. Both input modes use [`IGameSession`](xref:CastrumTactics.Domain.Session.IGameSession) to issue commands and read state from the opening draft through final scoring. The scene passes the board, current targets for the active human, and territory analysis to [`BoardRenderer`](xref:Global.BoardRenderer). [Predefined maps](MapFormat.md)
+[`Main`](xref:Global.Main) creates a [`LocalGameSession`](xref:CastrumTactics.Domain.Session.LocalGameSession) on one of 100 predefined maps. Both input modes use [`IGameSession`](xref:CastrumTactics.Domain.Session.IGameSession) to issue commands and read state from the opening draft through final scoring. The scene passes the board, current targets for the active human, and territory analysis to [`BoardRenderer`](xref:Global.BoardRenderer). [Predefined maps](MapFormat.md)
 
 `BoardRenderer` is a Godot `Control` that draws [textured terrain and secured territory](ArtDirection.md#8-placeholder-board-art), [knight and castle sprites with faction recoloring](ArtDirection.md#7-implemented-faction-sprites), and neutral gravestones. Opening targets use gold dots. Main-phase targets use gold tile-edge outlines with inward fades, and a brighter pale cyan version marks the provisional selection in either phase. The board stays centered with square cells in its allotted space.
 
@@ -80,9 +80,14 @@ The renderer handles physical left-button and touch presses after GUI input, con
 
 ## Milestone 8B.1 decisions
 
-- A domain [`RuleSet`](xref:CastrumTactics.Domain.RuleSet) fixes gameplay independently of the input mode and difficulty. Classic remains the default. Both rulesets share opening eligibility, main-phase selection generation, turn resolution, and final scoring.
+- A domain [`RuleSet`](xref:CastrumTactics.Domain.RuleSet) fixes gameplay independently of the input mode and difficulty. Both rulesets share opening eligibility, main-phase selection generation, turn resolution, and final scoring.
 - The draft chooses the starting piece type. The main-phase resolver applies Knight Support once against the complete post-action board and keeps the territory analyzer independent of piece removal. The snapshot records the ruleset so future search can evaluate hypothetical pairs with the authoritative resolver.
 - New Match is available in either mode. Confirmation replaces the session, and Versus CPU replaces the coordinator with it. In-session restarts keep the existing configuration.
+
+## Milestone 8B.2 decisions
+
+- Knight Support is the application default in both input modes. The scene retains the configured ruleset across New Match and restarts. Development configuration still supports Classic. Domain callers can continue supplying either ruleset.
+- New Match owns tentative map and difficulty choices in presentation. The map preview uses the catalog's immutable definition and shared square-cell geometry. Confirmation creates a replacement session and invalidates the prior CPU coordinator. The session retains its original map through restarts, even when the player's next-match preference is Random Map.
 
 ## Planned
 

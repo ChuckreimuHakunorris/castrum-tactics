@@ -10,6 +10,7 @@ func run() -> void:
 	await settle()
 	expect(rectangular.get_node("%PlayerOne").text.begins_with("You") and rectangular.get_node("%PlayerTwo").text.begins_with("CPU"),
 		"Normal startup did not default to Versus CPU.")
+	expect(rectangular.get_node("%RuleSetBadge").text == "Knight Support", "Normal startup did not default to Knight Support.")
 	check_banner(rectangular.get_node("%BoardRenderer"), RECTANGULAR_BOARD, ["0", "0"])
 	var controls: Control = rectangular.get_node("Frame/Layout/Controls")
 	expect(controls.size.x <= 160, "Landscape controls take too much of the board's width: %s." % controls.size.x)
@@ -22,7 +23,7 @@ func run() -> void:
 	rectangular.queue_free()
 	await process_frame
 
-	var game := spawn("pocket-meadow")
+	var game := spawn("pocket-meadow", 0)
 	# Hold the main-thread pump so the human can highlight a tile before CPU submission.
 	game.set_process(false)
 	await settle()
@@ -32,7 +33,7 @@ func run() -> void:
 	var board: Control = game.get_node("%BoardRenderer")
 	var submit: Button = game.get_node("%Submit")
 	var restart: Button = game.get_node("%Restart")
-	var difficulty: OptionButton = game.get_node("%DifficultyChoice")
+	var difficulty: OptionButton = game.get_node("ConfirmNewMatch/Content/Settings/MapSelection/Preview/DifficultyChoice")
 	var new_match: Button = game.get_node("%NewMatch")
 	var confirm: ConfirmationDialog = game.get_node("ConfirmNewMatch")
 	expect(one.disabled and two.disabled and "Thinking" in two.text, "CPU mode exposed player switching or omitted thinking status.")
@@ -84,14 +85,34 @@ func run() -> void:
 	game.set_process(false)
 	click(new_match.get_global_rect().get_center())
 	expect(confirm.visible and difficulty.is_visible_in_tree() and "Normal" in two.text, "New Match bypassed confirmation.")
+	await settle()
+	var map_list: ScrollContainer = confirm.get_node("Content/Settings/MapSelection/Picker/Scroll")
+	var difficulty_rect := difficulty.get_global_rect()
+	var list_rect := map_list.get_global_rect()
+	expect(difficulty_rect.position.x >= list_rect.end.x and difficulty_rect.end.y <= list_rect.end.y,
+		"Landscape difficulty must fit beside the list without taking away list height.")
+	expect(map_list.size.y >= 5 * map_list.get_node("Entries/random").size.y,
+		"The landscape list has less than five desktop map rows of space.")
 	await capture("new-match")
 	difficulty.select(4)
 	expect("Normal" in two.text, "Changing the selector changed the active profile.")
 	confirm.get_cancel_button().pressed.emit()
 	await settle()
 	expect(not confirm.visible and "Normal" in two.text, "Cancel replaced the active match.")
+	var entries := confirm.get_node("Content/Settings/MapSelection/Picker/Scroll/Entries")
 	click(new_match.get_global_rect().get_center())
+	entries.get_node("broadshield-field").pressed.emit()
 	difficulty.select(4)
+	confirm.get_ok_button().pressed.emit()
+	game.set_process(false)
+	await settle()
+	expect("Broadshield Field" in game.get_node("%ActiveMap").text and "Monster" in two.text and
+		"Thinking" in two.text and phase.text == "Draft · Round 1" and piece_count(board) == 0,
+		"CPU map replacement carried over input or work from the old board.")
+	check_banner(board, Vector2(12, 10), ["0", "0"])
+	click(new_match.get_global_rect().get_center())
+	expect(entries.get_node("broadshield-field").button_pressed, "CPU mode forgot the selected map.")
+	entries.get_node("pocket-meadow").pressed.emit()
 	confirm.get_ok_button().pressed.emit()
 	# StartMatch restores the CPU pump. Pause again before the next frame to inspect the replacement.
 	game.set_process(false)
@@ -114,53 +135,26 @@ func run() -> void:
 	await settle()
 	expect(phase.text == "Draft · Round 1" and "Monster" in two.text, "Draft restart lost the selected profile.")
 	check_banner(board, SMALL_BOARD, ["0", "0"])
-	await check_knight_support_cpu(game)
 	game.queue_free()
 	await process_frame
+	await check_knight_support_cpu()
 	if not failed:
-		print("Verified the seeded Classic CPU match (11 main turns, 2–2 draw), Knight Support play, ruleset replacement, restarts, and banner alignment.")
+		print("Verified the seeded Classic CPU match (11 main turns, 2–2 draw), Knight Support play, map replacement, restarts, and banner alignment.")
 		quit()
 
-func check_knight_support_cpu(game: Control) -> void:
+func check_knight_support_cpu() -> void:
+	var game := spawn("pocket-meadow", 1, 3)
+	game.set_process(false)
+	await settle()
 	var two: Button = game.get_node("%PlayerTwo")
 	var phase: Label = game.get_node("%Phase")
 	var badge: Label = game.get_node("%RuleSetBadge")
 	var board: Control = game.get_node("%BoardRenderer")
-	var difficulty: OptionButton = game.get_node("%DifficultyChoice")
-	var rules: OptionButton = game.get_node("%RuleSetChoice")
-	var description: Label = game.get_node("%RuleSetDescription")
+	var difficulty: OptionButton = game.get_node("ConfirmNewMatch/Content/Settings/MapSelection/Preview/DifficultyChoice")
 	var new_match: Button = game.get_node("%NewMatch")
 	var dialog: ConfirmationDialog = game.get_node("ConfirmNewMatch")
-	game.set_process(false)
-	for window_size: Vector2i in [Vector2i(410, 720), Vector2i(1000, 690)]:
-		root.size = window_size
-		await settle()
-		click(new_match.get_global_rect().get_center())
-		await settle()
-		expect(dialog.visible and rules.selected == 0 and difficulty.selected == 4,
-			"Dialog did not initialize from the Classic Monster match.")
-		rules.select(1)
-		rules.item_selected.emit(1)
-		difficulty.select(2)
-		await settle()
-		expect("Start with castles." in description.text and description.size.y >= description.get_minimum_size().y,
-			"The Knight Support description did not fit.")
-		expect(dialog.size.x <= root.size.x and dialog.size.y <= root.size.y,
-			"The New Match dialog %s exceeded the viewport %s." % [dialog.size, root.size])
-		expect(badge.text == "Classic" and "Monster" in two.text, "Editing selectors modified the active match.")
-		dialog.get_cancel_button().pressed.emit()
-		await settle()
-		expect(not dialog.visible and badge.text == "Classic" and "Monster" in two.text, "Cancel changed the match.")
-
-	click(new_match.get_global_rect().get_center())
-	rules.select(1)
-	difficulty.select(3)
-	dialog.get_ok_button().pressed.emit()
-	game.set_process(false)
-	await settle()
 	expect(badge.text == "Knight Support" and "Very Hard" in two.text and "Thinking" in two.text,
-		"Replacement ignored the ruleset or difficulty, or submitted stale CPU work.")
-	expect(piece_count(board) == 0 and phase.text == "Draft · Round 1", "Replacement retained an old board or round.")
+		"Knight Support CPU fixture initialized incorrectly.")
 	game.set_process(true)
 	if not await wait_until(func(): return "Submitted" in two.text):
 		return
@@ -188,16 +182,20 @@ func check_knight_support_cpu(game: Control) -> void:
 	expect(piece_art_at(board, first_placement, SMALL_BOARD) == "knight_base.png",
 		"A castle-supported placement did not survive the first CPU turn.")
 	click(new_match.get_global_rect().get_center())
-	expect(rules.selected == 1 and difficulty.selected == 3, "Dialog did not remember the live Knight Support configuration.")
-	rules.select(0)
+	expect(difficulty.selected == 3, "Dialog did not remember the live Knight Support difficulty.")
 	dialog.get_ok_button().pressed.emit()
 	await settle()
-	expect(badge.text == "Classic" and "Very Hard" in two.text and phase.text == "Draft · Round 1" and piece_count(board) == 0,
-		"Switching back to Classic did not replace the match.")
+	expect(badge.text == "Knight Support" and "Very Hard" in two.text and phase.text == "Draft · Round 1" and piece_count(board) == 0,
+		"New Match changed the Knight Support configuration.")
+	game.queue_free()
+	await process_frame
 
-func spawn(map_id: String) -> Control:
+func spawn(map_id: String, rules: int = -1, difficulty: int = 1) -> Control:
 	var game: Control = MATCH_SCENE.instantiate()
 	game.set("MapIdOverride", map_id)
+	if rules >= 0:
+		game.set("Rules", rules)
+	game.set("Difficulty", difficulty)
 	root.add_child(game)
 	return game
 
@@ -211,12 +209,3 @@ func wait_until(condition: Callable) -> bool:
 
 func piece_count(board: Control) -> int:
 	return board.get_children().filter(func(child): return child is Sprite2D).size()
-
-func capture(file_name: String) -> void:
-	var directory := OS.get_environment("CASTRUM_M8B_SCREENSHOTS")
-	if directory.is_empty():
-		return
-	await RenderingServer.frame_post_draw
-	var image := root.get_texture().get_image()
-	expect(image != null and image.save_png(directory.path_join(file_name + ".png")) == OK,
-		"Could not save the %s screenshot." % file_name)

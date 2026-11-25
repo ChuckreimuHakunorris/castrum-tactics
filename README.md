@@ -5,7 +5,7 @@ Castrum Tactics is a two-player, turn-based strategy game about controlling terr
 ## Open and run
 
 1. Install Godot 4.7.2 .NET and a .NET SDK that can build the project's `net8.0` desktop target and `net9.0` Android target. The .NET 10 SDK can build both targets.
-2. Import `project.godot` in the Godot Project Manager and press **F5** to play as Player One against a Normal CPU on one of 50 randomly selected [built-in maps](Documentation/MapFormat.md).
+2. Import `project.godot` in the Godot Project Manager and press **F5** to play Knight Support as Player One against a Normal CPU on one of 100 randomly selected built-in maps. [Map catalog](Documentation/MapFormat.md)
 3. Run `dotnet build CastrumTactics.csproj` from the repository root to check the Godot C# build from the command line.
 
 When running inside Godot's embedded Game view, select **Input** in the Game toolbar before testing the board. **2D** mode intercepts clicks to inspect nodes. Clicking the board in that mode can outline the full-window renderer. [Godot Game view interaction modes](https://docs.godotengine.org/en/4.7/tutorials/editor/game_embedding.html#interaction-mode)
@@ -20,26 +20,30 @@ Use left clicks on Windows or taps on Android.
 
 Select a marked square, then click or tap it again or press **Submit selection**. Selecting a different square moves the highlight. You can choose while the CPU is thinking and revise a submission until the CPU submits. The board shows both outcomes together when the round resolves.
 
-The CPU card shows the active difficulty. Open **New Match**, choose a ruleset and Easy, Normal, Hard, Very Hard, or Monster, then confirm. The dialog starts with your current settings. Cancel returns to the active match. New Match draws a map at random unless a map override is active. **Restart Draft** and **Restart Match** keep the current map, ruleset, and difficulty.
+The CPU card shows the active difficulty. In **New Match**, choose Easy, Normal, Hard, Very Hard, or Monster and select a battlefield before confirming.
 
 The **Secured Territory** banner starts at 0–0 and updates when the board resolves. It counts secured squares, including empty ones, and keeps the final totals above the board. The left and right scores always represent Player One and Player Two.
 
-## Choose a ruleset
+## Choose a battlefield
 
-**Classic** is the default and starts with knights. **Knight Support** starts with castles. At the end of each main turn, a knight survives if at least one friendly knight or castle is adjacent, including diagonally. Unsupported knights become neutral graves and lose one ground health. The header shows the active ruleset in both input modes. [Complete rules and design rationale](Documentation/GameDesign.md#55-knight-support-ruleset)
+In either input mode, scroll or filter the alphabetical **New Match** catalog and select a battlefield to preview the terrain and draft positions. **Random Map** draws from all 100 battlefields. The dialog remembers the last confirmed choice, including Random Map. A startup map override supplies the initial choice. Confirm to begin a fresh match or cancel to return to the active one. The header shows the active battlefield and its dimensions. **Restart Draft** and **Restart Match** preserve the current battlefield, ruleset, and difficulty.
 
-Set **Rules** in the main scene Inspector, or override it on launch with `--ruleset classic` or `--ruleset knight-support`.
+On a touchscreen, swipe over the map rows to scroll and tap a row to preview its battlefield.
+
+## Ruleset and development configuration
+
+**Knight Support** is the official ruleset and starts with castles. At the end of each main turn, a knight survives if at least one friendly knight or castle is adjacent, including diagonally. Unsupported knights become neutral graves and lose one ground health. The header shows the active ruleset. [Complete rules and design rationale](Documentation/GameDesign.md#55-knight-support-ruleset)
+
+To play **Classic** with starting knights, set **Rules** to **Classic** in the main scene Inspector, pass `RuleSet.Classic` in a programmatic match configuration, or run with `--ruleset classic`. The configured ruleset carries forward when you start a new match.
 
 ```sh
 godot --path . -- --mode cpu --ruleset knight-support --map demonstration --seed 42
-godot --path . -- --mode local --ruleset knight-support --map pocket-meadow
+godot --path . -- --mode local --ruleset classic --map pocket-meadow
 ```
 
 ## Play a local two-human match
 
 Choose **Player One** (red) or **Player Two** (blue) and select a marked square. Click or tap it again or press **Submit selection**. The board updates once both players submit. While waiting, select your revised square and confirm it the same way or use **Revise selection**. Switching players clears the pale provisional outline and refreshes the legal targets.
-
-**New Match** offers both rulesets in Local Multiplayer.
 
 Gold dots mark shared draft targets. When only one start remains, it automatically becomes an unowned grave and loses one ground health. Main uses gold frames for the active player's legal targets. Secured cells have a red or blue tint and are unavailable to both players. At the end of a match, both scores and the winner or draw stay visible. **Restart Match** starts a fresh opening on the same map with the initial terrain, health, and starting positions.
 
@@ -97,6 +101,6 @@ godot --headless --path . --script Tests/Presentation/DraftLayoutCheck.gd
 godot --headless --path . --script Tests/Presentation/CpuMatchCheck.gd -- --seed 42
 ```
 
-The tests replay complete local and CPU matches and exercise ruleset switching, responsive layout, scores, and restarts. For development launches, use `--mode cpu` or `--mode local`, `--ruleset classic` or `--ruleset knight-support`, `--map <id>`, and an optional `--seed <int>` after the Godot `--` separator. The seed controls CPU randomness, while the map override fixes the map.
+The tests replay complete Classic local and CPU matches, exercise Knight Support gameplay, and check map previews, replacement, scores, and restarts at different viewport sizes. For development launches, use `--mode cpu` or `--mode local`, `--ruleset classic` or `--ruleset knight-support`, `--map <id>`, and an optional `--seed <int>` after the Godot `--` separator. The seed controls CPU randomness. The map override fixes the initial map.
 
 See the [documentation homepage source](Documentation/index.md) for architecture and API reference navigation, and the [documentation contributor guide](Documentation/contributing.md) for local builds, writing conventions, and GitHub Pages setup.
