@@ -1,16 +1,15 @@
-using System.Collections.Frozen;
-
 namespace CastrumTactics.Domain;
 
 /// <summary>Evaluates one resolved board and resolves legal simultaneous choices against it.</summary>
 /// <remarks>Evaluate the opening board before the first main-phase turn and evaluate each resulting board again.</remarks>
 public sealed class MainPhaseState
 {
-    private readonly FrozenSet<BoardPosition> _playerOneSelections;
-    private readonly FrozenSet<BoardPosition> _playerTwoSelections;
+    private readonly IReadOnlySet<BoardPosition> _playerOneSelections;
+    private readonly IReadOnlySet<BoardPosition> _playerTwoSelections;
+    private readonly RuleSetDefinition _rules;
 
-    private MainPhaseState(BoardState board, TerritoryAnalysis territory, FrozenSet<BoardPosition> playerOneSelections,
-        FrozenSet<BoardPosition> playerTwoSelections, MainPhaseResult? result, RuleSet ruleSet)
+    private MainPhaseState(BoardState board, TerritoryAnalysis territory, IReadOnlySet<BoardPosition> playerOneSelections,
+        IReadOnlySet<BoardPosition> playerTwoSelections, MainPhaseResult? result, RuleSet ruleSet, RuleSetDefinition rules)
     {
         Board = board;
         Territory = territory;
@@ -18,6 +17,7 @@ public sealed class MainPhaseState
         _playerTwoSelections = playerTwoSelections;
         Result = result;
         RuleSet = ruleSet;
+        _rules = rules;
     }
 
     /// <summary>Gets the immutable board used for territory, legal selections, and resolution.</summary>
@@ -48,11 +48,13 @@ public sealed class MainPhaseState
     /// <exception cref="ArgumentNullException">The board is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The ruleset is undefined.</exception>
     public static MainPhaseState Evaluate(BoardState board, RuleSet ruleSet)
+        => Evaluate(board, ruleSet, RuleSetDefinition.Get(ruleSet));
+
+    internal static MainPhaseState Evaluate(BoardState board, RuleSet ruleSet, RuleSetDefinition rules)
     {
-        if (!Enum.IsDefined(ruleSet)) throw new ArgumentOutOfRangeException(nameof(ruleSet));
         TerritoryAnalysis territory = TerritoryAnalyzer.Analyze(board);
-        var playerOne = new HashSet<BoardPosition>();
-        var playerTwo = new HashSet<BoardPosition>();
+        var playerOne = new LegalSelectionSet(board.Width, board.Height);
+        var playerTwo = new LegalSelectionSet(board.Width, board.Height);
 
         for (int y = 0; y < board.Height; y++)
         {
@@ -64,7 +66,7 @@ public sealed class MainPhaseState
                 if (cell.Owner is PlayerId owner)
                 {
                     AddLegalSelections(board, territory, position, cell, control,
-                        owner == PlayerId.PlayerOne ? playerOne : playerTwo);
+                        owner == PlayerId.PlayerOne ? playerOne : playerTwo, rules);
                 }
             }
         }
@@ -72,7 +74,7 @@ public sealed class MainPhaseState
         MainPhaseResult? result = playerOne.Count == 0 || playerTwo.Count == 0
             ? new MainPhaseResult(territory.PlayerOneScore, territory.PlayerTwoScore)
             : null;
-        return new MainPhaseState(board, territory, playerOne.ToFrozenSet(), playerTwo.ToFrozenSet(), result, ruleSet);
+        return new MainPhaseState(board, territory, playerOne, playerTwo, result, ruleSet, rules);
     }
 
     /// <summary>Gets one player's immutable set of legal selections on this board.</summary>
@@ -114,12 +116,21 @@ public sealed class MainPhaseState
             ? Board.WithResolvedCells(first.Position, firstCell.AfterGraveConversion())
             : Board.WithResolvedCells(first.Position, ApplyOrdinaryAction(firstCell, first.Player),
                 (second.Position, ApplyOrdinaryAction(Board.GetCell(second.Position), second.Player)));
-        return RuleSet == RuleSet.KnightSupport ? EliminateUnsupportedKnights(next) : next;
+        return _rules.RequiresKnightSupport ? EliminateUnsupportedKnights(next, _rules) : next;
     }
 
-    private static BoardState EliminateUnsupportedKnights(BoardState board)
+    /// <summary>Resolves both simultaneous selections and analyzes the resulting board with the same rules.</summary>
+    /// <param name="first">One player's legal selection on this state.</param>
+    /// <param name="second">The other player's legal selection on this state.</param>
+    /// <returns>A new evaluated state. This state and its board are unchanged.</returns>
+    /// <exception cref="InvalidOperationException">The match has already finished.</exception>
+    /// <exception cref="ArgumentException">The selections do not identify two distinct players and legal targets.</exception>
+    public MainPhaseState Advance(MainPhaseSelection first, MainPhaseSelection second)
+        => Evaluate(ResolveTurn(first, second), RuleSet, _rules);
+
+    private static BoardState EliminateUnsupportedKnights(BoardState board, RuleSetDefinition rules)
     {
-        var outcomes = new List<(BoardPosition Position, CellState Cell)>();
+        List<(BoardPosition Position, CellState Cell)>? outcomes = null;
         for (int y = 0; y < board.Height; y++)
         {
             for (int x = 0; x < board.Width; x++)
@@ -128,25 +139,37 @@ public sealed class MainPhaseState
                 CellState cell = board.GetCell(position);
                 // Only knights and castles have owners. Read every relationship from the post-action board.
                 if (cell.Piece == PieceType.Knight &&
-                    !board.NeighborsOf(position).Any(neighbor => board.GetCell(neighbor).Owner == cell.Owner))
+                    !HasSupport(board, position, cell.Owner, rules))
                 {
-                    outcomes.Add((position, cell.AfterGraveConversion()));
+                    (outcomes ??= []).Add((position, cell.AfterGraveConversion()));
                 }
             }
         }
 
-        return board.WithResolvedCells(outcomes);
+        return outcomes is null ? board : board.WithResolvedCells(outcomes);
+    }
+
+    private static bool HasSupport(BoardState board, BoardPosition position, PlayerId? owner, RuleSetDefinition rules)
+    {
+        int range = Math.Max(rules.KnightSupportRange, rules.CastleSupportRange);
+        foreach (BoardPosition neighbor in board.NeighborsOf(position, range))
+        {
+            CellState source = board.GetCell(neighbor);
+            int distance = Math.Max(Math.Abs(position.X - neighbor.X), Math.Abs(position.Y - neighbor.Y));
+            if (source.Owner == owner && distance <= rules.SurvivalSupportRange(source.Piece)) return true;
+        }
+        return false;
     }
 
     private static void AddLegalSelections(BoardState board, TerritoryAnalysis territory, BoardPosition position,
-        CellState cell, TerritoryControl control, HashSet<BoardPosition> selections)
+        CellState cell, TerritoryControl control, LegalSelectionSet selections, RuleSetDefinition rules)
     {
         if (cell.Piece == PieceType.Knight && control == TerritoryControl.Contested)
         {
             selections.Add(position);
         }
 
-        foreach (BoardPosition neighbor in board.NeighborsOf(position))
+        foreach (BoardPosition neighbor in board.NeighborsOf(position, rules.PlacementRange(cell.Piece)))
         {
             // A piece makes every adjacent traversable component at least secured for its owner.
             // Only contested cells are therefore reachable and eligible after excluding secured territory.

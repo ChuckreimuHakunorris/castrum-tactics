@@ -7,6 +7,8 @@ items:
     href: MapFormat.md
   - name: CPU architecture
     href: CpuArchitecture.md
+  - name: CPU benchmarks
+    href: CpuBenchmarks.md
   - name: API Reference
     href: api/
     topicHref: api/index.md

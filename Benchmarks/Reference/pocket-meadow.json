@@ -1,0 +1,7 @@
+{
+  "map": "pocket-meadow",
+  "draft": ["A1", "C3"],
+  "main": [["A2", "B2"], ["B2", "A2"], ["B1", "B2"]],
+  "historical": ["B2", "B1"],
+  "recordedAlternative": ["B1", "B1"]
+}

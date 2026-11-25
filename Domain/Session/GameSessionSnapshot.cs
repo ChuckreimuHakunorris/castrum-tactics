@@ -7,12 +7,13 @@ public sealed class GameSessionSnapshot
 {
     private readonly bool _playerOneSubmitted;
     private readonly bool _playerTwoSubmitted;
-    private readonly MainPhaseState? _mainPhase;
+    private readonly OpeningDraft _draft;
 
     internal GameSessionSnapshot(OpeningDraft draft, MainPhaseState? mainPhase, int resolvedMainTurns, long roundId,
         bool playerOneSubmitted, bool playerTwoSubmitted)
     {
-        _mainPhase = mainPhase;
+        _draft = draft;
+        MainState = mainPhase;
         RuleSet = draft.RuleSet;
         Board = mainPhase?.Board ?? draft.Board;
         Phase = mainPhase?.IsFinished == true ? MatchPhase.Finished : draft.Phase;
@@ -43,7 +44,24 @@ public sealed class GameSessionSnapshot
     public int ResolvedMainTurns { get; }
 
     /// <summary>Gets strategic control on the current board in Main or Finished. Null during the draft.</summary>
-    public TerritoryAnalysis? Territory => _mainPhase?.Territory;
+    public TerritoryAnalysis? Territory => MainState?.Territory;
+
+    /// <summary>Gets the immutable evaluated Main board, including on a finished match. Null during a draft or a failed draft.</summary>
+    public MainPhaseState? MainState { get; }
+
+    /// <summary>Previews a pair of simultaneous draft choices using the session's rules, including any forced final collision.</summary>
+    /// <param name="playerOne">Player One's eligible choice on this snapshot.</param>
+    /// <param name="playerTwo">Player Two's eligible choice on this snapshot.</param>
+    /// <returns>A hypothetical snapshot with no pending submissions and the projected next phase and round.</returns>
+    /// <exception cref="InvalidOperationException">The phase is not Opening or either choice is ineligible.</exception>
+    /// <remarks>Ignores submission status and does not modify the originating session.</remarks>
+    public GameSessionSnapshot PreviewDraft(BoardPosition playerOne, BoardPosition playerTwo)
+    {
+        if (Phase != MatchPhase.Opening) throw new InvalidOperationException("The draft is not active.");
+        OpeningDraft draft = _draft.ResolveRound(playerOne, playerTwo);
+        var main = draft.Phase == MatchPhase.Main ? MainPhaseState.Evaluate(draft.Board, RuleSet) : null;
+        return new GameSessionSnapshot(draft, main, 0, RoundId + draft.ResolvedRounds - ResolvedRounds, false, false);
+    }
 
     /// <summary>Gets Player One's secured territory total, or zero during the opening or a failed draft.</summary>
     public int PlayerOneScore => Territory?.PlayerOneScore ?? 0;
@@ -52,7 +70,7 @@ public sealed class GameSessionSnapshot
     public int PlayerTwoScore => Territory?.PlayerTwoScore ?? 0;
 
     /// <summary>Gets the final score and winner in Finished. Null in all other phases.</summary>
-    public MainPhaseResult? FinalResult => _mainPhase?.Result;
+    public MainPhaseResult? FinalResult => MainState?.Result;
 
     /// <summary>Gets the session-scoped command identifier, which advances once per resolved round and once per restart.</summary>
     public long RoundId { get; }
@@ -68,7 +86,7 @@ public sealed class GameSessionSnapshot
             throw new ArgumentOutOfRangeException(nameof(player), player, "Unknown player.");
         }
 
-        return Phase == MatchPhase.Main && _mainPhase is { } mainPhase
+        return Phase == MatchPhase.Main && MainState is { } mainPhase
             ? mainPhase.GetLegalSelections(player)
             : FrozenSet<BoardPosition>.Empty;
     }

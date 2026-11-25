@@ -92,7 +92,7 @@ See the [game design](Documentation/GameDesign.md) and [art direction](Documenta
 
 ## Developer documentation
 
-With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain, local session, CPU, and presentation tests. The tests run without the Godot editor or runtime. The [CPU architecture](Documentation/CpuArchitecture.md) describes the five provisional profiles and the asynchronous lifecycle. The [session architecture](Documentation/SessionArchitecture.md) shows how to configure a match from code.
+With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain, local session, CPU, and presentation tests. The tests run without the Godot editor or runtime. All five CPU difficulties use simultaneous search under Knight Support. Deprecated Classic is available for development and uses the legacy static policy. See the [CPU architecture](Documentation/CpuArchitecture.md), [benchmark commands and results](Documentation/CpuBenchmarks.md), and [session architecture](Documentation/SessionArchitecture.md).
 
 After building and importing assets with `godot --headless --path . --import`, run the same two Godot 4.7.2 .NET regressions as CI.
 

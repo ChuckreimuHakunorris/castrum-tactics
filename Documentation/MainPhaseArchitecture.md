@@ -122,6 +122,12 @@ Each immutable [`TerritoryAnalysis`](xref:CastrumTactics.Domain.TerritoryAnalysi
 
 Opening eligibility and collisions are shared by both rulesets. A distinct opening pair places knights in Classic and castles in Knight Support. The opening eligibility list is separate from main-phase per-player legal selections.
 
+### Ruleset definitions and hypothetical turns
+
+[`RuleSetDefinition`](xref:CastrumTactics.Domain.RuleSetDefinition) holds the starting piece and independent placement and survival ranges per supporting piece type. The legal-selection generator reads placement range against the common pre-turn territory map. The post-action support pass reads survival range against the complete post-action board. Eight-connected territory remains an independent classification.
+
+[`MainPhaseState.Advance`](xref:CastrumTactics.Domain.MainPhaseState.Advance*) uses the same pair resolution and evaluation for the live session and CPU search. The state retains its rules definition when advancing. A domain regression exercises castle survival range two with placement range one. The application still exposes Knight Support and deprecated Classic as the two selectable variants.
+
 ## 7. Required test scenarios
 
 - Eight-directional adjacency including diagonals, corners and rectangular maps.
@@ -143,4 +149,4 @@ Opening eligibility and collisions are shared by both rulesets. A distinct openi
 
 ## 8. Open questions
 
-Open design questions include ground-health regeneration, overlay styling, and whether playtesting warrants a more precise reachability algorithm. Future Fixed Draft, deeper CPU search, networking, multiplayer restart authority, and backend choices remain out of scope.
+Open design questions include ground-health regeneration, overlay styling, and whether playtesting warrants a more precise reachability algorithm. Future Fixed Draft, networking, multiplayer restart authority, and backend choices remain out of scope.

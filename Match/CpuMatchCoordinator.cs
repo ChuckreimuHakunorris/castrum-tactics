@@ -31,7 +31,7 @@ internal sealed class CpuMatchCoordinator : IDisposable
         _player = player;
         _profile = profile;
         _seedSource = seedSource;
-        _decide = decide ?? new CpuDecisionEngine().Decide;
+        _decide = decide ?? new CpuDecisionEngine(TimeSpan.FromMilliseconds(450)).Decide;
     }
 
     internal Exception? Failure { get; private set; }

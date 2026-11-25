@@ -9,13 +9,15 @@ internal sealed class TacticalBoard
     private readonly int _height;
     private readonly byte[] _oneSupport;
     private readonly byte[] _twoSupport;
+    private readonly RuleSetDefinition _rules;
     private readonly int[] _regions;
     private readonly bool _countCastleBorders;
     private readonly List<Region> _regionDetails = [];
 
     internal TacticalBoard(BoardState board, bool opening, CancellationToken cancellationToken, RuleSet ruleSet = RuleSet.Classic)
     {
-        _countCastleBorders = opening && ruleSet == RuleSet.KnightSupport;
+        _rules = RuleSetDefinition.Get(ruleSet);
+        _countCastleBorders = opening && _rules.StartingPiece == PieceType.Castle;
         _width = board.Width;
         _height = board.Height;
         Cells = new CellState[checked(_width * _height)];
@@ -58,12 +60,32 @@ internal sealed class TacticalBoard
     internal int Support(int index, PlayerId player) => (player == PlayerId.PlayerOne ? _oneSupport : _twoSupport)[index];
     internal Region RegionAt(int index) => _regionDetails[_regions[index]];
 
-    internal IEnumerable<int> Neighbors(int index)
+    internal IEnumerable<int> Supporters(int index, PlayerId player)
+    {
+        int range = Math.Max(_rules.KnightSupportRange, _rules.CastleSupportRange);
+        BoardPosition target = Position(index);
+        foreach (int neighbor in Neighbors(index, range))
+        {
+            CellState source = Cells[neighbor];
+            if (source.Owner != player) continue;
+            BoardPosition origin = Position(neighbor);
+            int distance = Math.Max(Math.Abs(origin.X - target.X), Math.Abs(origin.Y - target.Y));
+            if (distance <= _rules.SurvivalSupportRange(source.Piece)) yield return neighbor;
+        }
+    }
+
+    internal int SurvivalSupport(int index, PlayerId player) => _rules.KnightSupportRange == 1 && _rules.CastleSupportRange == 1
+        ? Support(index, player) : Supporters(index, player).Count();
+
+    internal IEnumerable<int> SupportedTargets(int index, PieceType source) =>
+        Neighbors(index, _rules.SurvivalSupportRange(source));
+
+    internal IEnumerable<int> Neighbors(int index, int range = 1)
     {
         BoardPosition position = Position(index);
-        for (int y = Math.Max(0, position.Y - 1); y <= Math.Min(_height - 1, position.Y + 1); y++)
+        for (int y = Math.Max(0, position.Y - range); y <= Math.Min(_height - 1, position.Y + range); y++)
         {
-            for (int x = Math.Max(0, position.X - 1); x <= Math.Min(_width - 1, position.X + 1); x++)
+            for (int x = Math.Max(0, position.X - range); x <= Math.Min(_width - 1, position.X + range); x++)
             {
                 int neighbor = y * _width + x;
                 if (neighbor != index) yield return neighbor;

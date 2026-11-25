@@ -9,5 +9,6 @@
   <ItemGroup>
     <ProjectReference Include="../Domain/CastrumTactics.Domain.csproj" />
     <InternalsVisibleTo Include="CastrumTactics.AI.Tests" />
+    <InternalsVisibleTo Include="CastrumTactics.Benchmarks" />
   </ItemGroup>
 </Project>

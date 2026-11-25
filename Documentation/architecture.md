@@ -89,8 +89,15 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - Knight Support is the application default in both input modes. The scene retains the configured ruleset across New Match and restarts. Development configuration still supports Classic. Domain callers can continue supplying either ruleset.
 - New Match owns tentative map and difficulty choices in presentation. The map preview uses the catalog's immutable definition and shared square-cell geometry. Confirmation creates a replacement session and invalidates the prior CPU coordinator. The session retains its original map through restarts, even when the player's next-match preference is Random Map.
 
+## Milestone 8C decisions
+
+- Knight Support drives strategic CPU development and benchmarking. Deprecated Classic keeps its static CPU policy and remains available through development configuration.
+- Immutable ruleset definitions separate legal action reach and survival support. The draft, Main legality, and main-phase support pass consume the applicable values. Territory classification remains independent of the CPU's influence graph.
+- The public snapshot exposes the domain's immutable Main evaluation and a draft preview. Search advances both players' choices together with the live domain resolver. One engine shares tactical ordering, strategic evaluation, sampling, and bounded search across all five difficulties. The worker continues to submit proposals through the same coordinator.
+- Benchmarks use a development-only executable with the original 8B.1 AI sources in a separate assembly. Dot's Probe ranks candidates through that frozen Normal implementation. The application has no reference to the benchmark assembly. [Benchmark report and reproduction](CpuBenchmarks.md)
+
 ## Planned
 
-Deeper simultaneous CPU evaluation, a remote session, and ranked map validation remain future work.
+Broader CPU competition and tuning, a remote session, and ranked map validation remain future work.
 
 The [Game Design Document](GameDesign.md) records the rules and open design decisions. The [Session Architecture](SessionArchitecture.md) describes the authority and presentation boundaries. The [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) documents the domain rules and local integration.

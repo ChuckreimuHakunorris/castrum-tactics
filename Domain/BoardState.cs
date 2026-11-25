@@ -66,17 +66,43 @@ public sealed class BoardState
     /// <exception cref="ArgumentOutOfRangeException">The position is outside the board.</exception>
     public bool IsPlayable(BoardPosition position) => GetCell(position).IsPlayable;
 
-    internal IEnumerable<BoardPosition> NeighborsOf(BoardPosition position)
+    internal Neighborhood NeighborsOf(BoardPosition position, int range = 1) => new(this, position, range);
+
+    // Territory and support traverse this window for every simulated pair. A value iterator avoids a heap object per cell.
+    internal readonly struct Neighborhood(BoardState board, BoardPosition center, int range)
     {
-        for (int y = Math.Max(0, position.Y - 1); y <= Math.Min(Height - 1, position.Y + 1); y++)
+        public Enumerator GetEnumerator() => new(board, center, range);
+
+        public struct Enumerator
         {
-            for (int x = Math.Max(0, position.X - 1); x <= Math.Min(Width - 1, position.X + 1); x++)
+            private readonly BoardPosition _center;
+            private readonly int _left, _right, _bottom;
+            private int _x, _y;
+
+            internal Enumerator(BoardState board, BoardPosition center, int range)
             {
-                var neighbor = new BoardPosition(x, y);
-                if (neighbor != position)
+                _center = center;
+                _left = Math.Max(0, center.X - range);
+                _right = Math.Min(board.Width - 1, center.X + range);
+                _bottom = Math.Min(board.Height - 1, center.Y + range);
+                _x = _left - 1;
+                _y = Math.Max(0, center.Y - range);
+            }
+
+            public BoardPosition Current => new(_x, _y);
+
+            public bool MoveNext()
+            {
+                do
                 {
-                    yield return neighbor;
+                    if (++_x > _right)
+                    {
+                        _x = _left;
+                        _y++;
+                    }
                 }
+                while (_x == _center.X && _y == _center.Y);
+                return _y <= _bottom;
             }
         }
     }

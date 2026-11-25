@@ -201,7 +201,9 @@ When the selections target **different squares**, both legal actions resolve ind
 
 ### 5.5 Knight Support ruleset
 
-Knight Support is the official ruleset after human playtesting. It changes starting pieces and knight survival in either input mode. Classic remains available through development configuration. The ruleset is fixed when the match starts.
+Knight Support is the official ruleset after human playtesting and the target for competitive CPU development. It changes starting pieces and knight survival in either input mode. Deprecated Classic remains available through development configuration. The ruleset is fixed when the match starts.
+
+Placement and survival both use range one for present-day knights and castles. They are distinct rules. A future experiment could extend castle survival support to range two while leaving legal placement reach and territorial classification as they are. The five Knight Support CPU difficulties simulate simultaneous actions on the published board and estimate longer-term territorial opportunities with a separate influence heuristic. [CPU architecture](CpuArchitecture.md)
 
 1. A distinct pair of draft selections places two castles. They are stationary, invulnerable to ordinary capture, and reach all eight neighbors. Their normal territorial influence can cause a successful draft to finish immediately.
 2. A knight survives a main turn only if a friendly knight or castle occupies one of its eight adjacent squares on the post-action board. Castles always survive and supply permanent support. Two adjacent friendly knights can support each other anywhere on the board. Enemy pieces, graves, empty squares, inaccessible terrain, and the knight's own square supply no support.

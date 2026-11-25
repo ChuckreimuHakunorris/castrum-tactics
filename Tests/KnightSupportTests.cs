@@ -5,6 +5,26 @@ namespace CastrumTactics.Domain.Tests;
 
 public sealed class KnightSupportTests
 {
+    [Fact]
+    public void ExtendingCastleSurvivalSupportDoesNotExtendPlacementOrChangeTerritory()
+    {
+        var rules = new RuleSetDefinition(PieceType.Castle, true, 1, 1, 1, 2);
+        var board = ResolvedBoard.Parse(".......", ".A1....", "..B....");
+        var official = MainPhaseState.Evaluate(board, RuleSet.KnightSupport);
+        var experimental = MainPhaseState.Evaluate(board, RuleSet.KnightSupport, rules);
+        Assert.True(official.GetLegalSelections(One).SetEquals(experimental.GetLegalSelections(One)));
+        var invasion = new MainPhaseSelection(One, new(3, 1));
+        var capture = new MainPhaseSelection(Two, new(2, 1));
+        Assert.Equal(PieceType.Grave, official.Advance(invasion, capture).Board.GetCell(invasion.Position).Piece);
+        Assert.Equal(One, experimental.Advance(invasion, capture).Board.GetCell(invasion.Position).Owner);
+
+        var onlyCastle = ResolvedBoard.Parse(".......", ".A.....", "..B....");
+        var before = MainPhaseState.Evaluate(onlyCastle, RuleSet.KnightSupport, rules);
+        Assert.Equal(TerritoryControl.Contested, before.Territory.GetControl(invasion.Position));
+        Assert.DoesNotContain(invasion.Position, before.GetLegalSelections(One));
+        Assert.Equal(2, Enum.GetValues<RuleSet>().Length);
+    }
+
     private const PlayerId One = PlayerId.PlayerOne;
     private const PlayerId Two = PlayerId.PlayerTwo;
 

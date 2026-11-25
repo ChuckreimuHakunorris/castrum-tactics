@@ -1,6 +1,6 @@
 # Configurable CPU decision engine
 
-Milestone 8A provides a synchronous, engine-independent decision source for local play and future simulations. `CastrumTactics.AI` references `CastrumTactics.Domain`. The separate assembly makes the public domain surface the CPU's dependency boundary. The CPU accepts a snapshot and returns a proposal. The caller owns the random source and submits the proposal through the session. The session checks the phase, round, player, and legality again when it receives the command.
+The synchronous `CastrumTactics.AI` engine reads immutable public domain snapshots and returns round-tagged proposals. The caller owns the random source and submits the proposal through the session. Knight Support is the official ruleset and the target for strategic search and competitive testing. Deprecated Classic remains available in development configuration and uses the static evaluator.
 
 ## Calling the engine
 
@@ -11,11 +11,49 @@ var random = new Random(42);
 CpuDecision? decision = engine.Decide(snapshot, PlayerId.PlayerOne, profile, random, cancellationToken);
 ```
 
-A proposal contains the player, position, phase, and round ID from its input snapshot. Terminal phases and empty legal sets return null. Undefined players, null inputs, and invalid profile values throw. Cancellation throws `OperationCanceledException`. The engine checks the token before and during board analysis and candidate scoring, and again before returning. The engine has no mutable instance state and each invocation owns its temporary analysis. Concurrent calls can share the engine, immutable snapshots, and immutable profiles. Use an independent random source for each concurrent operation and an independent stream for each CPU player. Equivalent resolved inputs, profiles, and random sequences reproduce decisions with the same engine and .NET runtime.
+A proposal contains the player, position, phase, and round ID from its input snapshot. Terminal phases and empty legal sets return null. Undefined players, null inputs, and invalid profile values throw. Cancellation throws `OperationCanceledException`. The engine checks the token during ranking, graph propagation and pair resolution, and before returning. Calls share immutable inputs and own their scratch state. Supply independent random streams for concurrent calls and for each player. With the default engine constructor, equivalent resolved inputs, profiles, and random sequences reproduce decisions on the same engine and .NET runtime.
 
-The opening reads `EligiblePositions`. The main phase reads both published legal sets and the published territory analysis. The CPU uses only resolved board data and ignores submission flags. An opponent who has already submitted provides the same evaluation inputs as an opponent who has yet to submit.
+The opening reads `EligiblePositions` and previews draft pairs with `GameSessionSnapshot.PreviewDraft`. Main uses the snapshot's immutable `MainState` and calls `MainPhaseState.Advance` for both choices together. Both paths share the live match resolver, including forced draft collisions, support elimination, territory, and scoring. The CPU ignores submission flags and receives no pending coordinates.
 
-## Evaluation features
+## Simultaneous search
+
+1. Rank all legal actions for each player on the current resolved board. At wide nodes, keep roughly half the shortlist from the top tactical ranks, then reserve room for a castle upgrade, a capture or defensive response, and frontier alternatives. Frontier ordering combines estimated marginal reach with distance from already shortlisted targets. A low-branching node is exhaustive within its limits.
+2. Evaluate each own action against one common opponent shortlist. Reply probabilities combine 90% softmax over the opponent's public tactical scores with 10% uniform probability. In both the draft and Main, evaluate an omitted legal same-square reply once and include its value only in the adverse outcome. The expected value uses the same common reply distribution for every candidate. A collision already in the common set contributes to both values.
+3. Resolve every tested pair through the domain. Rate an action with `(1 - risk) × expected + risk × adverse`, where adverse is the minimum tested value. In Main, actions that win against every tested reply take precedence, followed by actions with no immediate loss among tested replies. Sampling stays in the best available tier. Replies outside the shortlist can still change a result.
+4. Hard, Very Hard, and Monster can revisit a small group of root finalists. At each nonterminal resolved child, they generate both players' choices afresh and analyze another simultaneous pair matrix. The child value blends 15% of the immediate nonterminal estimate with 85% of its best continuation. Terminal children retain their exact value. The deeper pass is used only when all retained finalists fit. Otherwise play uses the comparable completed first pass. If the first pass cannot complete a comparable set, it falls back to the static legal ranking.
+
+| Difficulty | Main depth | Own / common reply limit | Pair budget | Risk | Reply temperature |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Easy | 1 | 5 / 4 | 64 | 0.15 | 1.8 |
+| Normal | 1 | 8 / 6 | 120 | 0.24 | 1.4 |
+| Hard | 2 | 12 / 8 | 360 | 0.32 | 1.2 |
+| Very Hard | 2 | 14 / 9 | 500 | 0.36 | 1.1 |
+| Monster | 2 | 18 / 10 | 850 | 0.40 | 1.0 |
+
+Depth two uses up to four finalists for Hard and Very Hard, and six for Monster. Each finalist receives the same root replies as at depth one. Child search starts at width three or four, contracts to fit the remaining budget and can widen on boards up to 25 cells. A pair budget counts all authoritative simulations in one decision, including extra collisions. The scene worker also has a 450 ms elapsed safeguard between resolutions. The public parameterless engine used for benchmarking relies on deterministic pair budgets.
+
+Draft search aims to compare all eligible starts. With `n` starts and `k` common replies, the complete pass costs `n × k + (n - k)` previews. The second term covers starts omitted from the common set. The search narrows the common list from at most two more replies than the Main limit until the pass fits, with a minimum of one common reply. If the remaining budget or elapsed time interrupts a row, only completed rows enter strategic sampling. When fewer than two rows finish on a multi-choice draft, the engine falls back to the static ranking to preserve opening diversity.
+
+Each pair previews the next draft state or opening completion, including any forced final collision within the same preview. Its score combines the modeled outcome, scaled by the larger of four and the square root of board area, with 25% of the static score. A failed draft receives a -4 outcome before scaling. An opening that finishes immediately uses the signed value `3 + 0.6 × area` plus `0.3 × margin`. The existing softmax and uniform diversity keep multiple draft selections viable. The previews project the value of the remaining space.
+
+## Strategic position value
+
+The following is the acting player's signed value of a nonterminal resolved position. The calculation clamps the sum to ±1,000. A terminal win or loss uses ±10,000 plus the signed final margin clamped to ±1,000. A terminal draw is zero.
+
+| Term | Weight and calculation |
+| --- | --- |
+| Secured territory | 0.90 times the authoritative score lead in Main and 0.30 in draft previews. |
+| Prospective influence | 0.62 times the sum of per-cell advantage. Each player propagates their strongest reachable source, attenuating one point per eight-connected step. A castle starts at strength 8 and a knight at 7, losing one point if directly threatened and one if it has fewer than two supporters and all are threatened. Rocks, graves, and castles block traversal. Main propagation is through contested cells. |
+| Material | Each castle adds 1.15. Knights add 0.43, or 0.30 when directly threatened. |
+| Formation | Each knight adds 0.24 with castle support, 0.15 with multiple or safe support, and loses 0.15 otherwise. The source piece's ruleset survival range determines support. |
+| Ground | Subtracts 0.26 times the sum of per-cell influence advantage multiplied by the fraction of ground health lost. This makes degradation more costly to the side expected to benefit from the surviving ground. Graves also change graph connectivity and authoritative scoring. |
+| Mobility | 0.28 times useful legal empty-square reach. Each side counts a reachable cell once and discounts it by that side's positive influence advantage. |
+
+For each traversable square, influence advantage is `clamp((own - opponent) / 3, -1, 1) × min(4, max(own, opponent)) / 4`. Saturation and strongest-source propagation give diminishing returns when a new knight duplicates a nearby formation. Reinforcement, castle upgrades, and closing a boundary can still add distinct formation or secured value. New fronts gain value through independently reachable territory and through the shortlist's geographic diversity.
+
+The graph cannot establish eventual control, and a single strongest source can underrate overlapping long-term pressure. The model can miss replies outside the shortlist, misjudge contested corridors and repeat an unfavorable engagement. It does not learn an opponent's tendencies across turns. The benchmark comparisons and tactical failure cases are documented separately. [Milestone 8C benchmark report](CpuBenchmarks.md)
+
+## Static candidate features
 
 `CpuFeatures` describes evaluation values normalized to [0, 1]. `CpuEvaluationWeights` describes strategic preferences in [0, 10] and validates them during profile construction. The engine adds the weighted benefits and subtracts weighted risk. Score differences are measured on that weighted scale.
 
@@ -34,17 +72,15 @@ Opening regions are measured once on the draft board. Remaining starts are still
 
 In Main, a shared placement or upgrade starts with collision cost 0.65. Shared captures use 0.25 when a knight would survive the ordinary capture and 0.05 otherwise. If a new knight may occupy the square, exposure adds up to 0.35 based on the fraction of adjacent squares available to the opponent.
 
-The eight-neighbor divisor and the region share normalize counts. The opening urgency, appeal model, denial credit, and gate penalty and the main-phase action values and costs are provisional strategic assumptions shared by the profiles. Feature weights control their relative importance. Neighbor support counts knights and castles. The published territory and legal sets determine which targets can be scored. These static scores estimate tactical value on one resolved board. Exact hypothetical territory and changes to board-wide connectivity are deferred to 8C.
+The eight-neighbor divisor and the region share normalize counts. The opening urgency, appeal model, denial credit, and gate penalty and the main-phase action values and costs are shared assumptions. These scores order strategic candidates and supply the legacy Classic policy. The simultaneous search separately values territory and connectivity after resolution.
 
 ### Knight Support evaluation
 
-Knight Support is the official application ruleset and the primary target for future CPU tuning and competitive optimization. Classic remains available for development and regression testing.
-
-The engine reads the ruleset from the public snapshot. In the Knight Support draft it counts each existing castle once as a source in every region it borders. Castles establish footholds immediately, which lowers the urgency assigned to a first placement. The local gate estimate adds up to 0.25 to the opening territory feature to reflect the value of an invulnerable boundary.
+The engine reads the ruleset from the public snapshot. In the Knight Support draft the tactical prior counts each existing castle once as a source in every region it borders. Castles establish footholds immediately, which lowers the urgency assigned to a first placement. The local gate estimate adds up to 0.25 to the opening territory feature to reflect the value of an invulnerable boundary.
 
 In Main, the **Formation** feature adds 0.25 for multiple supporters and 0.35 per adjacent castle for a prospective knight. Placing a second supporter or upgrading a sole supporter adds 0.25 per dependent friendly knight. Capturing a sole enemy supporter earns half that amount per dependent enemy knight to account for possible reinforcement or upgrades. Ground exhaustion increases that credit by 50%. Shared targets discount formation value by half. **Support Risk** adds 0.5 for a prospective knight whose sole supporter is a legal enemy target, with a 50% increase if the extra loss would exhaust the ground. A contested upgrade also gets 0.125 risk per friendly dependent vulnerable to a collision. Both features cap at 1.
 
-The five profiles use configurable weights of 1.2 for Formation and 1.6 for Support Risk. Custom profiles can set the `Formation` and `SupportRisk` properties on `CpuEvaluationWeights`. Both features contribute zero in Classic. They estimate local opportunities and threats from public legal sets. They do not predict specific opposing choices, resolve turns, or require castle connectivity.
+The five profiles use configurable static weights of 1.2 for Formation and 1.6 for Support Risk. Custom profiles can set the `Formation` and `SupportRisk` properties on `CpuEvaluationWeights`. Both features contribute zero in Classic. They estimate local opportunities and threats from public legal sets and ruleset-defined survival ranges. Mutually supporting formations can survive independently of castles.
 
 ## Difficulty profiles and sampling
 
@@ -56,9 +92,9 @@ The five profiles use configurable weights of 1.2 for Formation and 1.6 for Supp
 | Very Hard | 8 | 3 | 0.55 | 0.12 | 2.0 | 1.9 | 1.9 | 1.6 | 1.1 | 1.1 | 1.3 | 1.15 |
 | Monster | 16 | 1 | 0.50 | 0 | 2.0 | 2.1 | 2.0 | 1.7 | 1.2 | 1.2 | 1.4 | 1.25 |
 
-All five profiles use 0.20 ordinary and 0.70 urgent opening diversity, with both maximum score differences disabled. The provisional tuning narrows the Main pool and emphasizes coverage, connectivity, and collision risk as difficulty rises. Monster's opening limit covers the largest start list in the current catalog. Empirical balance remains to be measured.
+All five profiles use 0.20 ordinary and 0.70 urgent opening diversity, with both maximum score differences disabled. The Main sampling limits are separate from search breadth. Monster's zero Main temperature samples equivalent best candidates. Its opening limit covers the largest start list in the current catalog.
 
-Custom profiles take positive limits, finite temperatures capped at 10, and finite diversity shares from 0 through 1. Opening temperature must be positive. Either phase can specify a finite, nonnegative maximum score difference from its best candidate. Pass `null` to disable a cutoff. For example, this profile filters Main candidates to within 1.5 weighted score units of the best before accounting for cutoff ties.
+Custom profiles take positive limits, finite temperatures capped at 10, and finite diversity shares from 0 through 1. Opening temperature must be positive. Either phase can specify a finite, nonnegative maximum score difference from its best candidate. A null score gap disables the cutoff. A custom profile can opt into Knight Support search with its `Search` initializer.
 
 ```csharp
 var custom = new CpuProfile(
@@ -66,10 +102,13 @@ var custom = new CpuProfile(
     openingCandidateLimit: 12, mainCandidateLimit: 8,
     mainTemperature: 0.60, openingTemperature: 0.75,
     openingDiversity: 0.20, urgentOpeningDiversity: 0.70,
-    mainMaximumScoreDifference: 1.5);
+    mainMaximumScoreDifference: 1.5)
+{
+    Search = new CpuSearchOptions(1, 8, 6, 120, 0.24, 1.4)
+};
 ```
 
-The static evaluator scores every legal candidate. The limits govern the sampling pools. The engine orders candidates by descending score, using row-major coordinates for a reproducible order at equal scores. It applies the nominal pool limit and optional score gap, retaining at least two Opening choices when available and at least one Main choice. It then includes every candidate within an absolute `1e-12` score difference of the last retained score. This numerical margin covers floating-point roundoff on the weighted scale and is anchored to that score. The configurable score gap expresses a separate strategic preference about how far below the best score the pool may reach, subject to the opening minimum and numerical cutoff ties.
+The static evaluator scores every legal candidate and breaks score ties in row-major order. Sampling operates on the best comparable search tier or the static pool. It applies the nominal pool limit and optional score gap, retaining at least two evaluated Opening choices when available and at least one Main choice. It includes every eligible candidate within an absolute `1e-12` score difference of the last retained score. This margin covers floating-point roundoff.
 
 Positive temperatures use softmax after subtracting the best score. In Main, positive temperature can deliberately select lower-rated moves from the retained pool. At zero temperature, the engine samples uniformly among scores within `1e-12` of the best. A unique best receives probability one, and inferior scores receive zero. Randomizing among equivalent best choices preserves Monster's preference for the strongest rated move.
 
@@ -79,25 +118,13 @@ Opening mixes uniform probability into the retained pool. The urgent setting app
 finalProbability = (1 - diversity) * softmaxProbability + diversity / retainedCandidateCount
 ```
 
-Each CPU samples independently. On the initial Banner Plain board all four corners score equally. Monster previously assigned 50%, 50%, 0%, and 0% in row-major order. It now assigns 25% to each. For two identically configured independent CPUs, the theoretical first-round collision probability on this board changes from 50% to 25%. Collisions and unsuccessful drafts remain possible.
+Each CPU samples independently. On the symmetric initial Banner Plain board all four corners remain equivalent, for a 25% first-round collision probability between identical independently sampled players. Collisions and unsuccessful drafts remain possible.
 
 ## Diagnostics and cost
 
-`DecideWithDiagnostics` returns the selected proposal plus all legal candidates in rank order. Each candidate includes its normalized features, weighted score, and sampling probability. The ordinary decision method does not create a report or a read-only diagnostic wrapper.
+`DecideWithDiagnostics` returns the proposal, tactical terms, each candidate's final score and sampling probability, and optional search details. Search details include considered actions, common replies and their probabilities, collisions checked, expected and adverse outcomes, input position contributions, completed depth, simulated pairs, elapsed time, and the reason for any fallback. Candidates outside the comparable tier receive zero probability. Ordinary `Decide` skips the diagnostics collection.
 
-Board traversal takes time proportional to board area. Candidate evaluation checks a bounded eight-cell neighborhood, including the local ring connectivity check. Ranking costs O(C log C) for C legal candidates. Temporary space is proportional to board area and candidate count. Calls reuse the public territory and legality data and perform no hypothetical turn resolution.
-
-With Monster, Player One, and seed 42, Pocket Meadow's two opening starts each have score 2.580 and probability 50%. The sample selects `(2, 2)`. On the Main regression fixture with two identical contested regions separated by rock, the two captures each score 1.5328125 and receive 50%. The two upgrades each score 0.5475 and receive zero.
-
-### Preliminary timing
-
-Measured on Windows with an Intel Core i5-7500 at 3.40 GHz, .NET 10.0, and a Release build. Each case warmed up for 128 calls and timed 2,000 ordinary Monster decisions against one fixed snapshot. Times include per-decision allocations and sampling. The main snapshots are early positions with four or five legal selections, so these results do not bound late turns or mobile performance.
-
-| Map | Opening median / P95 | Main median / P95 |
-| --- | ---: | ---: |
-| Pocket Meadow, 3 × 3 | 9.1 / 13.7 µs | 11.9 / 15.6 µs |
-| Demonstration, 7 × 5 | 30.9 / 35.7 µs | 18.7 / 59.2 µs |
-| Twelve Towers, 12 × 12 | 97.2 / 194.8 µs | 11.9 / 32.6 µs |
+Each simulation creates a domain board and analyzes territory and legal sets once. A scratch workspace reuses the neighbor graph and propagation arrays across simulations. A depth-two call retains root children for continuation. The deterministic pair ceiling bounds this work on the catalog. [Measured latency and allocation](CpuBenchmarks.md)
 
 ## Milestone 8B integration lifecycle
 
