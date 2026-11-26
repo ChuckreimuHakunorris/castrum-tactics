@@ -257,3 +257,5 @@ These decisions should be made when the corresponding functionality is implement
 - Human players, CPU opponents, and remote players use the same gameplay command model.
 
 This separation is a foundational architectural requirement for Castrum Tactics.
+
+The scene's `MatchLifetime` owns the active local session and CPU coordinator. Main owns the presentation observer, attaches it after updating the new map captions, and passes it to the lifetime owner for detachment. Live and hypothetical draft transitions use the same round and final-board calculation. [9A ownership and verification](ArchitectureRefactoring.md)

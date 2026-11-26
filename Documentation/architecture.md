@@ -121,3 +121,7 @@ The [small-board solver](SmallBoardSolver.md) uses the Domain resolver and expos
 The [opening strategy](CpuOpeningStrategy.md) evaluates authoritative draft previews with its own matrix and budget while using the same public snapshot and asynchronous proposal path as Main.
 
 The [8E CPU evaluation and calibration](CpuDifficultyCalibration.md) uses separately compiled opponents and replayable tournaments. The [battlefield audit](BattlefieldBalance.md) and its generated size-study maps live in Benchmarks.
+
+## Milestone 9A decisions
+
+The local session and CPU preview share one draft transition calculation. The CPU engine delegates tactical ranking and sampling internally. The scene retains control binding and presentation while `MatchLifetime` constructs and detaches the session and CPU coordinator. Planning, execution, replay and persistence each have a benchmark owner. [Refactoring decision record and equivalence evidence](ArchitectureRefactoring.md)
