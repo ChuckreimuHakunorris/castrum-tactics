@@ -18,6 +18,7 @@
     <ProjectReference Include="../../Benchmarks/Frozen8D2/CastrumTactics.Frozen8D2.csproj" Aliases="frozen8d2" />
     <ProjectReference Include="../../Benchmarks/Frozen8D3/CastrumTactics.Frozen8D3.csproj" Aliases="frozen8d3" />
     <ProjectReference Include="../../Benchmarks/Frozen8D4/CastrumTactics.Frozen8D4.csproj" Aliases="frozen8d4" />
+    <ProjectReference Include="../../Benchmarks/Frozen8E/CastrumTactics.Frozen8E.csproj" Aliases="frozen8e" />
     <Compile Include="../ResolvedBoard.cs" Link="ResolvedBoard.cs" />
   </ItemGroup>
 </Project>

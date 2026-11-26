@@ -1,0 +1,45 @@
+{
+  "id": "9a-natural",
+  "format": "round-robin",
+  "participants": [
+    {
+      "id": "easy",
+      "opponent": "strategic:Easy"
+    },
+    {
+      "id": "normal",
+      "opponent": "strategic:Normal"
+    },
+    {
+      "id": "hard",
+      "opponent": "strategic:Hard"
+    },
+    {
+      "id": "veryhard",
+      "opponent": "strategic:VeryHard"
+    },
+    {
+      "id": "monster",
+      "opponent": "strategic:Monster"
+    }
+  ],
+  "maps": {
+    "ids": [
+      "the-commons",
+      "honeystone-green",
+      "twelve-towers"
+    ]
+  },
+  "opening": {
+    "mode": "natural"
+  },
+  "seeds": [
+    7351
+  ],
+  "swapSeats": true,
+  "swapStarts": false,
+  "separatePhaseStreams": true,
+  "workers": 3,
+  "strategicMetrics": false,
+  "diagnostics": true
+}

@@ -3,6 +3,7 @@ extern alias frozen8c;
 extern alias frozen8d2;
 extern alias frozen8d3;
 extern alias frozen8d4;
+extern alias frozen8e;
 
 using System.Diagnostics;
 using System.Text.Json.Serialization;
@@ -12,6 +13,7 @@ using CastrumTactics.Development.Solver;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using Frozen = frozen::CastrumTactics.AI;
+using EightE = frozen8e::CastrumTactics.AI;
 using EightD4 = frozen8d4::CastrumTactics.AI;
 using EightD3 = frozen8d3::CastrumTactics.AI;
 using EightD2 = frozen8d2::CastrumTactics.AI;
@@ -61,7 +63,7 @@ internal static partial class Program
         string[] parts = spec.Opponent.Split(':');
         string kind = parts[0];
         if (kind != "strategic" && (spec.PairBudget is not null || spec.Weights is not null ||
-            (kind != "frozen8d4" && spec.TimeLimitMs is not null) || spec.Search is not null ||
+            (kind is not ("frozen8d4" or "frozen8e") && spec.TimeLimitMs is not null) || spec.Search is not null ||
             spec.OpeningSearch is not null || spec.LegacyOpening is not null || spec.MainTemperature is not null))
             throw new ArgumentException($"'{spec.Id}' can only tune production strategic opponents.");
         if (kind == "solver")
@@ -192,6 +194,20 @@ internal static partial class Program
                     (state, player, random, diagnostics, token) =>
                     {
                         var decision = frozenD4Engine.DecideWithDiagnostics(state, player, frozenD4Profile, random, token);
+                        var report = decision.Search;
+                        return new(Coordinate(decision.Decision!.Value.Position), Pairs: report?.ResolvedPairs,
+                            Depth: report?.Depth, BudgetExhausted: report?.BudgetExhausted,
+                            TimeLimitReached: report?.TimeLimitReached, Fallback: report is null ? null : report.Depth == 0,
+                            Diagnostics: diagnostics ? decision : null, ReusedPairs: report?.ReusedPairs, CompletedDepth: report?.CompletedDepth);
+                    });
+            case "frozen8e":
+                var frozen8EEngine = spec.TimeLimitMs is double frozenTime
+                    ? new EightE.CpuDecisionEngine(TimeSpan.FromMilliseconds(frozenTime)) : new EightE.CpuDecisionEngine();
+                var frozen8EProfile = EightE.CpuDifficultyProfiles.Get((EightE.CpuDifficulty)level);
+                return new(spec, "b63e7fbbb5450b4f9a5b6bb4047579bc978669c5",
+                    (state, player, random, diagnostics, token) =>
+                    {
+                        var decision = frozen8EEngine.DecideWithDiagnostics(state, player, frozen8EProfile, random, token);
                         var report = decision.Search;
                         return new(Coordinate(decision.Decision!.Value.Position), Pairs: report?.ResolvedPairs,
                             Depth: report?.Depth, BudgetExhausted: report?.BudgetExhausted,
