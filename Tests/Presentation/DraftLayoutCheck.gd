@@ -50,6 +50,8 @@ func run() -> void:
 	if not failed:
 		await check_visual_sidecar()
 	if not failed:
+		await check_connected_castles()
+	if not failed:
 		print("Verified the Classic walkthrough, Knight Support eliminations and scores, draft revision, restarts, map selection and previews.")
 		quit()
 
@@ -65,6 +67,13 @@ func check_visual_sidecar() -> void:
 	var board: Control = fixture.get_node("%BoardRenderer")
 	expect(board.call("DescribeVisualTile", 0, 0) == "Weathered/False/True", "Sidecar did not reach the renderer.")
 	expect(board.call("DescribeVisualTile", 1, 0) == "Original/False/False", "Unspecified tile lost legacy styling.")
+	for path: String in board.call("ReadTerrainCatalogPaths"):
+		var texture = load(path)
+		expect(texture != null and texture.get_size() == Vector2(128, 128), "Missing terrain texture " + path)
+	for mask in range(1, 16):
+		var base = load("res://Assets/Sprites/Board/wall-%d_base.png" % mask)
+		var tint = load("res://Assets/Sprites/Board/wall-%d_mask.png" % mask)
+		expect(base != null and tint != null and base.get_size() == tint.get_size(), "Misaligned castle mask %d" % mask)
 	var one: Button = fixture.get_node("%PlayerOne")
 	var two: Button = fixture.get_node("%PlayerTwo")
 	var submit: Button = fixture.get_node("%Submit")
@@ -75,6 +84,32 @@ func check_visual_sidecar() -> void:
 	await settle()
 	expect(board.call("DescribeVisualTile", 0, 0) == "Weathered/False/True", "Visuals changed after draft restart or resize.")
 	fixture.queue_free()
+	await process_frame
+
+func check_connected_castles() -> void:
+	root.size = Vector2i(900, 650)
+	var game := MATCH_SCENE.instantiate()
+	game.set("Mode", 1)
+	game.set("MapIdOverride", "open-meadow")
+	root.add_child(game)
+	await settle()
+	var board: Control = game.get_node("%BoardRenderer")
+	var one: Button = game.get_node("%PlayerOne")
+	var two: Button = game.get_node("%PlayerTwo")
+	var submit: Button = game.get_node("%Submit")
+	var dimensions := Vector2(6, 5)
+	await play(board, one, submit, Vector2.ZERO, dimensions)
+	await play(board, two, submit, Vector2(2, 2), dimensions)
+	await play(board, one, submit, Vector2(1, 0), dimensions)
+	await play(board, two, submit, Vector2(2, 1), dimensions)
+	await play(board, one, submit, Vector2(1, 0), dimensions)
+	await play(board, two, submit, Vector2(3, 2), dimensions)
+	expect(piece_art_at(board, Vector2.ZERO, dimensions) == "wall-2_base.png" and
+		piece_art_at(board, Vector2(1, 0), dimensions) == "wall-8_base.png",
+		"Resolved friendly castles did not join along their shared edge.")
+	expect(piece_art_at(board, Vector2(2, 2), dimensions) == "castle_base.png", "An isolated castle acquired a wall.")
+	await capture("connected-castles")
+	game.queue_free()
 	await process_frame
 
 func check_knight_support_local() -> void:
@@ -105,6 +140,8 @@ func check_knight_support_local() -> void:
 	expect(piece_art_at(board, Vector2(2, 0), dimensions).is_empty(), "Pending placement was rendered.")
 	await play(board, two, submit, Vector2(1, 0), dimensions)
 	expect(piece_art_at(board, Vector2(2, 0), dimensions) == "grave.png", "Unsupported placement did not render a grave.")
+	expect(board.call("ReadGroundDamage", 2, 0) == 1 and board.call("ReadGroundDamage", 1, 2) == 0,
+		"Ground damage was not independent of piece status.")
 	expect(piece_art_at(board, Vector2(1, 0), dimensions) == "knight_base.png", "Supported capture did not survive.")
 	check_banner(board, dimensions, ["1", "1"])
 
@@ -164,6 +201,8 @@ func check_map_selection() -> void:
 		expect(dialog.visible and "Leave this match" in dialog.get_node("Content/Settings/Prompt").text and
 			not dialog.get_node("Content/Settings/MapSelection/Preview/DifficultyChoice").visible, "The local dialog omitted confirmation or exposed CPU difficulty.")
 		expect(entries.get_node("demonstration").button_pressed, "Startup map override was not preselected.")
+		expect(preview.call("GetVisualTerrain", 2, 0) == "mountain" and board.call("DescribeVisualTile", 2, 0) == "mountain/plain",
+			"The embedded descriptor did not load in both the board and preview.")
 		expect(entries.get_node("demonstration").get_global_rect().intersects(picker.get_node("Scroll").get_global_rect()),
 			"The startup map was selected but outside the visible list.")
 		await check_map_list_scroll(dialog, picker.get_node("Scroll"), entries, caption)

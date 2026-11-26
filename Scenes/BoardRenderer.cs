@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CastrumTactics.Domain;
 using Godot;
 
@@ -14,14 +15,14 @@ public partial class BoardRenderer : Control
 {
     private const int GridLayer = 1;
     private const int PieceLayer = 2;
-    private const int LegalTargetLayer = 3;
-    private const int SelectionLayer = 4;
+    private const int DamageLayer = 3;
+    private const int LegalTargetLayer = 4;
+    private const int SelectionLayer = 5;
     private const float GraveFootprint = 1f;
     private static readonly Color GridColor = new("#18200d55");
     private static readonly Color LegalTargetColor = new("#f8d47b");
     private static readonly Color SelectionColor = new("#defaff");
 
-    private readonly BoardTerrainArt _terrainArt = new();
     private BoardState? _board;
     private BoardVisuals? _visuals;
     private TerritoryAnalysis? _territory;
@@ -30,8 +31,10 @@ public partial class BoardRenderer : Control
     internal IEnumerable<BoardPosition> OpposingTargets { get; private set; } = [];
     private FactionPieceArt? _knightArt;
     private FactionPieceArt? _castleArt;
+    private readonly Dictionary<int, FactionPieceArt> _wallArt = [];
     private Texture2D? _graveTexture;
     private Node2D? _gridOverlay;
+    private Node2D? _damageOverlay;
     private Node2D? _legalOverlay;
     private Node2D? _selectionOverlay;
     private Texture2D _tileQuad = null!;
@@ -89,6 +92,7 @@ public partial class BoardRenderer : Control
             LayoutBanner(board);
             UpdatePieceSprites(board);
             _gridOverlay?.QueueRedraw();
+            _damageOverlay?.QueueRedraw();
         }
 
         QueueRedraw();
@@ -106,7 +110,7 @@ public partial class BoardRenderer : Control
     public override void _Ready()
     {
         _scoreBanner = GetNodeOrNull<TerritoryScoreBanner>("TerritoryScoreBanner");
-        TextureFilter = TextureFilterEnum.Nearest;
+        TextureFilter = TextureFilterEnum.Linear;
         var shader = GD.Load<Shader>("res://Shaders/selection_indicator.gdshader");
         // Textured quads give the shader a full 0–1 UV range for every tile.
         using var pixel = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8);
@@ -133,10 +137,13 @@ public partial class BoardRenderer : Control
             ZIndex = SelectionLayer,
             Material = CreateIndicatorMaterial(shader, SelectionColor, 0.065f),
         };
+        _damageOverlay = new Node2D { Name = "GroundDamage", ZIndex = DamageLayer };
+        _damageOverlay.Draw += DrawGroundDamage;
         _gridOverlay.Draw += DrawTileGrid;
         _legalOverlay.Draw += DrawLegalTargets;
         _selectionOverlay.Draw += DrawProvisionalSelection;
         AddChild(_gridOverlay);
+        AddChild(_damageOverlay);
         AddChild(_legalOverlay);
         AddChild(_selectionOverlay);
         Resized += RefreshLayout;
@@ -198,7 +205,7 @@ public partial class BoardRenderer : Control
                 var position = new BoardPosition(x, y);
                 Rect2 tile = geometry.GetCellRect(position);
                 CellState cell = board.GetCell(position);
-                DrawTerrain(tile, cell, _visuals?.At(position) ?? default);
+                BoardTerrainArt.Draw(this, tile, cell, _visuals?.At(position) ?? default);
                 DrawTerritory(tile, position);
             }
         }
@@ -207,26 +214,46 @@ public partial class BoardRenderer : Control
     private BoardPosition? HitTestViewport(BoardState board, Vector2 point) =>
         GetGeometry(board).HitTest(MakeCanvasPositionLocal(point));
 
-    private void DrawTerrain(Rect2 tile, CellState cell, TileVisual visual)
+    private void DrawGroundDamage()
     {
-        DrawTextureRect(_terrainArt.GetTexture(cell), tile, tile: false, _terrainArt.GetTint(visual.Variant));
-        if (visual.NorthRockEdge)
-        {
-            var strip = new Rect2(tile.Position, new Vector2(tile.Size.X, tile.Size.Y * 0.10f));
-            DrawTextureRect(_terrainArt.GetRockTexture(), strip, tile: false, new Color(1, 1, 1, 0.65f));
-        }
-        if (visual.StoneAccent)
-        {
-            var corner = new Rect2(tile.Position + tile.Size * 0.76f, tile.Size * 0.15f);
-            DrawTextureRect(_terrainArt.GetRockTexture(), corner, tile: false);
-        }
+        if (_board is not { } board || _damageOverlay is not { } overlay) return;
+        var geometry = GetGeometry(board);
+        if (geometry.CellPitch <= 0) return;
+
+        for (int y = 0; y < board.Height; y++)
+            for (int x = 0; x < board.Width; x++)
+            {
+                var position = new BoardPosition(x, y);
+                int count = TerrainCatalog.Damage(board.GetCell(position));
+                if (count == 0) continue;
+
+                // Marks stay above pieces and tint, inside the legal frame, in the same corner on every surface.
+                Rect2 tile = geometry.GetCellRect(position);
+                for (int mark = 0; mark < count; mark++)
+                {
+                    Vector2 center = tile.Position + tile.Size * new Vector2(0.87f - mark * 0.10f, 0.88f);
+                    float radius = geometry.CellPitch * 0.042f;
+                    overlay.DrawCircle(center, radius * 1.28f, new Color("#362624"), antialiased: true);
+                    overlay.DrawCircle(center, radius * 0.72f, new Color("#ffe3a2"), antialiased: true);
+                }
+            }
     }
 
     private string DescribeVisualTile(int x, int y)
     {
         var visual = _visuals?.At(new BoardPosition(x, y)) ?? default;
-        return $"{visual.Variant}/{visual.NorthRockEdge}/{visual.StoneAccent}";
+        return visual.Terrain is { } terrain ? $"{terrain}/{visual.ArtVariant}"
+            : $"{visual.Variant}/{visual.NorthRockEdge}/{visual.StoneAccent}";
     }
+
+    private int ReadGroundDamage(int x, int y) =>
+        _board is { } board ? TerrainCatalog.Damage(board.GetCell(new BoardPosition(x, y))) : 0;
+
+    private string[] ReadTerrainCatalogPaths() => TerrainCatalog.Types
+        .SelectMany(pair => pair.Value.Variants.SelectMany(variant =>
+            Enumerable.Range(0, pair.Value.Playable ? TerrainCatalog.FullHealth + 1 : 1)
+                .Select(damage => BoardTerrainArt.PathFor(pair.Key, variant, damage))))
+        .ToArray();
 
     private static ShaderMaterial CreateIndicatorMaterial(Shader shader, Color color, float borderWidth)
     {
@@ -300,12 +327,16 @@ public partial class BoardRenderer : Control
         }
 
         _pieceSprites.Clear();
+        Func<BoardPosition, CellState> cellAt = board.GetCell;
         for (int y = 0; y < board.Height; y++)
         {
             for (int x = 0; x < board.Width; x++)
             {
                 var position = new BoardPosition(x, y);
-                if (CreatePieceSprite(board.GetCell(position)) is { } piece)
+                CellState cell = cellAt(position);
+                int mask = cell is { Piece: PieceType.Castle, Owner: { } owner }
+                    ? CastleTopology.Mask(position, owner, board.Width, board.Height, cellAt) : 0;
+                if (CreatePieceSprite(cell, mask) is { } piece)
                 {
                     piece.Sprite.ZIndex = PieceLayer;
                     AddChild(piece.Sprite);
@@ -317,15 +348,15 @@ public partial class BoardRenderer : Control
         LayoutPieceSprites(board);
     }
 
-    private (Sprite2D Sprite, float Footprint)? CreatePieceSprite(CellState cell)
+    private (Sprite2D Sprite, float Footprint)? CreatePieceSprite(CellState cell, int castleMask)
     {
         if (cell.Piece == PieceType.Grave)
         {
-            _graveTexture ??= GD.Load<Texture2D>("res://Assets/Sprites/Objects/Grave/grave.png");
+            _graveTexture ??= BoardTerrainArt.GetTexture(TerrainCatalog.AssetDirectory + "grave.png");
             return (new Sprite2D { Texture = _graveTexture }, GraveFootprint);
         }
 
-        return cell.Owner is { } owner && GetPieceArt(cell.Piece) is { } art
+        return cell.Owner is { } owner && (castleMask == 0 ? GetPieceArt(cell.Piece) : GetWallArt(castleMask)) is { } art
             ? (art.CreateSprite(owner), art.CellFootprint)
             : null;
     }
@@ -333,15 +364,27 @@ public partial class BoardRenderer : Control
     private FactionPieceArt? GetPieceArt(PieceType piece) => piece switch
     {
         PieceType.Knight => _knightArt ??= new FactionPieceArt(
-            GD.Load<Texture2D>("res://Assets/Sprites/Units/Knight/knight_base.png"),
-            GD.Load<Texture2D>("res://Assets/Sprites/Units/Knight/knight_mask.png"),
-            0.94f),
+            BoardTerrainArt.GetTexture(TerrainCatalog.AssetDirectory + "knight_base.png"),
+            BoardTerrainArt.GetTexture(TerrainCatalog.AssetDirectory + "knight_mask.png"),
+            0.94f, linear: true),
         PieceType.Castle => _castleArt ??= new FactionPieceArt(
-            GD.Load<Texture2D>("res://Assets/Sprites/Units/Castle/castle_base.png"),
-            GD.Load<Texture2D>("res://Assets/Sprites/Units/Castle/castle_mask.png"),
-            0.98f),
+            BoardTerrainArt.GetTexture(TerrainCatalog.AssetDirectory + "castle_base.png"),
+            BoardTerrainArt.GetTexture(TerrainCatalog.AssetDirectory + "castle_mask.png"),
+            0.98f, linear: true),
         _ => null,
     };
+
+    private FactionPieceArt GetWallArt(int mask)
+    {
+        if (!_wallArt.TryGetValue(mask, out var art))
+        {
+            string name = TerrainCatalog.AssetDirectory + $"wall-{mask}";
+            art = new FactionPieceArt(BoardTerrainArt.GetTexture(name + "_base.png"),
+                BoardTerrainArt.GetTexture(name + "_mask.png"), 1f, linear: true);
+            _wallArt.Add(mask, art);
+        }
+        return art;
+    }
 
     private void RefreshLayout()
     {
@@ -353,6 +396,7 @@ public partial class BoardRenderer : Control
 
         QueueRedraw();
         _gridOverlay?.QueueRedraw();
+        _damageOverlay?.QueueRedraw();
         RedrawIndicators();
     }
 

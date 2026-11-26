@@ -29,19 +29,57 @@ public sealed class BoardVisualTests
     }
 
     [Theory]
-    [InlineData("{", "legacy art")]
-    [InlineData("""{"version":2,"width":6,"height":5,"tiles":[]}""", "version 1")]
+    [InlineData("{", "map defaults")]
+    [InlineData("""{"version":3,"width":6,"height":5,"tiles":[]}""", "version 1")]
     [InlineData("""{"version":1,"width":5,"height":5,"tiles":[]}""", "dimensions")]
     [InlineData("""{"version":1,"width":6,"height":5,"tiles":[{"x":6,"y":0}]}""", "outside")]
     [InlineData("""{"version":1,"width":6,"height":5,"tiles":[{"x":0,"y":0,"surface":"rock"}]}""", "unsupported")]
     [InlineData("""{"version":1,"width":6,"height":5,"tiles":[{"x":0,"y":0,"prop":"castle"}]}""", "Unknown prop")]
     [InlineData("""{"version":1,"width":6,"height":5,"tiles":[{"x":0,"y":0},{"x":0,"y":0}]}""", "Duplicate tile")]
-    [InlineData("""{"version":1,"width":6,"height":5,"tiles":[],"width":6}""", "legacy art")]
+    [InlineData("""{"version":1,"width":6,"height":5,"tiles":[],"width":6}""", "map defaults")]
     public void InvalidVisualsFallBackForTheWholeMap(string json, string reason)
     {
         var messages = new List<string>();
         Assert.Null(BoardVisuals.Load(Map, json, messages.Add));
         Assert.Contains(reason, Assert.Single(messages), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("rock", "", "", "incompatible")]
+    [InlineData("bridge", "", "", "requires an explicit")]
+    [InlineData("snow", "pebbles", "flowers", "incompatible")]
+    [InlineData("grass", "unknown", "", "Unknown variant")]
+    public void CatalogRejectsBadVersionTwoPairings(string type, string variant, string prop, string reason)
+    {
+        string variantField = variant.Length == 0 ? "" : $",\"variant\":\"{variant}\"";
+        string propField = prop.Length == 0 ? "" : $",\"prop\":\"{prop}\"";
+        string json = $$"""
+            {"version":2,"width":6,"height":5,"tiles":[{"x":0,"y":0,"terrain":"{{type}}"{{variantField}}{{propField}}}]}
+            """;
+        var warnings = new List<string>();
+        Assert.Null(BoardVisuals.Load(Map, json, warnings.Add));
+        Assert.Contains(reason, Assert.Single(warnings));
+    }
+
+    [Fact]
+    public void EmbeddedDescriptorsMatchTheCatalogAndRepeatTheirVariants()
+    {
+        const string prefix = "CastrumTactics.VisualMaps.";
+        string[] documents = typeof(BoardVisuals).Assembly.GetManifestResourceNames()
+            .Where(name => name.StartsWith(prefix, StringComparison.Ordinal) && name.EndsWith(".json", StringComparison.Ordinal))
+            .ToArray();
+        Assert.NotEmpty(documents);
+        foreach (string resource in documents)
+        {
+            string id = resource[prefix.Length..^5];
+            var map = PredefinedMapCatalog.BuiltIn.Get(id);
+            string? json = BoardVisuals.ReadEmbedded(id);
+            var first = Assert.IsType<BoardVisuals>(BoardVisuals.Load(map, json, Assert.Fail));
+            var second = Assert.IsType<BoardVisuals>(BoardVisuals.Load(map, json, Assert.Fail));
+            for (int y = 0; y < map.Definition.Height; y++)
+                for (int x = 0; x < map.Definition.Width; x++)
+                    Assert.Equal(first.At(new(x, y)), second.At(new(x, y)));
+        }
     }
 
     [Fact]
