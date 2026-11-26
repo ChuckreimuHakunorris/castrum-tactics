@@ -1,6 +1,8 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using CastrumTactics.AI;
 using CastrumTactics.Domain;
@@ -38,6 +40,8 @@ public partial class Main : Control
     private int? _startupSeed;
     private string? _startupMap;
     private PredefinedMap? _mapChoice;
+    private MatchPresentation? _presentation;
+    private readonly Dictionary<string, string> _visualOverrides = new(StringComparer.Ordinal);
     private bool _initialized;
     private GameSessionSnapshot _displayed = null!;
     private PlayerId _activePlayer;
@@ -144,6 +148,7 @@ public partial class Main : Control
     {
         if (_match.Session is null) return;
         _match.Detach(DisplayState);
+        _presentation = null;
         Resized -= UpdateLayout;
         if (OS.HasFeature("android")) GetViewport().SizeChanged -= UpdateLayout;
     }
@@ -204,12 +209,15 @@ public partial class Main : Control
     {
         PredefinedMap map = _mapChoice ?? PredefinedMapCatalog.BuiltIn.SelectRandom();
         _match.Detach(DisplayState);
+        _presentation = null;
         _configuration = configuration;
         _activePlayer = configuration.HumanPlayer;
         if (configuration.Mode == GameMode.LocalMultiplayer) _activePlayer = PlayerId.PlayerOne;
         _displayed = null!;
 
         var session = _match.Create(map.Definition, configuration, _launch.Seed);
+        _presentation = new MatchPresentation(session);
+        _board.SetVisuals(BoardVisuals.Load(map, ReadVisualDescriptor(map.Id), message => GD.PushWarning(message)));
 
         string mapDescription = NewMatchDialog.Describe(map);
         _activeMap.Text = mapDescription;
@@ -222,6 +230,22 @@ public partial class Main : Control
         SetProcess(_match.Cpu is not null);
         DisplayState(session.Current);
         UpdateLayout();
+    }
+
+    // Scene hosts can inject an unshipped descriptor before the first match is composed.
+    internal void SetVisualDescriptor(string mapId, string json)
+    {
+        if (_initialized) throw new InvalidOperationException("Supply visual descriptors before the scene is ready.");
+        _visualOverrides[mapId] = json;
+    }
+
+    private string? ReadVisualDescriptor(string mapId)
+    {
+        if (_visualOverrides.TryGetValue(mapId, out string? json)) return json;
+        using var stream = typeof(Main).Assembly.GetManifestResourceStream($"CastrumTactics.VisualMaps.{mapId}.json");
+        if (stream is null) return null;
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 
     private void UpdateLayout()
@@ -301,7 +325,7 @@ public partial class Main : Control
         }
 
         var result = MatchConfiguration.Submit(session, _activePlayer, position, _displayed.Phase, _displayed.RoundId);
-        if (result == SessionCommandResult.Accepted && _configuration.CpuPlayer.HasValue)
+        if (result == SessionCommandResult.Accepted)
         {
             _board.ClearSelection();
             UpdateControls();
@@ -341,17 +365,18 @@ public partial class Main : Control
         }
 
         _displayed = snapshot;
+        _presentation?.Observe(snapshot);
         _match.Cpu?.Observe(snapshot);
-        // CPU submission republishes the same resolved board; keep the human's current highlight.
-        if (!versusCpu || changedRound) UpdateBoardView();
+        // A submission flag can change without changing either target set or the provisional highlight.
+        if (changedRound) UpdateBoardView();
         _banner.ShowScores(snapshot.PlayerOneScore, snapshot.PlayerTwoScore);
         UpdateControls();
     }
 
     private void UpdateBoardView()
     {
-        _board.SetBoard(_displayed.Board, _displayed.Phase == MatchPhase.Main
-            ? _displayed.GetMainPhaseLegalSelections(_activePlayer) : _displayed.EligiblePositions, _displayed.Territory);
+        var (active, opposing) = MatchPresentation.Targets(_displayed, _activePlayer);
+        _board.SetMatchBoard(_displayed.Board, active, opposing, _displayed.Territory);
     }
 
     private void UpdateControls()
