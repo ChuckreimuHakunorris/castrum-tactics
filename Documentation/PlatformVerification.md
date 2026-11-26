@@ -66,7 +66,7 @@ Use `dumpbin` from a Visual Studio Developer Shell to verify x64 (machine `8664`
 
 ## Android package validation
 
-After configuring the SDK and templates as [above](#android-export), use the existing Android preset. On Linux, the tracked `android/build/gradlew` needs its executable bit. On checkouts prior to 9C, set it locally with `chmod +x android/build/gradlew`.
+After configuring the SDK and templates as [above](#android-export), set `ANDROID_HOME` to the installed Android SDK path for the tool commands below. Use the existing Android preset. On Linux, the tracked `android/build/gradlew` needs its executable bit. On checkouts prior to 9C, set it locally with `chmod +x android/build/gradlew`.
 
 ```powershell
 New-Item -ItemType Directory -Force exports/android | Out-Null
