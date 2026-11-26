@@ -1,0 +1,893 @@
+{
+  "map": "pocket-meadow",
+  "rules": "KnightSupport",
+  "starts": "A1/C3",
+  "complete": true,
+  "scope": "every Main/Finished position reachable from specified successful opening",
+  "status": "certified rational intervals",
+  "intervalScale": 100000000,
+  "fastPolicy": true,
+  "ignoresLockedHealth": true,
+  "initial": {
+    "red": [
+      "B1",
+      "A2",
+      "B2"
+    ],
+    "blue": [
+      "B2",
+      "C2",
+      "B3"
+    ],
+    "solutions": [
+      {
+        "utility": "Outcome",
+        "value": "0",
+        "lower": "0",
+        "upper": "0",
+        "exploitabilityUpperBound": "0",
+        "exact": true,
+        "redPolicy": [
+          "0",
+          "0",
+          "1"
+        ],
+        "bluePolicy": [
+          "1",
+          "0",
+          "0"
+        ],
+        "redGuaranteeBounds": {
+          "lower": [
+            "-69491527/100000000",
+            "-69491527/100000000",
+            "0"
+          ],
+          "upper": [
+            "-17372881/25000000",
+            "-17372881/25000000",
+            "0"
+          ]
+        },
+        "blueGuaranteeBounds": {
+          "lower": [
+            "0",
+            "-69491527/100000000",
+            "-69491527/100000000"
+          ],
+          "upper": [
+            "0",
+            "-17372881/25000000",
+            "-17372881/25000000"
+          ]
+        },
+        "redOptimalPure": [
+          "B2"
+        ],
+        "blueOptimalPure": [
+          "B2"
+        ],
+        "redDominated": null,
+        "blueDominated": null,
+        "matrix": [
+          [
+            "-138983051/200000000",
+            "0",
+            "0"
+          ],
+          [
+            "-138983051/200000000",
+            "0",
+            "0"
+          ],
+          [
+            "0",
+            "138983051/200000000",
+            "138983051/200000000"
+          ]
+        ],
+        "matrixBounds": {
+          "lower": [
+            [
+              "-69491527/100000000",
+              "0",
+              "0"
+            ],
+            [
+              "-69491527/100000000",
+              "0",
+              "0"
+            ],
+            [
+              "0",
+              "17372881/25000000",
+              "17372881/25000000"
+            ]
+          ],
+          "upper": [
+            [
+              "-17372881/25000000",
+              "0",
+              "0"
+            ],
+            [
+              "-17372881/25000000",
+              "0",
+              "0"
+            ],
+            [
+              "0",
+              "69491527/100000000",
+              "69491527/100000000"
+            ]
+          ]
+        }
+      },
+      {
+        "utility": "Margin",
+        "value": "0",
+        "lower": "0",
+        "upper": "0",
+        "exploitabilityUpperBound": "0",
+        "exact": true,
+        "redPolicy": [
+          "0",
+          "0",
+          "1"
+        ],
+        "bluePolicy": [
+          "1",
+          "0",
+          "0"
+        ],
+        "redGuaranteeBounds": {
+          "lower": [
+            "-149430323/100000000",
+            "-149430323/100000000",
+            "0"
+          ],
+          "upper": [
+            "-1867879/1250000",
+            "-1867879/1250000",
+            "0"
+          ]
+        },
+        "blueGuaranteeBounds": {
+          "lower": [
+            "0",
+            "-149430323/100000000",
+            "-149430323/100000000"
+          ],
+          "upper": [
+            "0",
+            "-1867879/1250000",
+            "-1867879/1250000"
+          ]
+        },
+        "redOptimalPure": [
+          "B2"
+        ],
+        "blueOptimalPure": [
+          "B2"
+        ],
+        "redDominated": null,
+        "blueDominated": null,
+        "matrix": [
+          [
+            "-298860643/200000000",
+            "0",
+            "0"
+          ],
+          [
+            "-298860643/200000000",
+            "0",
+            "0"
+          ],
+          [
+            "0",
+            "298860643/200000000",
+            "298860643/200000000"
+          ]
+        ],
+        "matrixBounds": {
+          "lower": [
+            [
+              "-149430323/100000000",
+              "0",
+              "0"
+            ],
+            [
+              "-149430323/100000000",
+              "0",
+              "0"
+            ],
+            [
+              "0",
+              "1867879/1250000",
+              "1867879/1250000"
+            ]
+          ],
+          "upper": [
+            [
+              "-1867879/1250000",
+              "0",
+              "0"
+            ],
+            [
+              "-1867879/1250000",
+              "0",
+              "0"
+            ],
+            [
+              "0",
+              "149430323/100000000",
+              "149430323/100000000"
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  "draft": [
+    {
+      "red": "A1",
+      "blue": "A1",
+      "phase": "OpeningRestartRequired",
+      "outcome": null,
+      "margin": null
+    },
+    {
+      "red": "A1",
+      "blue": "C3",
+      "phase": "Main",
+      "outcome": "0",
+      "margin": "0"
+    },
+    {
+      "red": "C3",
+      "blue": "A1",
+      "phase": "Main",
+      "outcome": "0",
+      "margin": "0"
+    },
+    {
+      "red": "C3",
+      "blue": "C3",
+      "phase": "OpeningRestartRequired",
+      "outcome": null,
+      "margin": null
+    }
+  ],
+  "policyPair": [
+    {
+      "utility": "Outcome",
+      "redWin": "0",
+      "draw": "1",
+      "blueWin": "0",
+      "turns": "507829/93312"
+    },
+    {
+      "utility": "Margin",
+      "redWin": "0",
+      "draw": "1",
+      "blueWin": "0",
+      "turns": "507829/93312"
+    }
+  ],
+  "canForceDraw": {
+    "red": false,
+    "blue": false
+  },
+  "quotient": {
+    "unique": 2562886,
+    "cached": 641567,
+    "objectives": [
+      {
+        "utility": "Outcome",
+        "redRequiresMix": 1328546,
+        "blueRequiresMix": 1328546,
+        "eitherRequiresMix": 1345586,
+        "intervalPositions": 1433444,
+        "maximumGap": "7/100000000"
+      },
+      {
+        "utility": "Margin",
+        "redRequiresMix": 1677554,
+        "blueRequiresMix": 1677554,
+        "eitherRequiresMix": 1699224,
+        "intervalPositions": 1811628,
+        "maximumGap": "1/12500000"
+      }
+    ]
+  },
+  "reconstructedProbeMatches": [
+    {
+      "id": "ebca6cc99c85e50f5958249f",
+      "red": "probe",
+      "blue": "production",
+      "redScore": 4,
+      "blueScore": 1,
+      "turns": [
+        {
+          "number": 1,
+          "moves": [
+            "B2",
+            "C2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "0",
+              "after": "138983051/200000000",
+              "redGap": "0",
+              "blueGap": "138983051/200000000"
+            },
+            {
+              "utility": "Margin",
+              "before": "0",
+              "after": "298860643/200000000",
+              "redGap": "0",
+              "blueGap": "298860643/200000000"
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "moves": [
+            "C2",
+            "B2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "138983051/200000000",
+              "after": "1",
+              "redGap": "10983051/200000000",
+              "blueGap": "61016949/200000000"
+            },
+            {
+              "utility": "Margin",
+              "before": "298860643/200000000",
+              "after": "2",
+              "redGap": "5173051/50000000",
+              "blueGap": "101139357/200000000"
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "moves": [
+            "B2",
+            "B2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "1",
+              "after": "1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "2",
+              "after": "2",
+              "redGap": "0",
+              "blueGap": "0"
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "moves": [
+            "A2",
+            "B3"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "1",
+              "after": "1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "2",
+              "after": "2",
+              "redGap": "0",
+              "blueGap": "0"
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "moves": [
+            "B3",
+            "A3"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "1",
+              "after": "1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "2",
+              "after": "3",
+              "redGap": "0",
+              "blueGap": "1"
+            }
+          ]
+        },
+        {
+          "number": 6,
+          "moves": [
+            "B3",
+            "B3"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "1",
+              "after": "1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "3",
+              "after": "3",
+              "redGap": "0",
+              "blueGap": "0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cc11d306eac30fcc462f9907",
+      "red": "probe",
+      "blue": "production",
+      "redScore": 4,
+      "blueScore": 1,
+      "turns": [
+        {
+          "number": 1,
+          "moves": [
+            "B2",
+            "B1"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "0",
+              "after": "138983051/200000000",
+              "redGap": "0",
+              "blueGap": "138983051/200000000"
+            },
+            {
+              "utility": "Margin",
+              "before": "0",
+              "after": "298860643/200000000",
+              "redGap": "0",
+              "blueGap": "298860643/200000000"
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "moves": [
+            "B1",
+            "B2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "138983051/200000000",
+              "after": "1",
+              "redGap": "10983051/200000000",
+              "blueGap": "61016949/200000000"
+            },
+            {
+              "utility": "Margin",
+              "before": "298860643/200000000",
+              "after": "2",
+              "redGap": "5173051/50000000",
+              "blueGap": "101139357/200000000"
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "moves": [
+            "B2",
+            "B2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "1",
+              "after": "1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "2",
+              "after": "2",
+              "redGap": "0",
+              "blueGap": "0"
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "moves": [
+            "B3",
+            "A2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "1",
+              "after": "1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "2",
+              "after": "2",
+              "redGap": "0",
+              "blueGap": "0"
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "moves": [
+            "A2",
+            "A3"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "1",
+              "after": "1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "2",
+              "after": "3",
+              "redGap": "0",
+              "blueGap": "1"
+            }
+          ]
+        },
+        {
+          "number": 6,
+          "moves": [
+            "A2",
+            "A2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "1",
+              "after": "1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "3",
+              "after": "3",
+              "redGap": "0",
+              "blueGap": "0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "295aa4a0210af9612caa6bd8",
+      "red": "production",
+      "blue": "probe",
+      "redScore": 1,
+      "blueScore": 4,
+      "turns": [
+        {
+          "number": 1,
+          "moves": [
+            "C2",
+            "B2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "0",
+              "after": "-138983051/200000000",
+              "redGap": "138983051/200000000",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "0",
+              "after": "-298860643/200000000",
+              "redGap": "298860643/200000000",
+              "blueGap": "0"
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "moves": [
+            "B2",
+            "C2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "-138983051/200000000",
+              "after": "-1",
+              "redGap": "61016949/200000000",
+              "blueGap": "10983051/200000000"
+            },
+            {
+              "utility": "Margin",
+              "before": "-298860643/200000000",
+              "after": "-2",
+              "redGap": "101139357/200000000",
+              "blueGap": "5173051/50000000"
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "moves": [
+            "B2",
+            "B2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "-1",
+              "after": "-1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "-2",
+              "after": "-2",
+              "redGap": "0",
+              "blueGap": "0"
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "moves": [
+            "B3",
+            "A2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "-1",
+              "after": "-1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "-2",
+              "after": "-2",
+              "redGap": "0",
+              "blueGap": "0"
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "moves": [
+            "A3",
+            "B3"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "-1",
+              "after": "-1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "-2",
+              "after": "-3",
+              "redGap": "1",
+              "blueGap": "0"
+            }
+          ]
+        },
+        {
+          "number": 6,
+          "moves": [
+            "B3",
+            "B3"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "-1",
+              "after": "-1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "-3",
+              "after": "-3",
+              "redGap": "0",
+              "blueGap": "0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "5779a7eb219a8d893c4f6098",
+      "red": "production",
+      "blue": "probe",
+      "redScore": 1,
+      "blueScore": 4,
+      "turns": [
+        {
+          "number": 1,
+          "moves": [
+            "B1",
+            "B2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "0",
+              "after": "-138983051/200000000",
+              "redGap": "138983051/200000000",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "0",
+              "after": "-298860643/200000000",
+              "redGap": "298860643/200000000",
+              "blueGap": "0"
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "moves": [
+            "B2",
+            "B1"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "-138983051/200000000",
+              "after": "-1",
+              "redGap": "61016949/200000000",
+              "blueGap": "10983051/200000000"
+            },
+            {
+              "utility": "Margin",
+              "before": "-298860643/200000000",
+              "after": "-2",
+              "redGap": "101139357/200000000",
+              "blueGap": "5173051/50000000"
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "moves": [
+            "B2",
+            "B2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "-1",
+              "after": "-1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "-2",
+              "after": "-2",
+              "redGap": "0",
+              "blueGap": "0"
+            }
+          ]
+        },
+        {
+          "number": 4,
+          "moves": [
+            "A2",
+            "B3"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "-1",
+              "after": "-1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "-2",
+              "after": "-2",
+              "redGap": "0",
+              "blueGap": "0"
+            }
+          ]
+        },
+        {
+          "number": 5,
+          "moves": [
+            "A3",
+            "A2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "-1",
+              "after": "-1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "-2",
+              "after": "-3",
+              "redGap": "1",
+              "blueGap": "0"
+            }
+          ]
+        },
+        {
+          "number": 6,
+          "moves": [
+            "A2",
+            "A2"
+          ],
+          "objectives": [
+            {
+              "utility": "Outcome",
+              "before": "-1",
+              "after": "-1",
+              "redGap": "0",
+              "blueGap": "0"
+            },
+            {
+              "utility": "Margin",
+              "before": "-3",
+              "after": "-3",
+              "redGap": "0",
+              "blueGap": "0"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

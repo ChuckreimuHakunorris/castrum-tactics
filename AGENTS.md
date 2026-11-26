@@ -16,3 +16,5 @@
 - For search changes, charge each new authoritative pair to the same decision budget and preserve a comparable completed tier when deeper work stops. Verify terminal claims against every legal reply and compare production changes with frozen 8C on held-out maps.
 - Use [CPU tournaments](Documentation/CpuTournaments.md) for paired CPU experiments. Keep frozen opponents and historical fixtures independent of production tuning, preserve replayable histories, and keep generated tournament results in ignored output directories.
 - Keep live and final territory scores on the same authoritative analysis. Use the board geometry for the score banner and retain both local input modes in runtime regression coverage.
+
+- Follow [Small-board solver](Documentation/SmallBoardSolver.md) for exact simultaneous research. Keep the solver in Benchmarks and store generated tablebases and research runs under ignored exports/ or the external project-files directory.

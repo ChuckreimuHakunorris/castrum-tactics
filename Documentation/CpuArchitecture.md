@@ -148,3 +148,5 @@ Evaluate pairs of opposing choices through the authoritative simultaneous resolv
 ## Tournament evaluation
 
 The development harness wraps CPU implementations as versioned opponents using the same immutable snapshot boundary as the application coordinator. It owns experiment profiles, timing, randomness, match scheduling and persistence. The frozen 8C evaluator, search and profiles build as their own assembly. See [CPU tournaments](CpuTournaments.md) for provenance, diagnostics and experimental workflows.
+
+The development-only [small-board solver](SmallBoardSolver.md) evaluates simultaneous decisions against exact state values and supplies a tablebase reference for experiments.

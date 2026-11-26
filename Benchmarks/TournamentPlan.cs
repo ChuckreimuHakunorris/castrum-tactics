@@ -43,7 +43,8 @@ internal static partial class Program
 
     internal sealed record ParticipantSpec(string Id, string Opponent, int? PairBudget = null,
         CpuEvaluationWeights? Weights = null, double? TimeLimitMs = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SearchOverrides? Search = null);
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SearchOverrides? Search = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Tablebase = null);
 
     internal sealed record SearchOverrides(int? Depth = null, int? OwnCandidates = null, int? OpponentCandidates = null,
         int? ContinuationOwnCandidates = null, int? ContinuationOpponentCandidates = null, int? DeepFinalists = null,
@@ -115,6 +116,9 @@ internal static partial class Program
             (opening.Mode == "natural" && (config.SwapStarts || opening.Fixed.Count != 0)) ||
             opening.Fixed.Keys.Any(id => !mapIds.Contains(id)))
             throw new ArgumentException("Invalid opening settings. Explicit drafts and start swaps require fixed mode and selected maps.");
+
+        if (participants.Values.Any(p => p.Spec.Tablebase is not null) && opening.Mode != "fixed")
+            throw new ArgumentException("Tablebase participants require fixed successful openings.");
 
         var drafts = maps.ToDictionary(map => map.Id, map => opening.Mode == "natural" ? [] :
             BuildFixedDraft(map, config.Ruleset, opening), StringComparer.Ordinal);
