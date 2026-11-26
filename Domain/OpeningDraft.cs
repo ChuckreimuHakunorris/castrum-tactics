@@ -36,21 +36,21 @@ internal sealed class OpeningDraft
 
     internal bool CanSelect(BoardPosition position) => EligiblePositions.Contains(position);
 
-    internal (OpeningDraft Draft, MainPhaseState? Main, int Rounds) ResolveTransition(BoardPosition first, BoardPosition second)
+    internal (OpeningDraft Draft, MainPhaseState? Main, int Rounds) ResolveTransition(BoardPosition first, BoardPosition second,
+        out BoardPosition? automaticCollision)
     {
-        var draft = ResolveRound(first, second);
+        var draft = ResolveRound(first, second, out automaticCollision);
         // Live resolution and previews share this calculation. Callers own pending choices and publication.
         var main = draft.Phase == MatchPhase.Main ? MainPhaseState.Evaluate(draft.Board, draft.RuleSet) : null;
         return (draft, main, draft.ResolvedRounds - ResolvedRounds);
     }
 
-    internal OpeningDraft ResolveRound(BoardPosition playerOne, BoardPosition playerTwo)
+    private OpeningDraft ResolveRound(BoardPosition playerOne, BoardPosition playerTwo, out BoardPosition? automaticCollision)
     {
         OpeningDraft draft = Resolve(playerOne, playerTwo);
         // The final start would be forced for both players, so resolve it in the same published round.
-        if (draft.EligiblePositions.Count != 1) return draft;
-        BoardPosition last = draft.EligiblePositions[0];
-        return draft.Resolve(last, last);
+        automaticCollision = draft.EligiblePositions.Count == 1 ? draft.EligiblePositions[0] : null;
+        return automaticCollision is { } last ? draft.Resolve(last, last) : draft;
     }
 
     internal OpeningDraft Resolve(BoardPosition playerOne, BoardPosition playerTwo)

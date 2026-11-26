@@ -96,7 +96,9 @@ public sealed class MainPhaseState
     /// <exception cref="ArgumentException">
     /// A player is undefined, the selections come from the same player, or a position is illegal for its player.
     /// </exception>
-    public BoardState ResolveTurn(MainPhaseSelection first, MainPhaseSelection second)
+    public BoardState ResolveTurn(MainPhaseSelection first, MainPhaseSelection second) => ResolveTurn(first, second, out _);
+
+    private BoardState ResolveTurn(MainPhaseSelection first, MainPhaseSelection second, out BoardState ordinaryBoard)
     {
         if (IsFinished)
         {
@@ -112,11 +114,11 @@ public sealed class MainPhaseState
 
         CellState firstCell = Board.GetCell(first.Position);
         // Derive both ordinary outcomes from the same board, even if one capture destroys the other's source of range.
-        BoardState next = first.Position == second.Position
+        ordinaryBoard = first.Position == second.Position
             ? Board.WithResolvedCells(first.Position, firstCell.AfterGraveConversion())
             : Board.WithResolvedCells(first.Position, ApplyOrdinaryAction(firstCell, first.Player),
                 (second.Position, ApplyOrdinaryAction(Board.GetCell(second.Position), second.Player)));
-        return _rules.RequiresKnightSupport ? EliminateUnsupportedKnights(next, _rules) : next;
+        return _rules.RequiresKnightSupport ? EliminateUnsupportedKnights(ordinaryBoard, _rules) : ordinaryBoard;
     }
 
     /// <summary>Resolves both simultaneous selections and analyzes the resulting board with the same rules.</summary>
@@ -127,6 +129,9 @@ public sealed class MainPhaseState
     /// <exception cref="ArgumentException">The selections do not identify two distinct players and legal targets.</exception>
     public MainPhaseState Advance(MainPhaseSelection first, MainPhaseSelection second)
         => Evaluate(ResolveTurn(first, second), RuleSet, _rules);
+
+    internal MainPhaseState Advance(MainPhaseSelection first, MainPhaseSelection second, out BoardState ordinaryBoard)
+        => Evaluate(ResolveTurn(first, second, out ordinaryBoard), RuleSet, _rules);
 
     private static BoardState EliminateUnsupportedKnights(BoardState board, RuleSetDefinition rules)
     {
