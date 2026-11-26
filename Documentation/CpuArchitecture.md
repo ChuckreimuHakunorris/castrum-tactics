@@ -38,6 +38,10 @@ Passes beyond depth two compare up to six configured finalists from the best com
 
 A deeper win is proven only when one choice wins against every legal reply and, at each resulting public state, some continuation has the same property. Terminal outcomes remain separate from heuristic estimates. Production Monster enters the additional pass only on a root with at most six shortlisted own actions and six legal replies. It compares up to three finalists with continuation width up to six per side. If the pass cannot prove a win, it uses the established two-turn tier. The wider and fully heuristic deeper settings remain available for experiments. [8D.2 search experiments](CpuSearchOptimization.md)
 
+Monster uses the [advanced opening policy](CpuOpeningStrategy.md) for Knight Support. It scores a complete shared draft matrix on the current catalog, with a 256-pair cap independent of Main. The numerical equilibrium is for the modeled payoffs. It samples the supported policy without a diversity floor.
+
+The following paragraphs describe the legacy draft policy used by Easy through Very Hard and by custom profiles without advanced opening search.
+
 Draft search aims to compare all eligible starts. With `n` starts and `k` common replies, the complete pass costs `n × k + (n - k)` previews. The second term covers starts omitted from the common set. The search narrows the common list from at most two more replies than the Main limit until the pass fits, with a minimum of one common reply. If the remaining budget or elapsed time interrupts a row, only completed rows enter strategic sampling. When fewer than two rows finish on a multi-choice draft, the engine falls back to the static ranking to preserve opening diversity.
 
 Each pair previews the next draft state or opening completion, including any forced final collision within the same preview. Its score combines the modeled outcome, scaled by the larger of four and the square root of board area, with 25% of the static score. A failed draft receives a -4 outcome before scaling. An opening that finishes immediately uses the signed value `3 + 0.6 × area` plus `0.3 × margin`. The existing softmax and uniform diversity keep multiple draft selections viable. The previews project the value of the remaining space.
@@ -46,7 +50,7 @@ Each pair previews the next draft state or opening completion, including any for
 
 Monster uses the resilient evaluator and bounded outcome utility in Main. Its root and selected continuation matrices share the existing 850-pair budget. A completed matrix supplies the action probabilities and includes a common column for each affordable legal collision. When a comparable second tier does not fit, the engine retains the completed first tier. Compact roots can still enter the three-turn proof-only pass. An immediate win is checked against omitted replies before the engine reports it as proved. [Models and measured results](CpuStrategicEvaluation.md)
 
-The 8D.2 evaluator used for Easy through Very Hard and draft previews clamps its signed nonterminal sum to ±1,000. Its Main terminal win or loss uses ±10,000 plus the signed final margin clamped to ±1,000. A terminal draw is zero. Monster’s bounded Main utility uses the same internal scale of 10,000 with no margin term. [Strategic evaluation](CpuStrategicEvaluation.md)
+The 8D.2 evaluator used for Easy through Very Hard and legacy draft previews clamps its signed nonterminal sum to ±1,000. Its Main terminal win or loss uses ±10,000 plus the signed final margin clamped to ±1,000. A terminal draw is zero. Monster’s bounded Main utility uses the same internal scale of 10,000 with no margin term. [Strategic evaluation](CpuStrategicEvaluation.md)
 
 | Term | Weight and calculation |
 | --- | --- |
@@ -100,7 +104,7 @@ The five profiles use configurable static weights of 1.2 for Formation and 1.6 f
 | Very Hard | 8 | 3 | 0.55 | 0.12 | 2.0 | 1.9 | 1.9 | 1.6 | 1.1 | 1.1 | 1.3 | 1.15 |
 | Monster | 16 | 1 | 0.50 | 0 | 2.0 | 2.1 | 2.0 | 1.7 | 1.2 | 1.2 | 1.4 | 1.25 |
 
-All five profiles use 0.20 ordinary and 0.70 urgent opening diversity, with both maximum score differences disabled. The Main sampling limits are separate from search breadth. Monster's zero Main temperature samples equivalent best candidates. Its opening limit covers the largest start list in the current catalog.
+The score-based opening sampler uses 0.20 ordinary and 0.70 urgent opening diversity for all five profiles, with both maximum score differences disabled. The Main sampling limits are separate from search breadth. Monster's zero Main temperature samples equivalent best candidates. Its opening limit covers the largest start list in the current catalog.
 
 Custom profiles take positive limits, finite temperatures capped at 10, and finite diversity shares from 0 through 1. Opening temperature must be positive. Either phase can specify a finite, nonnegative maximum score difference from its best candidate. A null score gap disables the cutoff. A custom profile can opt into Knight Support search with its `Search` initializer.
 

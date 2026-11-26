@@ -119,7 +119,8 @@ public sealed class CpuDecisionEngine
         }
 
         bool knightSupport = RuleSetDefinition.Get(snapshot.RuleSet).RequiresKnightSupport;
-        bool strategic = knightSupport && profile.Search is not null;
+        var openingOptions = opening && knightSupport ? profile.OpeningSearch : null;
+        bool strategic = knightSupport && (profile.Search is not null || openingOptions is not null);
         var board = new TacticalBoard(snapshot.Board, opening, token, snapshot.RuleSet);
         bool noStartingPieces = board.StartingPieceCount == 0;
         CpuCandidate[] candidates;
@@ -152,8 +153,11 @@ public sealed class CpuDecisionEngine
         bool usesMatrix = false;
         if (replies is not null)
         {
-            var result = new SimultaneousSearch(snapshot, player, opponent, profile, token, start, _searchTimeLimit)
-                .Analyze(snapshot, candidates, replies, diagnostics);
+            var result = openingOptions is null
+                ? new SimultaneousSearch(snapshot, player, opponent, profile, token, start, _searchTimeLimit)
+                    .Analyze(snapshot, candidates, replies, diagnostics)
+                : new OpeningSearch(snapshot, player, openingOptions, token, start, _searchTimeLimit)
+                    .Analyze(candidates, replies, diagnostics);
             candidates = result.Candidates;
             selectable = result.Selectable;
             searchReport = result.Report;

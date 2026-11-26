@@ -118,3 +118,5 @@ The tests replay complete Classic local and CPU matches, exercise Knight Support
 See the [documentation homepage source](Documentation/index.md) for architecture and API reference navigation, and the [documentation contributor guide](Documentation/contributing.md) for local builds, writing conventions, and GitHub Pages setup.
 
 The [small-board solver](Documentation/SmallBoardSolver.md) provides exact simultaneous analysis and development tablebase opponents for archived maps.
+
+[Advanced opening strategy](Documentation/CpuOpeningStrategy.md) describes the draft evaluator, the sampled equilibrium policy for Monster, and the opening-quality experiments.

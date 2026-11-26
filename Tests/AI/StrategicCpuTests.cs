@@ -210,31 +210,42 @@ public sealed class StrategicCpuTests
     }
 
     [Theory]
-    [InlineData(CpuDifficulty.Easy, 5, 61)]
-    [InlineData(CpuDifficulty.Normal, 8, 91)]
-    [InlineData(CpuDifficulty.Monster, 11, 121)]
+    [InlineData(CpuDifficulty.Easy, 5, 61, false)]
+    [InlineData(CpuDifficulty.Normal, 8, 91, false)]
+    [InlineData(CpuDifficulty.Monster, 11, 121, false)]
+    [InlineData(CpuDifficulty.Monster, 11, 121, true)]
     public void LargeDraftBudgetsIncludeEveryCollisionAndIgnorePendingOpponentChoices(
-        CpuDifficulty difficulty, int replyCount, int pairCount)
+        CpuDifficulty difficulty, int replyCount, int pairCount, bool legacy)
     {
         var map = PredefinedMapCatalog.BuiltIn.Get("broadshield-field").Definition;
         var first = new LocalGameSession(map, RuleSet.KnightSupport);
         var second = new LocalGameSession(map, RuleSet.KnightSupport);
         var snapshot = first.Current;
         Assert.Equal(11, snapshot.EligiblePositions.Count);
-        var profile = CpuDifficultyProfiles.Get(difficulty);
+        var builtIn = CpuDifficultyProfiles.Get(difficulty);
+        var profile = legacy ? new CpuProfile(builtIn.Weights, builtIn.OpeningCandidateLimit, builtIn.MainCandidateLimit,
+            builtIn.MainTemperature, builtIn.OpeningTemperature, builtIn.OpeningDiversity, builtIn.UrgentOpeningDiversity,
+            builtIn.OpeningMaximumScoreDifference, builtIn.MainMaximumScoreDifference) { Search = builtIn.Search } : builtIn;
         var baseline = Engine.DecideWithDiagnostics(snapshot, One, profile, new Random(42));
         var search = baseline.Search!;
         Assert.Equal(1, search.Depth);
         Assert.Equal(replyCount, search.Replies.Count);
         Assert.Equal(1, search.Replies.Sum(reply => reply.Probability), 12);
         Assert.Equal(pairCount, search.ResolvedPairs);
-        Assert.InRange(search.ResolvedPairs, 1, profile.Search!.PairBudget);
+        Assert.InRange(search.ResolvedPairs, 1, profile.OpeningSearch?.PairBudget ?? profile.Search!.PairBudget);
         Assert.False(search.BudgetExhausted);
         Assert.Equal(snapshot.EligiblePositions.Count, search.Actions.Count);
         Assert.All(search.Actions, action => Assert.True(action.CollisionChecked));
         Assert.Contains(baseline.Decision!.Value.Position, snapshot.EligiblePositions);
         Assert.Equal(1, baseline.Candidates.Sum(candidate => candidate.Probability), 12);
-        Assert.True(baseline.Candidates.Count(candidate => candidate.Probability > 0) >= 2);
+        if (profile.OpeningSearch is null)
+            Assert.True(baseline.Candidates.Count(candidate => candidate.Probability > 0) >= 2);
+        else
+        {
+            Assert.True(search.Opening!.Value.FullRoot);
+            Assert.NotNull(search.Matrix);
+            Assert.Contains(baseline.Candidates, c => c.Probability > 0);
+        }
 
         Assert.Equal(SessionCommandResult.Accepted, first.SubmitOpeningSelection(new(Two, snapshot.EligiblePositions[0], snapshot.RoundId)));
         Assert.Equal(SessionCommandResult.Accepted, second.SubmitOpeningSelection(new(Two, snapshot.EligiblePositions[^1], snapshot.RoundId)));

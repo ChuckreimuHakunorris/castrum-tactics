@@ -151,6 +151,7 @@ internal static partial class Program
         var session = new LocalGameSession(map.Definition, manifest.Config.Ruleset);
         GameSessionSnapshot? target = null;
         int forced = 0, collisions = 0;
+        string? openingDigest = null;
         for (int i = 0; i < record.Rounds.Count; i++)
         {
             var round = record.Rounds[i];
@@ -164,6 +165,8 @@ internal static partial class Program
             Play(session, round.Red.Move, round.Blue.Move, match.BlueSubmitsFirst);
             var after = session.Current;
             CheckScores(round, after);
+            if (draft && after.Phase != MatchPhase.Opening && record.OpeningBoardDigest is not null)
+                openingDigest = OpeningDigest(after);
             if (draft && round.Red.Move == round.Blue.Move) collisions++;
             if (draft && after.ResolvedRounds == before.ResolvedRounds + 2)
             {
@@ -177,7 +180,7 @@ internal static partial class Program
             }
         }
         var final = session.Current;
-        if (record.DraftRounds != final.ResolvedRounds || record.MainTurns != final.ResolvedMainTurns || record.Opening != OpeningOutcome(final) ||
+        if (record.OpeningBoardDigest != openingDigest || record.DraftRounds != final.ResolvedRounds || record.MainTurns != final.ResolvedMainTurns || record.Opening != OpeningOutcome(final) ||
             record.Collisions != collisions || record.ForcedCollisions != forced || record.RedScore != final.PlayerOneScore || record.BlueScore != final.PlayerTwoScore ||
             (record.Status == "completed" && (IsPlayable(final.Phase) || record.Winner != final.FinalResult?.Winner ||
                 record.HistoryDigest != HistoryDigest(match.Map, manifest.Config.Ruleset, record.Rounds))))
