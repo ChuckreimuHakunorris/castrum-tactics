@@ -5,6 +5,18 @@
 - **Engine:** Godot (C#)
 - **Target platforms:** PC and Android
 
+The following sections describe the shipped pixel-style baseline. The owner supplied three raster references in the 10A review conversation. Each shows an 8 × 8 Crescent Quarry concept with rounded blue UI, bright yellow legal frames, saturated greens, strong outlines, and smooth shading. The knights and castles share silver/stone forms with clearly colored red or blue plumes, shields, heraldry and castle bases. Their drawn scale occupies most of a tile. These references inform 10B. [Visual roadmap](VisualDevelopmentRoadmap.md#10b--board-art-and-tile-rendering)
+
+| Reference, in supplied order | Visible motifs and likely extraction constraints |
+| --- | --- |
+| 1 · Winding river (1448 × 1086 preview) | Grass tufts, clustered round-canopy trees, rocks, faceted mountains, ochre exposed ground and graves. Blue river bends and banks cross adjacent tiles. Clear grass and dirt cells are crop candidates. River turns and multicomponent pieces need seams and alpha inspected at original resolution. |
+| 2 · Waterfall and ruins (1448 × 1086 preview) | A diagonal mountain ridge, dense trees, a waterfall and river, mossy stone arch, cattail pools, white flowers and berry shrubs. Ridge peaks and some trees cross grid lines, and the ruin spans cells. Preserve complete silhouettes where possible and review overlap and background separation. |
+| 3 · Boulder enclosure (1476 × 1065 preview) | Repeated boulder tiles surrounding open grass, plus graves, knights and castles. Repeated boulders and unobstructed grass are candidates for exact tile crops. Lit legal frames and occupied cells mix game state with art, so prefer unlit instances for extraction. |
+
+The supplied previews include river, pools, shrubs, flowers and ruins. Snowy peaks, a dedicated lake system, sand, bridges, houses, towns and connected wall configurations are requested additions or variants with no clear source in these views. Ochre dirt alone does not establish a sand tile. Isolated castles supply a starting silhouette for the wall study.
+
+10B should inspect original bytes, pixel dimensions and file formats, confirm provenance and distribution rights, and try clean isolation or alpha recovery before reconstructing graphics. Prefer alternate instances with fewer overlays. Review filtering and transparency at actual board scale, and retain provenance for each crop, trace and new drawing. The composition previews are raster references and do not establish the existence of editable vector assets. The external Windows directory is unmounted. 10A inspected the three chat previews and imported no reference art.
+
 ## 1. Visual reference
 
 ![Selected detailed pixel-art board concept](assets/art-direction-concept-v0.1.png)

@@ -168,6 +168,8 @@ The following requirements apply to every game mode:
 
 The shared domain rules must implement deterministic simultaneous resolution.
 
+The local session retains an immutable [resolved-turn record](VisualArchitecture.md#legal-targets-and-resolved-turns) alongside its public snapshot. The record includes both choices only after resolution and clears on restart.
+
 ## 6. Session and presentation states
 
 The gameplay scene should be capable of representing session progress without knowing how that progress is managed internally.

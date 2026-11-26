@@ -23,6 +23,8 @@ Each JSON file contains one map with a stable lowercase identifier, a display na
 
 Use one row per declared height, with exactly the declared width in characters. Board and session initialization supply pieces, ownership, and starting health.
 
+Optional [visual sidecars](VisualArchitecture.md#sidecar-format) live in the application. Map identity, accessibility and draft order still come from the gameplay file.
+
 ## Authoring and validation
 
 Use a distinct lowercase identifier with hyphens between words, a nonblank display name, dimensions from 3 through 12 on each axis, and at least two starts. Retain identifiers and layouts for existing maps. Archive retired definitions when recorded walkthroughs or tests depend on them.

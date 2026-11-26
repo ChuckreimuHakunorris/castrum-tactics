@@ -21,6 +21,8 @@ items:
         href: MapFormat.md
       - name: Development roadmap
         href: DevelopmentRoadmap.md
+      - name: Visual development roadmap
+        href: VisualDevelopmentRoadmap.md
   - name: Architecture
     href: architecture.md
     items:
@@ -34,6 +36,8 @@ items:
         href: CpuArchitecture.md
       - name: 9A architecture refactoring
         href: ArchitectureRefactoring.md
+      - name: Visual architecture
+        href: VisualArchitecture.md
       - name: Decision log
         href: DecisionLog.md
   - name: Research and benchmarks
@@ -65,3 +69,5 @@ items:
         href: DocumentationAudit.md
       - name: 9C engineering verification
         href: EngineeringVerification.md
+      - name: 10A visual verification
+        href: VisualFoundationVerification.md

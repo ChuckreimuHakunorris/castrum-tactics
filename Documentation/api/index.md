@@ -13,6 +13,8 @@ DocFX generates this reference from the application, domain, and AI C# projects.
 - [`MatchConfiguration`](xref:CastrumTactics.Match.MatchConfiguration) defines immutable mode, human faction, CPU difficulty, and ruleset. The application defaults to Knight Support. Domain convenience overloads such as `new LocalGameSession(map)` retain Classic. Pass an explicit configuration to [`Main`](xref:Global.Main) before scene initialization to override the editor defaults.
 - [`BoardRenderer`](xref:Global.BoardRenderer) draws the session board, handles board selection, and exposes the exact grid rectangle. [`TerritoryScoreBanner`](xref:Global.TerritoryScoreBanner) displays the snapshot's `PlayerOneScore` and `PlayerTwoScore`. [`AnimatedBackground`](xref:Global.AnimatedBackground) provides the reusable viewport background with configurable motion.
 
+- The live session exposes [resolved-turn information](../VisualArchitecture.md#legal-targets-and-resolved-turns) through its latest resolution property. A resolved pair and any automatic draft collision are available together.
+
 The [development solver commands and tablebase contract](../SmallBoardSolver.md#commands-and-outputs) use internal Benchmarks types.
 
 - [CpuOpeningOptions](xref:CastrumTactics.AI.CpuOpeningOptions), [CpuOpeningPolicy](xref:CastrumTactics.AI.CpuOpeningPolicy), and [CpuOpeningAnalysis](xref:CastrumTactics.AI.CpuOpeningAnalysis) configure and inspect Knight Support draft work independently of Main. See [opening strategy](../CpuOpeningStrategy.md).
