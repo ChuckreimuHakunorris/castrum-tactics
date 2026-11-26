@@ -7,9 +7,16 @@ internal sealed class BoardTerrainArt
     private const string AssetDirectory = "res://Assets/Sprites/Terrain/";
     private readonly Dictionary<string, Texture2D> _textures = [];
 
-    internal Texture2D GetTexture(CellState cell)
+    internal Texture2D GetTexture(CellState cell) => GetTexture(GetTexturePath(cell));
+
+    internal Texture2D GetRockTexture() => GetTexture(AssetDirectory + "rock.png");
+
+    internal Color GetTint(TileVariant variant) => variant == TileVariant.Weathered
+        ? new Color(0.91f, 0.94f, 0.90f)
+        : Colors.White;
+
+    private Texture2D GetTexture(string path)
     {
-        string path = GetTexturePath(cell);
         if (!_textures.TryGetValue(path, out Texture2D texture))
         {
             texture = GD.Load<Texture2D>(path);

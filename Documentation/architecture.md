@@ -37,6 +37,8 @@ The renderer handles physical left-button and touch presses after GUI input, con
 
 The sections below preserve the chronological milestone decisions. See the [decision log](DecisionLog.md) for an index.
 
+See [visual architecture](VisualArchitecture.md) for the 10A sidecar, layer, geometry and live-resolution boundaries.
+
 ## Milestone 4 decisions
 
 - Session coordination lives in the `CastrumTactics.Domain.Session` namespace of the engine-independent assembly. This keeps the rules and board transitions internal and avoids another assembly for the single local coordinator.

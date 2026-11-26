@@ -55,6 +55,8 @@ Both accepted selections are validated against **the same pre-turn board, territ
 - **Different squares:** Apply both ordinary actions independently using the pre-turn state. For instance, two players can capture one another's knights on different squares. Removing a piece must not retroactively invalidate the other player's already legal selection.
 - After resolution, publish the new board, round identifier, phase, territory classifications and player-specific legal targets; clear pending commands.
 
+For the live session, the [resolved-turn record](VisualArchitecture.md#legal-targets-and-resolved-turns) also retains the ordinary board before support elimination. Search and hypothetical calls continue to return the final resolved board.
+
 ### 3.1 Knight Support
 
 Knight Support starts with castles and uses the ordinary rules to validate both selections and resolve their pair. The resulting board supplies all support relationships. The resolver scans the whole board, collects every knight with zero adjacent friendly knights or castles, and applies all grave conversions together. Each conversion reduces that square's current ground health by one, floored at zero. This includes any knight created by a capture that already degraded the ground.

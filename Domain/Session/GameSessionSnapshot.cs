@@ -59,7 +59,7 @@ public sealed class GameSessionSnapshot
     public GameSessionSnapshot PreviewDraft(BoardPosition playerOne, BoardPosition playerTwo)
     {
         if (Phase != MatchPhase.Opening) throw new InvalidOperationException("The draft is not active.");
-        var (draft, main, rounds) = _draft.ResolveTransition(playerOne, playerTwo);
+        var (draft, main, rounds) = _draft.ResolveTransition(playerOne, playerTwo, out _);
         return new GameSessionSnapshot(draft, main, 0, RoundId + rounds, false, false);
     }
 

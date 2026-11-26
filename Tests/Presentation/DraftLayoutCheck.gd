@@ -48,8 +48,34 @@ func run() -> void:
 	if not failed:
 		await check_map_selection()
 	if not failed:
+		await check_visual_sidecar()
+	if not failed:
 		print("Verified the Classic walkthrough, Knight Support eliminations and scores, draft revision, restarts, map selection and previews.")
 		quit()
+
+func check_visual_sidecar() -> void:
+	root.size = Vector2i(900, 650)
+	var fixture := MATCH_SCENE.instantiate()
+	fixture.set("Mode", 1)
+	fixture.set("MapIdOverride", "open-meadow")
+	fixture.call("SetVisualDescriptor", "open-meadow",
+		'{"version":1,"width":6,"height":5,"tiles":[{"x":0,"y":0,"surface":"grass","variant":"weathered","prop":"stone-accent"}]}')
+	root.add_child(fixture)
+	await settle()
+	var board: Control = fixture.get_node("%BoardRenderer")
+	expect(board.call("DescribeVisualTile", 0, 0) == "Weathered/False/True", "Sidecar did not reach the renderer.")
+	expect(board.call("DescribeVisualTile", 1, 0) == "Original/False/False", "Unspecified tile lost legacy styling.")
+	var one: Button = fixture.get_node("%PlayerOne")
+	var two: Button = fixture.get_node("%PlayerTwo")
+	var submit: Button = fixture.get_node("%Submit")
+	await play(board, one, submit, Vector2.ZERO, Vector2(6, 5))
+	await play(board, two, submit, Vector2.ZERO, Vector2(6, 5))
+	click(fixture.get_node("%Restart").get_global_rect().get_center())
+	root.size = Vector2i(660, 1000)
+	await settle()
+	expect(board.call("DescribeVisualTile", 0, 0) == "Weathered/False/True", "Visuals changed after draft restart or resize.")
+	fixture.queue_free()
+	await process_frame
 
 func check_knight_support_local() -> void:
 	var dimensions := Vector2(6, 5)

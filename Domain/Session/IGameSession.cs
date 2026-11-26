@@ -8,6 +8,11 @@ public interface IGameSession
     /// <summary>Gets the latest public state of the match.</summary>
     GameSessionSnapshot Current { get; }
 
+    /// <summary>Gets the last pair resolved in this session, or null before a resolution or after a restart.</summary>
+    /// <remarks>Implementations without resolved-turn metadata may return null. Publication makes both choices
+    /// available together. A pending submission or revision never changes this value.</remarks>
+    ResolvedTurn? LatestResolution => null;
+
     /// <summary>Publishes a snapshot after each accepted command. Rejections leave the snapshot unchanged.</summary>
     event Action<GameSessionSnapshot>? StateChanged;
 

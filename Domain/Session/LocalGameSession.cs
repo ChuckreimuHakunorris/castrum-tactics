@@ -45,6 +45,9 @@ public sealed class LocalGameSession : IGameSession
     public GameSessionSnapshot Current { get; private set; }
 
     /// <inheritdoc />
+    public ResolvedTurn? LatestResolution { get; private set; }
+
+    /// <inheritdoc />
     public event Action<GameSessionSnapshot>? StateChanged;
 
     /// <inheritdoc />
@@ -84,30 +87,40 @@ public sealed class LocalGameSession : IGameSession
         BoardPosition? playerOne = player == PlayerId.PlayerOne ? position : _playerOnePending;
         BoardPosition? playerTwo = player == PlayerId.PlayerTwo ? position : _playerTwoPending;
 
+        var before = Current;
         if (playerOne is { } first && playerTwo is { } second)
         {
             // Resolve against the same snapshot that validated the submissions before clearing either choice.
-            roundId += ResolveRound(first, second);
-            playerOne = null;
-            playerTwo = null;
+            roundId += ResolveRound(first, second, out var ordinaryBoard, out var automaticCollision);
+            _playerOnePending = null;
+            _playerTwoPending = null;
+            Current = CreateSnapshot(roundId);
+            LatestResolution = new ResolvedTurn(before, Current, first, second, ordinaryBoard, automaticCollision);
+            StateChanged?.Invoke(Current);
         }
-
-        _playerOnePending = playerOne;
-        _playerTwoPending = playerTwo;
-        Publish(roundId);
+        else
+        {
+            _playerOnePending = playerOne;
+            _playerTwoPending = playerTwo;
+            Publish(roundId);
+        }
         return SessionCommandResult.Accepted;
     }
 
-    private int ResolveRound(BoardPosition first, BoardPosition second)
+    private int ResolveRound(BoardPosition first, BoardPosition second, out BoardState? ordinaryBoard,
+        out BoardPosition? automaticCollision)
     {
         if (_mainPhase is { } mainPhase)
         {
-            _mainPhase = mainPhase.Advance(new(PlayerId.PlayerOne, first), new(PlayerId.PlayerTwo, second));
+            _mainPhase = mainPhase.Advance(new(PlayerId.PlayerOne, first), new(PlayerId.PlayerTwo, second), out var ordinary);
+            ordinaryBoard = ordinary;
+            automaticCollision = null;
             _resolvedMainTurns++;
             return 1;
         }
 
-        var (draft, main, rounds) = _draft.ResolveTransition(first, second);
+        var (draft, main, rounds) = _draft.ResolveTransition(first, second, out automaticCollision);
+        ordinaryBoard = null;
         _draft = draft;
         _mainPhase = main;
         return rounds;
@@ -131,6 +144,7 @@ public sealed class LocalGameSession : IGameSession
         _resolvedMainTurns = 0;
         _playerOnePending = null;
         _playerTwoPending = null;
+        LatestResolution = null;
         Publish(roundId + 1);
         return SessionCommandResult.Accepted;
     }

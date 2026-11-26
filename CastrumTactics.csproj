@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="Domain/CastrumTactics.Domain.csproj" />
     <ProjectReference Include="AI/CastrumTactics.AI.csproj" />
+    <EmbeddedResource Include="VisualMaps/*.json" LogicalName="CastrumTactics.VisualMaps.%(Filename)%(Extension)" />
     <InternalsVisibleTo Include="CastrumTactics.Presentation.Tests" />
     <Compile Remove="Domain/**/*.cs;AI/**/*.cs;Tests/**/*.cs;Benchmarks/**/*.cs;scripts/**/*.cs" />
     <!-- Android exports stage copies of Godot scripts under these generated paths. -->

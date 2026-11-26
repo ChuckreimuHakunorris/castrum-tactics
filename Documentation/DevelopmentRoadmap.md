@@ -15,9 +15,11 @@
 
 | 9B | Reconciled documentation and comments with post-9A code and verified the historical evidence. [9B audit](DocumentationAudit.md) |
 
+| 9C | Integrated compiler, formatting, documentation, archive and platform verification checks. [Engineering verification](EngineeringVerification.md) |
+
 ## Current
 
-**9C** implements reproducible engineering checks and is awaiting review. [Engineering verification](EngineeringVerification.md)
+**10A** implements the visual architecture foundation and is awaiting review. The complete [visual development roadmap](VisualDevelopmentRoadmap.md) covers 10A–10F.
 
 ## Planned
 

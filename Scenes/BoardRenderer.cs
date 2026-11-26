@@ -23,9 +23,11 @@ public partial class BoardRenderer : Control
 
     private readonly BoardTerrainArt _terrainArt = new();
     private BoardState? _board;
+    private BoardVisuals? _visuals;
     private TerritoryAnalysis? _territory;
     private HashSet<BoardPosition> _eligiblePositions = [];
     private readonly List<(BoardPosition Position, Sprite2D Sprite, float Footprint)> _pieceSprites = [];
+    internal IEnumerable<BoardPosition> OpposingTargets { get; private set; } = [];
     private FactionPieceArt? _knightArt;
     private FactionPieceArt? _castleArt;
     private Texture2D? _graveTexture;
@@ -59,9 +61,20 @@ public partial class BoardRenderer : Control
     /// <param name="territory">The territory analysis for the same snapshot, or null during the opening draft.</param>
     /// <exception cref="ArgumentNullException"><paramref name="board"/> is null.</exception>
     public void SetBoard(BoardState board, IEnumerable<BoardPosition>? eligiblePositions = null, TerritoryAnalysis? territory = null)
+        => SetMatchBoard(board, eligiblePositions, [], territory);
+
+    internal void SetVisuals(BoardVisuals? visuals)
+    {
+        _visuals = visuals;
+        QueueRedraw();
+    }
+
+    internal void SetMatchBoard(BoardState board, IEnumerable<BoardPosition>? eligiblePositions,
+        IEnumerable<BoardPosition> opposing, TerritoryAnalysis? territory)
     {
         ArgumentNullException.ThrowIfNull(board);
 
+        OpposingTargets = opposing;
         _eligiblePositions = eligiblePositions is null ? [] : new HashSet<BoardPosition>(eligiblePositions);
         bool piecesMayHaveChanged = !ReferenceEquals(_board, board);
         _board = board;
@@ -152,10 +165,7 @@ public partial class BoardRenderer : Control
             return;
         }
 
-        var geometry = GetGeometry(board);
-        // Board geometry uses control coordinates, including when the viewport is stretched.
-        Vector2 localPoint = MakeCanvasPositionLocal(point);
-        if (geometry.HitTest(localPoint) is not { } position || !_eligiblePositions.Contains(position))
+        if (HitTestViewport(board, point) is not { } position || !_eligiblePositions.Contains(position))
         {
             return;
         }
@@ -188,10 +198,34 @@ public partial class BoardRenderer : Control
                 var position = new BoardPosition(x, y);
                 Rect2 tile = geometry.GetCellRect(position);
                 CellState cell = board.GetCell(position);
-                DrawTextureRect(_terrainArt.GetTexture(cell), tile, tile: false);
+                DrawTerrain(tile, cell, _visuals?.At(position) ?? default);
                 DrawTerritory(tile, position);
             }
         }
+    }
+
+    private BoardPosition? HitTestViewport(BoardState board, Vector2 point) =>
+        GetGeometry(board).HitTest(MakeCanvasPositionLocal(point));
+
+    private void DrawTerrain(Rect2 tile, CellState cell, TileVisual visual)
+    {
+        DrawTextureRect(_terrainArt.GetTexture(cell), tile, tile: false, _terrainArt.GetTint(visual.Variant));
+        if (visual.NorthRockEdge)
+        {
+            var strip = new Rect2(tile.Position, new Vector2(tile.Size.X, tile.Size.Y * 0.10f));
+            DrawTextureRect(_terrainArt.GetRockTexture(), strip, tile: false, new Color(1, 1, 1, 0.65f));
+        }
+        if (visual.StoneAccent)
+        {
+            var corner = new Rect2(tile.Position + tile.Size * 0.76f, tile.Size * 0.15f);
+            DrawTextureRect(_terrainArt.GetRockTexture(), corner, tile: false);
+        }
+    }
+
+    private string DescribeVisualTile(int x, int y)
+    {
+        var visual = _visuals?.At(new BoardPosition(x, y)) ?? default;
+        return $"{visual.Variant}/{visual.NorthRockEdge}/{visual.StoneAccent}";
     }
 
     private static ShaderMaterial CreateIndicatorMaterial(Shader shader, Color color, float borderWidth)
