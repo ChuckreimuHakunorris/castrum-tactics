@@ -1,126 +1,65 @@
 # Castrum Tactics — Art Direction Reference
 
-- **Version:** 0.2
-- **Status:** Implemented UI direction with placeholder board art
-- **Engine:** Godot (C#)
-- **Target platforms:** PC and Android
-
-The following sections describe the shipped pixel-style baseline. The owner supplied three raster references in the 10A review conversation. Each shows an 8 × 8 Crescent Quarry concept with rounded blue UI, bright yellow legal frames, saturated greens, strong outlines, and smooth shading. The knights and castles share silver/stone forms with clearly colored red or blue plumes, shields, heraldry and castle bases. Their drawn scale occupies most of a tile. These references inform 10B. [Visual roadmap](VisualDevelopmentRoadmap.md#10b--board-art-and-tile-rendering)
-
-| Reference, in supplied order | Visible motifs and likely extraction constraints |
-| --- | --- |
-| 1 · Winding river (1448 × 1086 preview) | Grass tufts, clustered round-canopy trees, rocks, faceted mountains, ochre exposed ground and graves. Blue river bends and banks cross adjacent tiles. Clear grass and dirt cells are crop candidates. River turns and multicomponent pieces need seams and alpha inspected at original resolution. |
-| 2 · Waterfall and ruins (1448 × 1086 preview) | A diagonal mountain ridge, dense trees, a waterfall and river, mossy stone arch, cattail pools, white flowers and berry shrubs. Ridge peaks and some trees cross grid lines, and the ruin spans cells. Preserve complete silhouettes where possible and review overlap and background separation. |
-| 3 · Boulder enclosure (1476 × 1065 preview) | Repeated boulder tiles surrounding open grass, plus graves, knights and castles. Repeated boulders and unobstructed grass are candidates for exact tile crops. Lit legal frames and occupied cells mix game state with art, so prefer unlit instances for extraction. |
-
-The supplied previews include river, pools, shrubs, flowers and ruins. Snowy peaks, a dedicated lake system, sand, bridges, houses, towns and connected wall configurations are requested additions or variants with no clear source in these views. Ochre dirt alone does not establish a sand tile. Isolated castles supply a starting silhouette for the wall study.
-
-10B should inspect original bytes, pixel dimensions and file formats, confirm provenance and distribution rights, and try clean isolation or alpha recovery before reconstructing graphics. Prefer alternate instances with fewer overlays. Review filtering and transparency at actual board scale, and retain provenance for each crop, trace and new drawing. The composition previews are raster references and do not establish the existence of editable vector assets. The external Windows directory is unmounted. 10A inspected the three chat previews and imported no reference art.
+10B uses smooth medieval fantasy board art with clean outlines, bright readable surfaces and a stylized front or three-quarter piece view. The gameplay grid stays square and non-isometric. The active board asset bank is `Assets/Sprites/Board`. [Visual roadmap](VisualDevelopmentRoadmap.md)
 
 ## 1. Visual reference
 
-![Selected detailed pixel-art board concept](assets/art-direction-concept-v0.1.png)
+All three original PNGs were supplied through the cloud as `Files.rar` and inspected at native resolution. The displayed Crescent Quarry layout was an illustration. Production gameplay maps derive from the existing catalog.
 
-*Figure 1 — Selected AI-generated concept. This establishes the desired look, not an exact spritesheet or a verified 32×32 pixel grid. Its red and blue factions are illustrative only; faction colors must be configurable.*
+| Original | Native size | Reference motifs |
+| --- | --- | --- |
+| ChatGPT Image 27 Nov 2026, 00_05_41-1.png | 1448 × 1086 | Winding river, gray peaks and boulders, grass tufts, tree clusters and exposed ground. |
+| ChatGPT Image 27 Nov 2026, 00_05_59-2.png | 1448 × 1086 | Mountain ridge, forest, waterfall, mossy arch, cattails, shrubs and flowers. |
+| Crescent Quarry with Blocky Graves.png | 1476 × 1065 | Clean source tiles for the singleton castle, knight and neutral headstone. |
+
+The older [pixel-art concept](assets/art-direction-concept-v0.1.png) remains a historical reference.
 
 ## 2. Art direction
 
-- **Style:** Detailed medieval-fantasy pixel art, retaining the approachable retro character of the original game.
-- **Perspective:** Direct top-down board with square, non-isometric cells. Piece illustrations may show stylized front/three-quarter detail as long as placement and readability remain clear.
-- **Target tile size:** **32×32 source pixels per board cell**, independently of the on-screen display size. This is the current target, to be validated with a real prototype.
-- **Rendering:** Crisp pixel edges, nearest-neighbor filtering, consistent pixel density and integer scaling where practical; avoid unintended antialiasing.
-- **Visual language:** Strong silhouettes and outlines; cohesive limited palette; readable highlights/shadows; textured but unobtrusive grass; distinct knights, castles, graves, rocks, and rivers.
-- **Priority:** Gameplay readability on small Android screens and variable board dimensions takes precedence over decorative detail.
+Keep bold silhouettes, cohesive edges, recognizable territory and strong faction contrast. Use the owner's original isolated pieces where clean separation is possible. Independently authored terrain carries the reference palette and shape language into composable tiles. [Art evidence and provenance](BoardArtVerification.md)
 
-## 3. Faction-color system — implement early
+## 3. Faction-color system
 
-**Decision:** Do not author separate complete red/blue spritesheets. Use **faction-neutral base artwork** and apply the player's selected color at runtime in Godot.
-
-**Preferred technique:** A shader-driven **recolor mask / indexed faction palette**. Recolor designated faction-owned regions such as a knight's plume, cloth, and shield face or a castle's banner. Keep metal, stone, wood, outlines, and neutral shading unchanged. Preserve light/dark tonal differences within recolored regions.
-
-**Asset conventions:**
-
-- Each faction-owned sprite has a shared neutral base and an accompanying recolor mask (or equivalent explicitly defined palette indices).
-- Masks and base textures align exactly, use nearest-neighbor sampling, and have no filtering artifacts.
-- A single faction color parameter drives all relevant assets; if needed, derive coordinated highlight and shadow colors from it.
-- Neutral objects such as graves, rocks, rivers, and ordinary terrain are not faction-tinted by default.
-- Avoid embedding red/blue allegiance in the base sprite, except in concept references.
-
-**Game/data conventions:**
-
-- Store **player identity separately from faction color**. Game rules must not rely on Red/Blue being fixed identities.
-- Expose faction-color selection early in the UI, initially with a curated palette; design the rendering path to support arbitrary colors later.
-- In multiplayer, synchronize the chosen color as presentation metadata; ownership and turn resolution continue to use stable player IDs.
-- Prevent or warn about visually indistinguishable player color choices. Consider accessibility: distinguish factions using optional symbols, outlines, or UI labels as well as color.
-
-The [knight and castle sprites](#7-implemented-faction-sprites) share a Godot `canvas_item` recoloring shader.
+The default colors remain `#f06c68` and `#69a4ff`. Knights, singleton castles and wall shapes pair a neutral RGBA base with an aligned grayscale mask. Tint applies to fabric, shield faces, castle banners and trim. Stone, armor, spear, gold and white heraldry keep their source colors. The shader reuses base alpha and one material per shape and owner.
 
 ## 4. Production asset requirements
 
-- Produce **individual, transparent PNG sprites** or a consistently indexed atlas for units and structures.
-- Produce repeatable terrain tiles and test adjacent tile boundaries; rivers/terrain transitions may need multiple variants.
-- Keep each sprite aligned to a consistent 32×32 cell coordinate system; use a documented anchor/offset if an illustration extends beyond its cell.
-- Separate gameplay overlays (selection, legal moves, ownership, ground health) from decorative artwork so they can change independently.
-- Treat generated images as **concepts until manually checked** for pixel-grid accuracy, consistency, transparency, tileability, and in-engine readability.
+- Terrain and wall textures use 128 × 128 canvases. Native piece crops occupy a 104 × 104 padded canvas and keep their source detail. Pieces center on a cell and stay inside it.
+- The new terrain and base/mask pairs use linear sampling. Imports use lossless compression with mipmaps disabled.
+- Rivers use compatible edge profiles. Walkable bridges cross depicted water at right angles. Authored orientations remain explicit. Props, buildings and ruins stay inside one cell.
+- Preserve visible damage, territory, starts and legal indicators by drawing their cues in independent layers.
 
-## 5. Planned production asset validation
+## 5. Production asset validation
 
-1. Create a 32×32 grass tile and evaluate the neutral knight and castle sprites against it.
-2. Render the same knight and castle in at least four selectable faction colors via one shader/material approach.
-3. Display them on a small board in Godot at typical PC and Android viewing sizes.
-4. Check silhouette clarity, color differentiation, pixel sharpness, and consistency before expanding the tileset.
+Review the [terrain bank, damage matrix, tint tests and rendered boards](BoardArtVerification.md). Include small Android-size tiles and mixed-faction neighbors when introducing a new asset. Reuse and distribution conditions outside this project remain unresolved. Confirm rights before a public art release.
 
 ## 6. Decisions still open
 
-- Final faction-color palette and accessibility options.
-- Whether production artwork needs indexed faction palettes beyond the prototype's direct tint.
-- Tile edge treatment and terrain autotiling strategy.
-- Whether 32×32 remains sufficient after the first in-engine readability test.
+- Future palette accessibility options beyond the current pair and heraldry.
+- Additional shore compositions and optional waterfall and cattail assets for 10F.
+- Physical-device readability, frame pacing and whether mipmaps would help dense boards.
 
 ## 7. Implemented faction sprites
 
-The knight uses `Assets/Sprites/Units/Knight/knight_base.png` and `knight_mask.png` in the same folder. Both PNGs are 756 × 940 pixels and share the same origin and silhouette alignment. The base keeps the original RGBA pixels inside the crop. The common crop removes excess transparent margin and faint stray pixels outside the artwork. The corrected mask follows the base artwork's plume, cape, tunic panels, and shield face. It leaves the armor, spear, white emblem, black outlines, belt, and gold trim untinted.
+The knight, singleton castle and grave use pixels from the owner's boulder-enclosure PNG. Extraction traced each silhouette, removed background fragments and recovered neutral shading in blue livery. Isolation edges and livery normalization intentionally change some pixels. The neutral grave retains the headstone, base and leaves.
 
-The castle uses `Assets/Sprites/Units/Castle/castle_base.png` and `castle_mask.png`. Both PNGs are 1234 × 1179 pixels and share the same crop. The castle's banner cloth and front foundation band take the faction tint. The mask preserves the stonework, gate, outlines, gold trim, white heraldic emblem, and bright top edge of the foundation.
+Connected castles compose the same singleton crop over new masonry joins. The same-faction four-cardinal mask covers isolated, end, straight, corner, T and cross configurations. The front gate and crest remain upright. See the [castle tint sheet](BoardArtVerification.md#asset-sheets) and [topology contract](VisualArchitecture.md#layers-and-transforms).
 
-`Shaders/faction_recolor.gdshader` samples both textures at the same UV coordinates. In the mask, white applies the full tint, gray blends in part of the tint, and black preserves the base color. Mask alpha scales the strength, so a transparent mask pixel has no effect. The shader multiplies the base RGB by the faction RGB before blending, retaining the artwork's light and dark values. Faction regions should use neutral grayscale for this multiplication. The shader copies the base alpha to the result.
+## 8. Ground art and earlier placeholders
 
-`FactionPalette` maps `PlayerId.PlayerOne` to `#f06c68` and `PlayerId.PlayerTwo` to `#69a4ff`. `FactionPieceArt` shares a base texture and mask for each piece type and reuses one material per owner and piece type. The board centers sprites in their tile rectangles and scales them uniformly. The knight fits within 94% of each tile dimension and the broader castle fits within 98%. Both textures use nearest-neighbor sampling, with repeat disabled for the mask. Fine details can alias at small or fractional display sizes.
+Grass, sand, snow and bridges each have four display tiers. The artwork progresses through exposed soil, scuffs, slush or plank wear. One, two or three outlined pale marks indicate damage. Intact and inaccessible cells appear without markers. A grave can sit on partly damaged ground.
 
-To add another recolorable piece, place its neutral transparent base and grayscale mask together under `Assets/Sprites`. Align their pixels and apply any crop to both with the same coordinates. Paint the mask on the base canvas and check its protected details against both faction colors. Import the textures losslessly with mipmaps disabled, create a `FactionPieceArt` for the pair, and use the same tile placement with the piece's snapshot owner. Each new texture pair gets its own per-faction materials and can share the shader.
-
-## 8. Placeholder board art
-
-The ImageGen placeholders use stepped shapes and limited palettes to stay readable at board size. They are temporary pseudo-pixel artwork. The source textures are larger than the planned production pixel grid.
-
-Terrain textures meet at shared tile edges. A translucent dark olive grid draws once over the board at one-third opacity. Shared lines stay at least one rendered pixel wide and blend across pixels at fractional positions. The outer edge stays inside the board, which keeps its outer margin.
-
-| Tile or piece | Asset | Appearance |
-| --- | --- | --- |
-| Ground health 3 | `Assets/Sprites/Terrain/ground_health_3.png` | Healthy green grass |
-| Ground health 2 | `Assets/Sprites/Terrain/ground_health_2.png` | Medium-brown soil with remnants of grass |
-| Ground health 1 | `Assets/Sprites/Terrain/ground_health_1.png` | Dark barren soil |
-| Ground health 0 | `Assets/Sprites/Terrain/ground_health_0.png` | Purplish-brown soil with a skull and loose bones flanking the grave |
-| Inaccessible | `Assets/Sprites/Terrain/rock.png` | Gray boulders |
-| Grave | `Assets/Sprites/Objects/Grave/grave.png` | Stone headstone, engraved cross, and brown mound on a transparent background |
-
-Inaccessible terrain always shows rock. Playable health above 3 uses the healthy texture. The grave has no faction material and can sit above ground of any playable health. The renderer fits the entire grave frame to the tile width at its original aspect ratio. The transparent space above the headstone keeps the mound low in the square.
-
-ImageGen generated each terrain tile separately. The five opaque square sources were reduced from 1254 × 1254 to 256 × 256 with nearest-neighbor sampling. The grave uses the supplied 166 × 161 pixel reference frame. A connected color mask removes the surrounding grass, leaving the brown mound and its small attached tufts together with the headstone. The capture cursor was removed using adjacent soil pixels where it crossed the mound. The original canvas placement and remaining artwork pixels were preserved.
-
-To replace the placeholders, keep the filenames and use full-bleed opaque squares for terrain and a near-square RGBA frame for the grave. Keep borders, territory accents, and selection markers out of the artwork. Import losslessly with mipmaps disabled and verify the replacements at several board sizes with nearest-neighbor filtering.
-
-The rendering order is terrain, secured-territory tint and edge, the grid, pieces, legal targets, then the provisional selection. The grid uses `Shaders/tile_grid.gdshader`. `Shaders/selection_indicator.gdshader` measures the distance to the nearest edge in tile UV coordinates. Its uniforms control color (`indicator_color`), border thickness (`border_width`), gradient depth (`fade_depth`), and gradient opacity (`fade_opacity`). The gold legal border uses 4.5% of the tile width and the pale cyan provisional border uses 6.5%. The selection fades extend 20% inward from their solid borders and start at 42% opacity. The tile center remains clear. A provisional selection replaces the legal gradient on that tile. Opening dots remain visible.
+The earlier ImageGen artwork under `Assets/Sprites/Terrain`, `Assets/Sprites/Units` and `Assets/Sprites/Objects` remains available as historical material. The old 32 × 32 and nearest-neighbor targets describe that era.
 
 ## 9. Interface and typography
 
-The interface pairs smooth, rounded controls with the stepped medieval board art. Pale blue panels, navy text, soft shadows, and a blue gradient frame the battlefield. A compact header identifies the phase and round or turn. The selection panel shows instructions or waiting feedback, with faction state on player toggles in Local Multiplayer and passive **You** and **CPU** cards in Versus CPU. Interactive match controls keep a minimum target of 48 × 48 dp on Android. [Android accessibility guidance](https://developer.android.com/guide/topics/ui/accessibility/views/apps-views#touch-targets)
+The interface pairs smooth, rounded controls with the smooth medieval board art. Pale blue panels, navy text, soft shadows, and a blue gradient frame the battlefield. A compact header identifies the phase and round or turn. The selection panel shows instructions or waiting feedback, with faction state on player toggles in Local Multiplayer and passive **You** and **CPU** cards in Versus CPU. Interactive match controls keep a minimum target of 48 × 48 dp on Android. [Android accessibility guidance](https://developer.android.com/guide/topics/ui/accessibility/views/apps-views#touch-targets)
 
 Assign `Themes/castrum_theme.tres` to the root `Control` of a screen so its descendants inherit the styles. Use the default `Button` for secondary actions and `PrimaryButton` for submit, revise, and restart. Use `PlayerButton` for faction cards. Explicit status text and position identify factions independently of the palette. The base buttons provide distinct hover, pressed, focused, disabled, and hover-while-pressed states. Use `Heading`, `SecondaryLabel`, and `RejectionLabel` to distinguish instructions, supporting text, and feedback.
 
 The **Secured Territory** banner uses the themed score surface and bold numerals. One undecorated shield silhouette is tinted with each faction's palette color. Player One always appears on the left and Player Two on the right. The banner sits above the tiles with the exact grid width. Tight layouts may omit the center label and scale the score groups. The banner stays visible on the final board while the selection panel shows the winner or draw.
 
-The compact match panel places actions in one row beneath the board in portrait and stacks them in the landscape sidebar. The header shows the active battlefield, dimensions, ruleset, and phase. New Match keeps confirmation controls below the filterable map list and preview. Tall layouts stack those sections and use up to 660 canvas units of height within the safe area. Wide or short layouts place the preview and CPU difficulty beside the list so rows can extend down to the confirmation controls. The dialog uses the shared pale-blue surface, navy title bar and difficulty menu, and a blue scrollbar. The preview draws muted green ground, dark slate rock, and gold draft markers from the map definition at a uniform square tile size. Knight Support uses the existing castle art for draft placements and the existing neutral grave art for unsupported knights. The banner and rendered pieces update from the same resolved snapshot.
+The compact match panel places actions in one row beneath the board in portrait and stacks them in the landscape sidebar. The header shows the active battlefield, dimensions, ruleset, and phase. New Match keeps confirmation controls below the filterable map list and preview. Tall layouts stack those sections and use up to 660 canvas units of height within the safe area. Wide or short layouts place the preview and CPU difficulty beside the list so rows can extend down to the confirmation controls. The dialog uses the shared pale-blue surface, navy title bar and difficulty menu, and a blue scrollbar. The preview draws the shared intact terrain and gold draft markers at a uniform square tile size. Knight Support uses the same castle art for draft placements and the neutral grave art for unsupported knights. The banner and rendered pieces update from the same resolved snapshot.
 
 The theme uses the regular variable face of Nunito at weights 600 and 800. The font is bundled for offline use under the SIL Open Font License 1.1. The binary and license come from the same [Nunito upstream revision](https://github.com/googlefonts/nunito/tree/8c6a9bb9732545b9ed53f29ec5e1ab0ff53c4e6f). The license is stored at `Assets/Fonts/Nunito/OFL.txt` and included by the Windows and Android export presets.
 

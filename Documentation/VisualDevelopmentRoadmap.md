@@ -4,15 +4,13 @@ Milestone 10 prepares Castrum Tactics for broader playtesting before the map edi
 
 ## 10A · Visual architecture foundation
 
-Implemented and awaiting review. Introduces optional visual sidecars with stable variants, a resource lookup and documented draw order, one fit geometry, and a resolved-turn contract. Preserve recognizable default art, rules, the production map catalog, and current mouse and touch input. Acceptance requires an end-to-end sidecar fixture, deterministic gameplay comparisons, and regression checks. The [10A verification record](VisualFoundationVerification.md) lists the evidence.
+Integrated through PR #27. Introduced optional visual sidecars with stable variants, a resource lookup and documented draw order, one fit geometry, and a resolved-turn contract. Preserve recognizable default art, rules, the production map catalog, and current mouse and touch input. Acceptance requires an end-to-end sidecar fixture, deterministic gameplay comparisons, and regression checks. The [10A verification record](VisualFoundationVerification.md) lists the evidence.
 
 ## 10B · Board art and tile rendering
 
-Depends on 10A and access to the three owner-supplied reference images. Review the actual art, provenance and distribution rights. Extract the original graphics wherever clean isolation can preserve their appearance, shapes and colors. Raster crops remain raster. Record occluded, undersized, inseparable or missing graphics and identify every reconstruction or newly authored graphic. Preserve the originals and review an art sheet and sample battlefield before replacing assets broadly.
+Implemented and awaiting review. The owner supplied the three native PNGs in a cloud file archive. The [art verification](BoardArtVerification.md) distinguishes reference pixels, alpha isolation, livery normalization and newly authored terrain and walls.
 
-Build a coherent library for grass/plains, trees, bushes, mountains, snowy mountains, rivers, lakes, sand, ruins, bridges, houses and towns. Include varied grass tufts and flowers and natural edge transitions. Replace suitable terrain and piece placeholders while retaining recognizable knights, castles, graves, faction colors and ground health. Use explicit or stable variants across reloads, rotation and restart. Validate scale, alpha, alignment, readability and filtering for the actual art, in play and in map previews.
-
-Build isolated, end, straight, corner, T and cross castle-wall graphics, with rotations or variants as needed. Connect only resolved neighboring friendly castles. Cardinal adjacency is a proposal for visual wall connections. The game's eight-neighbor rules remain authoritative. Exact dimensions, palette, filtering, edge geometry and wall conventions await the references and playtesting.
+Fixed terrain roles validate against existing gameplay. Playable grass, sand, snow and bridges have damage art and damage-only marks. Rocks, forest, shrubs, mountains, water, settlements and ruins are inaccessible. Same-faction castles join only in four cardinal directions. All maps receive the new default art and two compatible sidecars demonstrate authored geography. The full composition pass remains 10F.
 
 ## 10C · Interaction indicators and UI polish
 

@@ -23,7 +23,7 @@ Each JSON file contains one map with a stable lowercase identifier, a display na
 
 Use one row per declared height, with exactly the declared width in characters. Board and session initialization supply pieces, ownership, and starting health.
 
-Optional [visual sidecars](VisualArchitecture.md#sidecar-format) live in the application. Map identity, accessibility and draft order still come from the gameplay file.
+Optional [visual sidecars](VisualArchitecture.md#sidecar-format) live in the application. The 10B registry validates each visual type against the underlying gameplay cell. Map identity, accessibility and draft order still come from the gameplay file.
 
 ## Authoring and validation
 
