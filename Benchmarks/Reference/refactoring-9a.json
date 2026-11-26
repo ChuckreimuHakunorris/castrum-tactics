@@ -1,0 +1,151 @@
+{
+  "baselineRevision": "b63e7fbbb5450b4f9a5b6bb4047579bc978669c5",
+  "baselineTests": 361,
+  "frozenSourceSha256": {
+    "CpuDecision.cs": "be9261cf064ece1288f5045bbc4944db7d4f0657f950eb0f48d96673ca02b494",
+    "CpuDecisionEngine.cs": "e43a0befa84a78397679554994fb397866e29aeeae5e2418d31c4bda7ab90e5c",
+    "CpuFeatures.cs": "4df1466884b9eb31e48a32716dd62f6a969fe7376e7b60a2090672a633f180cd",
+    "CpuOpeningOptions.cs": "707416bb2669baefec5d805bc2bd5274c96cd1883e48d12848f08211630de63b",
+    "CpuProfile.cs": "a49985998c5880c5184968c70620fffb11ef6e89c478db112bdbf2a59b899a61",
+    "CpuSearchOptions.cs": "47c083d3ad549e311c4e3839aefdee95a6bcd2cf68843e1ebfb3f6d0ec4dc29b",
+    "DeepSimultaneousSearch.cs": "8dfc91017d8b8c9861a711c6f69806fe4ac2e43ab0467238e1f5c4a92f0be13e",
+    "EquilibriumSearch.cs": "8cd3bb54361654f20375fd34cb30ddb066da2bf8b03fd4a1c3e402832f4d9388",
+    "InvasionReach.cs": "63a879f1a522bb5a3d8d6e8cd009d353a5d6c4fd756dee270b05417790f22317",
+    "NumericalMatrixGame.cs": "61485c495ab4fd9db9e6da9ed88be583b086e09da55dff080c70923525e2675a",
+    "OpeningPosition.cs": "42c644fdb631dc9f1f7b8f9a99c0aa8b0f3cae75d59966566f7f12f76333cd7f",
+    "OpeningSearch.cs": "7505db29c4c55abdc65f9a587a3e6e17c6897753273ce8da38f450dfe4e800f6",
+    "SimultaneousSearch.cs": "447aa22fbcab7271f788eb9707021921e790209a7affe2d7c6cff6e7449350e5",
+    "StrategicPosition.cs": "a6fc4e5efb1780812ac571e09b3971cb9427eb377e9bf1c6516181356c6b6f70",
+    "TacticalBoard.cs": "2a8644ad588f425b0a2835fb60051c651e4184ceb5d1e23d83aba646bd105916"
+  },
+  "matchEquivalence": {
+    "natural": {
+      "matches": 60,
+      "outcomes": {
+        "completed": 60
+      },
+      "rounds": 3978,
+      "scheduleSha256": "1e5a1a5f00c01bb2611061d550a2f36f84a44e4c31568e9dd4a2e6df63e22fb3",
+      "fullDeterministicResultsSha256": "64367810e150102d8b543d5bbdacf48c2b06d87c871413163811ff3196165ab3"
+    },
+    "fixed": {
+      "matches": 120,
+      "outcomes": {
+        "completed": 120
+      },
+      "rounds": 6504,
+      "scheduleSha256": "bb370069d408a1611589782162eedd61c2ec8f9bbe1c31b064ed9c47cb5cc2d4",
+      "fullDeterministicResultsSha256": "dcd8a939f7bdd3ca9970b379d39ebdf19189385a3da6d2ef1894cda81fa83f05"
+    },
+    "classic-natural": {
+      "matches": 12,
+      "outcomes": {
+        "completed": 12
+      },
+      "rounds": 1098,
+      "scheduleSha256": "c06f82b6c06fe83e316b1fdf13b7ffd8a8c063d6e874757e6d5a7f5f7c73b279",
+      "fullDeterministicResultsSha256": "db862519439eab08e08466b4f0d1d3b03e6a805229206097fc52e5882ec0a46a"
+    },
+    "classic-fixed": {
+      "matches": 12,
+      "outcomes": {
+        "completed": 12
+      },
+      "rounds": 1108,
+      "scheduleSha256": "64ad4cc22bad73dfdd6d29123e8f73ca9038785815641c8936a31017def28379",
+      "fullDeterministicResultsSha256": "faa7972058693eb1834c0329abc2e24eb2838fe3bf873519659eb047f433985e"
+    }
+  },
+  "publicSessionHistorySha256": {
+    "Classic": "B6A1427921701F00069059AEC9E09BBAA95CE50B29139A02E35E41BEA98ADF68",
+    "KnightSupport": "735EC0E4C90357865881C2445F3B6F6932792581035BD01EF1A8C679787E4E73"
+  },
+  "battlefieldAuditSha256": "fa26e29ad23f526526ddc979ad9cb93b73a5cab4798428a47873529d47806339",
+  "openingStudyCasesSha256": "eb6abdd664b17fe1a122f33968434c54fbd29ee510867d70354fa689289038e2",
+  "openingStudyOutcomesSha256": "746bc873412973fd3c717f392bfe1dd605838d2992ce20c83bba0627f9460b63",
+  "performance": {
+    "main": {
+      "baseline-a": {
+        "samples": 432,
+        "medianMs": 0.5911,
+        "p95Ms": 6.5323,
+        "meanAllocatedKiB": 403.167
+      },
+      "current-a": {
+        "samples": 432,
+        "medianMs": 1.3194,
+        "p95Ms": 25.2428,
+        "meanAllocatedKiB": 403.2761
+      },
+      "current-b": {
+        "samples": 432,
+        "medianMs": 0.6801,
+        "p95Ms": 6.9591,
+        "meanAllocatedKiB": 402.7502
+      },
+      "baseline-b": {
+        "samples": 432,
+        "medianMs": 0.8187,
+        "p95Ms": 27.4595,
+        "meanAllocatedKiB": 403.4609
+      }
+    },
+    "draft": {
+      "baseline-a": {
+        "samples": 432,
+        "medianMs": 1.1265,
+        "p95Ms": 14.5587,
+        "meanAllocatedKiB": 159.0327
+      },
+      "current-a": {
+        "samples": 432,
+        "medianMs": 1.1414,
+        "p95Ms": 14.8976,
+        "meanAllocatedKiB": 159.0269
+      },
+      "current-b": {
+        "samples": 432,
+        "medianMs": 1.1436,
+        "p95Ms": 15.1909,
+        "meanAllocatedKiB": 159.0409
+      },
+      "baseline-b": {
+        "samples": 432,
+        "medianMs": 1.133,
+        "p95Ms": 13.9831,
+        "meanAllocatedKiB": 159.0412
+      }
+    },
+    "baseTournament": {
+      "wallSeconds": 35.5960266,
+      "matches": 120,
+      "mainPairs": 1901708,
+      "mainDecisions": 11328,
+      "workerMs": 32968.176900000006,
+      "gc": {
+        "collections": [
+          695,
+          155,
+          65
+        ],
+        "peakWorkingSetBytes": 261627904
+      }
+    },
+    "currentTournament": {
+      "wallSeconds": 35.457429,
+      "matches": 120,
+      "mainPairs": 1901708,
+      "mainDecisions": 11328,
+      "workerMs": 32783.55120000002,
+      "gc": {
+        "collections": [
+          698,
+          126,
+          68
+        ],
+        "peakWorkingSetBytes": 255991808
+      }
+    }
+  },
+  "verifiedTests": 369
+}

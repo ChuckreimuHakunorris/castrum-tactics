@@ -4,23 +4,18 @@ using System.Text.Json;
 using CastrumTactics.AI;
 using CastrumTactics.Domain;
 
-internal static partial class Program
+using static Program;
+using static CastrumTactics.Development.TournamentPlanner;
+
+namespace CastrumTactics.Development;
+
+internal static class TournamentStore
 {
-    internal sealed record Manifest(int Schema, TournamentConfig Config, MapIdentity[] Maps, ScheduledMatch[] Matches,
-        Dictionary<string, string> Opponents, Dictionary<string, string> Binaries, string? Revision,
-        string Runtime, string OS, string Architecture, string Processor, int LogicalProcessors,
-        bool DedicatedPerformance, string Signature, DateTimeOffset Created);
-
-    internal sealed record Progress(int Scheduled, int Completed, int Failed, int Limited, int Pending,
-        string State, int Workers, double LastRunSeconds);
-
-    private sealed record ResultEnvelope(int Schema, string Checksum, JsonElement Payload);
-
     internal static Manifest MakeManifest(TournamentPlan plan, bool dedicated = false)
     {
         var assemblies = new[] { typeof(Program).Assembly, typeof(CpuDecisionEngine).Assembly,
             typeof(RuleSet).Assembly }.Concat(typeof(Program).Assembly.GetReferencedAssemblies()
-            .Where(name => name.Name is "CastrumTactics.FrozenAI" or "CastrumTactics.Frozen8C" or "CastrumTactics.Frozen8D2" or "CastrumTactics.Frozen8D3" or "CastrumTactics.Frozen8D4")
+            .Where(name => name.Name is "CastrumTactics.FrozenAI" or "CastrumTactics.Frozen8C" or "CastrumTactics.Frozen8D2" or "CastrumTactics.Frozen8D3" or "CastrumTactics.Frozen8D4" or "CastrumTactics.Frozen8E")
             .Select(System.Reflection.Assembly.Load));
         var binaries = assemblies.OrderBy(assembly => assembly.GetName().Name, StringComparer.Ordinal)
             .ToDictionary(assembly => assembly.GetName().Name!, assembly =>
@@ -59,10 +54,10 @@ internal static partial class Program
     internal static T ReadJson<T>(string path) => JsonSerializer.Deserialize<T>(File.ReadAllText(path), TournamentJson)
         ?? throw new InvalidDataException($"Empty JSON in '{path}'.");
 
-    private static void SaveJson<T>(string path, T value) =>
+    internal static void SaveJson<T>(string path, T value) =>
         SaveText(path, JsonSerializer.Serialize(value, TournamentJson) + Environment.NewLine);
 
-    private static void SaveText(string path, string content)
+    internal static void SaveText(string path, string content)
     {
         string temporary = $"{path}.{Guid.NewGuid():N}.tmp";
         try
@@ -86,10 +81,10 @@ internal static partial class Program
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
-    private static string ManifestPath(string directory) => Path.Combine(directory, "manifest.json");
+    internal static string ManifestPath(string directory) => Path.Combine(directory, "manifest.json");
     private static string ResultsPath(string directory) => Path.Combine(directory, "matches");
     private static string ResultPath(string directory, string id) => Path.Combine(ResultsPath(directory), $"{id}.json");
-    private static FileStream LockTournament(string directory) =>
+    internal static FileStream LockTournament(string directory) =>
         new(Path.Combine(directory, ".lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
 
     internal static Dictionary<string, string> CheckResults(string directory, Manifest manifest)
@@ -164,7 +159,7 @@ internal static partial class Program
             Parallel.ForEach(pending, new ParallelOptions { MaxDegreeOfParallelism = plan.Config.Workers, CancellationToken = token }, match =>
             {
                 TournamentResult result;
-                try { result = (simulate ?? PlayTournamentMatch)(plan, match, token); }
+                try { result = (simulate ?? TournamentRunner.PlayTournamentMatch)(plan, match, token); }
                 catch (Exception exception) when (exception is not OperationCanceledException)
                 {
                     result = FailedMatch(match.Id, exception);

@@ -45,6 +45,12 @@ internal partial class NewMatchDialog : ConfirmationDialog
         _body.AddThemeConstantOverride("separation", 8);
         settings.AddChild(_body);
 
+        BuildMapList();
+        BuildPreview(versusCpu);
+    }
+
+    private void BuildMapList()
+    {
         var picker = new VBoxContainer { Name = "Picker", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill };
         picker.AddThemeConstantOverride("separation", 4);
@@ -65,6 +71,21 @@ internal partial class NewMatchDialog : ConfirmationDialog
             AddEntry(map);
         _filter.TextChanged += UpdateFilter;
 
+        void AddEntry(PredefinedMap? map)
+        {
+            // The list needs the row's press and drag events to start scrolling and cancel the pending button tap.
+            var button = new Button { Name = map?.Id ?? "random", Text = map is null ? "Random Map" : Describe(map),
+                Alignment = HorizontalAlignment.Left, ToggleMode = true, ButtonGroup = group,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart, MouseFilter = Control.MouseFilterEnum.Pass };
+            button.AddThemeFontSizeOverride("font_size", 14);
+            entries.AddChild(button);
+            _entries.Add((map, button));
+            button.Pressed += () => Select(map);
+        }
+    }
+
+    private void BuildPreview(bool versusCpu)
+    {
         var details = new VBoxContainer { Name = "Preview", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             SizeFlagsVertical = Control.SizeFlags.ExpandFill };
         details.AddThemeConstantOverride("separation", 3);
@@ -86,19 +107,7 @@ internal partial class NewMatchDialog : ConfirmationDialog
         // Keep the CPU controls in the preview column so the landscape list can use the full height.
         details.AddChild(_difficulty);
         foreach (CpuDifficulty difficulty in Enum.GetValues<CpuDifficulty>())
-            _difficulty.AddItem($"CPU difficulty · {Main.DifficultyName(difficulty)}", (int)difficulty);
-
-        void AddEntry(PredefinedMap? map)
-        {
-            // The list needs the row's press and drag events to start scrolling and cancel the pending button tap.
-            var button = new Button { Name = map?.Id ?? "random", Text = map is null ? "Random Map" : Describe(map),
-                Alignment = HorizontalAlignment.Left, ToggleMode = true, ButtonGroup = group,
-                AutowrapMode = TextServer.AutowrapMode.WordSmart, MouseFilter = Control.MouseFilterEnum.Pass };
-            button.AddThemeFontSizeOverride("font_size", 14);
-            entries.AddChild(button);
-            _entries.Add((map, button));
-            button.Pressed += () => Select(map);
-        }
+            _difficulty.AddItem($"CPU difficulty · {MatchCaptions.DifficultyName(difficulty)}", (int)difficulty);
     }
 
     internal void Open(PredefinedMap? map, CpuDifficulty difficulty, bool unfinished)

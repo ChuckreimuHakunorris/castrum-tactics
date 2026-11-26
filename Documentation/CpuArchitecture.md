@@ -160,3 +160,5 @@ The development harness wraps CPU implementations as versioned opponents using t
 The development-only [small-board solver](SmallBoardSolver.md) evaluates simultaneous decisions against exact state values and supplies a tablebase reference for experiments.
 
 The [8E calibration report](CpuDifficultyCalibration.md) compares the built-in ladder with the independent 8D.4 baseline and describes the release configuration and platform measurements.
+
+The engine delegates tactical feature ranking to `TacticalCandidates` and cutoff and probability sampling to `CandidateSampling`. The legacy draft loop and Main loop have separate entry points and retain shared row weighting and result assembly. The advanced draft path owns its own search work accounting. [9A ownership and equivalence checks](ArchitectureRefactoring.md)

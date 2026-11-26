@@ -36,6 +36,14 @@ internal sealed class OpeningDraft
 
     internal bool CanSelect(BoardPosition position) => EligiblePositions.Contains(position);
 
+    internal (OpeningDraft Draft, MainPhaseState? Main, int Rounds) ResolveTransition(BoardPosition first, BoardPosition second)
+    {
+        var draft = ResolveRound(first, second);
+        // Evaluate the completed draft board before either caller exposes the next phase.
+        var main = draft.Phase == MatchPhase.Main ? MainPhaseState.Evaluate(draft.Board, draft.RuleSet) : null;
+        return (draft, main, draft.ResolvedRounds - ResolvedRounds);
+    }
+
     internal OpeningDraft ResolveRound(BoardPosition playerOne, BoardPosition playerTwo)
     {
         OpeningDraft draft = Resolve(playerOne, playerTwo);

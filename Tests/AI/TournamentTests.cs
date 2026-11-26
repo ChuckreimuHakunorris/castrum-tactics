@@ -5,6 +5,10 @@ using CastrumTactics.Domain.Session;
 using System.Text.Json;
 using Xunit;
 using static benchmarks::Program;
+using static benchmarks::CastrumTactics.Development.TournamentPlanner;
+using static benchmarks::CastrumTactics.Development.TournamentStore;
+using static benchmarks::CastrumTactics.Development.TournamentRunner;
+using static benchmarks::CastrumTactics.Development.TournamentReplay;
 
 namespace CastrumTactics.AI.Tests;
 

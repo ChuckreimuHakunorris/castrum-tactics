@@ -1,4 +1,3 @@
-using System.Collections.Frozen;
 using System.Diagnostics;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
@@ -41,60 +40,43 @@ internal sealed partial class SimultaneousSearch
         _position = new(snapshot.Board, RuleSetDefinition.Get(snapshot.RuleSet), token);
     }
 
-    internal SearchResult Analyze(GameSessionSnapshot snapshot, CpuCandidate[] own, CpuCandidate[] opponent, bool diagnostics)
+    internal SearchResult AnalyzeMain(GameSessionSnapshot snapshot, CpuCandidate[] own, CpuCandidate[] opponent, bool diagnostics)
     {
-        bool opening = snapshot.Phase == MatchPhase.Opening;
-        _matrixPolicy = !opening && _options.Equilibrium != MatrixPolicy.Off;
-        _bounded = !opening && (_matrixPolicy || _options.BoundedUtility);
-        CpuCandidate[] choices;
-        CpuCandidate[] replies;
-        if (opening)
-        {
-            choices = own;
-            int replyCount = Math.Min(opponent.Length, _options.OpponentCandidates + 2);
-            // Both sides share the same starts. Every start outside the common replies needs one extra preview.
-            while (replyCount > 1 && (long)choices.Length * replyCount + choices.Length - replyCount > _options.PairBudget)
-                replyCount--;
-            replies = opponent[..replyCount];
-        }
-        else
-        {
-            var features = EvaluateFeatures(snapshot.MainState!);
-            if (diagnostics) _rootFeatures = features.Contributions(_player);
-            choices = Shortlist(snapshot.Board, own, _player, _options.OwnCandidates);
-            replies = Shortlist(snapshot.Board, opponent, _opponent, _options.OpponentCandidates);
-            if (_matrixPolicy)
-                replies = MatrixReplies(choices, replies, opponent);
-            bool fullRoot = replies.Length == snapshot.MainState!.GetLegalSelections(_opponent).Count;
-            _allowDeeper = _options.Depth > 2 && (!_options.RequireFullRootReplies || fullRoot) &&
-                (!_options.ProofOnlyDeepening || (fullRoot && choices.Length <= ProofRootActionLimit &&
-                    replies.Length <= ProofRootActionLimit));
-        }
+        _matrixPolicy = _options.Equilibrium != MatrixPolicy.Off;
+        _bounded = _matrixPolicy || _options.BoundedUtility;
+        var features = EvaluateFeatures(snapshot.MainState!);
+        if (diagnostics) _rootFeatures = features.Contributions(_player);
+        var choices = Shortlist(snapshot.Board, own, _player, _options.OwnCandidates);
+        var replies = Shortlist(snapshot.Board, opponent, _opponent, _options.OpponentCandidates);
+        if (_matrixPolicy)
+            replies = MatrixReplies(choices, replies, opponent);
+        bool fullRoot = replies.Length == snapshot.MainState!.GetLegalSelections(_opponent).Count;
+        _allowDeeper = _options.Depth > 2 && (!_options.RequireFullRootReplies || fullRoot) &&
+            (!_options.ProofOnlyDeepening || (fullRoot && choices.Length <= ProofRootActionLimit &&
+                replies.Length <= ProofRootActionLimit));
 
         double[] weights = ReplyWeights(replies);
         int depth = 0;
         var first = new List<Rating>(choices.Length);
         foreach (CpuCandidate choice in choices)
         {
-            Rating? rating = opening
-                ? RateDraft(snapshot, choice, replies, weights)
-                : RateMain(snapshot.MainState!, choice, replies, weights, _options.Depth > 1, _matrixPolicy);
+            Rating? rating = RateMain(snapshot.MainState!, choice, replies, weights, _options.Depth > 1, _matrixPolicy);
             if (rating is null) break;
             first.Add(rating);
         }
 
-        // Only completed rows share comparable reply weights. Preserve draft variation whenever it is possible.
-        if (first.Count < (opening ? Math.Min(2, choices.Length) : 1))
+        // Only completed rows share comparable reply weights.
+        if (first.Count == 0)
             return Finish(own, [], [], replies, weights, 0, diagnostics);
 
         first.Sort(Compare);
-        if (!opening && (_options.Depth > 2 || _matrixPolicy) && _options.VerifyTerminalWins && first.Count == choices.Length)
+        if ((_options.Depth > 2 || _matrixPolicy) && _options.VerifyTerminalWins && first.Count == choices.Length)
             VerifyImmediateWins(snapshot.MainState!, replies, first);
         if (CanSolveRoot(first, replies.Length))
             _firstPolicy = SolveMatrix(first, replies.Length);
         depth = 1;
         IReadOnlyList<Rating> finalists = first;
-        if (!opening && _options.Depth > 1 && first.Count == choices.Length && first[0].Safety < 2)
+        if (_options.Depth > 1 && first.Count == choices.Length && first[0].Safety < 2)
         {
             int finalistCount = _options.OwnCandidates >= 16 ? 6 : 4;
             int width = _options.OwnCandidates >= 16 ? 4 : 3;
@@ -214,48 +196,6 @@ internal sealed partial class SimultaneousSearch
             { ReusedPairs = _reusedPairs, CompletedDepth = Math.Max(depth, _completedDepth), Matrix = _matrixAnalysis }
         : null;
 
-    private Rating? RateDraft(GameSessionSnapshot snapshot, CpuCandidate choice, CpuCandidate[] replies, double[] weights)
-    {
-        bool collision = replies.Any(r => r.Position == choice.Position);
-        bool extra = !collision && snapshot.EligiblePositions.Contains(choice.Position);
-        int count = replies.Length + (extra ? 1 : 0);
-        double expected = 0, adverse = double.PositiveInfinity;
-        int area = snapshot.Board.Width * snapshot.Board.Height;
-        for (int i = 0; i < count; i++)
-        {
-            if (!SpendPair()) return null;
-            BoardPosition reply = i < replies.Length ? replies[i].Position : choice.Position;
-            var next = _player == PlayerId.PlayerOne
-                ? snapshot.PreviewDraft(choice.Position, reply)
-                : snapshot.PreviewDraft(reply, choice.Position);
-            double value;
-            if (next.Phase == MatchPhase.OpeningRestartRequired)
-            {
-                value = -4;
-            }
-            else if (next.FinalResult is { } result)
-            {
-                int margin = Margin(result.PlayerOneScore - result.PlayerTwoScore);
-                value = Math.Sign(margin) * (3 + 0.6 * area) + 0.3 * margin;
-            }
-            else
-            {
-                var state = next.MainState;
-                var empty = FrozenSet<BoardPosition>.Empty;
-                value = _position.Evaluate(next.Board, next.Territory ?? TerritoryAnalyzer.Analyze(next.Board),
-                    state?.GetLegalSelections(PlayerId.PlayerOne) ?? empty,
-                    state?.GetLegalSelections(PlayerId.PlayerTwo) ?? empty, _token, opening: true).Score(_player, opening: true);
-            }
-            if (i < replies.Length) expected += weights[i] * value;
-            adverse = Math.Min(adverse, value);
-        }
-        // Opening scores are normalized to preserve softmax variation on large maps.
-        double scale = Math.Max(4, Math.Sqrt(area));
-        double prior = 0.25 * choice.Score;
-        return new(choice, expected / scale + prior, adverse / scale + prior,
-            collision || extra, 1, 1, []);
-    }
-
     private Rating? RateMain(MainPhaseState state, CpuCandidate choice, CpuCandidate[] replies, double[] weights,
         bool retainChildren, bool retainPayoffs = false)
     {
@@ -334,7 +274,7 @@ internal sealed partial class SimultaneousSearch
     }
 
     private CpuCandidate[] Rank(MainPhaseState state, TacticalBoard tactical, PlayerId player, PlayerId opponent) =>
-        CpuDecisionEngine.RankMain(tactical, state.Territory, player, opponent,
+        TacticalCandidates.RankMain(tactical, state.Territory, player, opponent,
             state.GetLegalSelections(player), state.GetLegalSelections(opponent), _profile, true, _token);
 
     private CpuCandidate[] Shortlist(BoardState board, CpuCandidate[] ranked, PlayerId player, int limit)

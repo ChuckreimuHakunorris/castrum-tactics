@@ -1,7 +1,10 @@
+using CastrumTactics.Development;
 using CastrumTactics.AI;
 using CastrumTactics.Development.Solver;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
+using static CastrumTactics.Development.TournamentPlanner;
+using static CastrumTactics.Development.TournamentStore;
 
 internal static partial class Program
 {
@@ -21,9 +24,9 @@ internal static partial class Program
         return new { turns, position = InspectPosition(node),
             historical = InspectTurn(node, fixture.Historical[0], fixture.Historical[1]),
             alternative = InspectTurn(node, fixture.RecordedAlternative[0], fixture.RecordedAlternative[1]),
-            monster = InspectSearch(session.Current, node, CreateOpponent(new("monster", "strategic:Monster")),
+            monster = InspectSearch(session.Current, node, TournamentOpponentFactory.Create(new("monster", "strategic:Monster")),
                 Red, fixture.Historical[0], default),
-            probe = InspectSearch(session.Current, node, CreateOpponent(new("probe", "probe")),
+            probe = InspectSearch(session.Current, node, TournamentOpponentFactory.Create(new("probe", "probe")),
                 Blue, fixture.Historical[1], default) };
     }
 
@@ -70,15 +73,15 @@ internal static partial class Program
         {
             token.ThrowIfCancellationRequested();
             var record = LoadResult(path, match.Id);
-            _ = Reconstruct(manifest, match, record);
+            _ = TournamentReplay.Reconstruct(manifest, match, record);
             string redName = match.SeatsSwapped ? match.Second : match.First;
             string blueName = match.SeatsSwapped ? match.First : match.Second;
-            var redOpponent = CreateOpponent(people[redName]);
-            var blueOpponent = CreateOpponent(people[blueName]);
+            var redOpponent = TournamentOpponentFactory.Create(people[redName]);
+            var blueOpponent = TournamentOpponentFactory.Create(people[blueName]);
             var turns = record.Rounds.Where(r => r.Phase == "main").Select(turn =>
             {
                 token.ThrowIfCancellationRequested();
-                var snapshot = Reconstruct(manifest, match, record, "main", turn.Number);
+                var snapshot = TournamentReplay.Reconstruct(manifest, match, record, "main", turn.Number);
                 var node = lookup(snapshot);
                 return new { turn.Number, solved = InspectTurn(node, turn.Red.Move, turn.Blue.Move),
                     red = InspectSearch(snapshot, node, redOpponent, Red, turn.Red.Move, token),

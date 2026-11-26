@@ -31,8 +31,7 @@ public partial class Main : Control
         (SessionCommandResult.WrongPhase, "Action unavailable in this phase.")
     ];
 
-    private IGameSession? _session;
-    private CpuMatchCoordinator? _cpu;
+    private readonly MatchLifetime _match = new();
     private MatchLaunchOptions _launch = null!;
     private MatchConfiguration? _startupConfiguration;
     private MatchConfiguration _configuration = null!;
@@ -130,7 +129,7 @@ public partial class Main : Control
     /// <param name="delta">Elapsed time since the previous frame.</param>
     public override void _Process(double delta)
     {
-        if (_session is not { } session || _cpu is not { } cpu) return;
+        if (_match.Session is not { } session || _match.Cpu is not { } cpu) return;
         Exception? previousFailure = cpu.Failure;
         cpu.Pump(session);
         if (cpu.Failure is { } failure && !ReferenceEquals(previousFailure, failure))
@@ -143,8 +142,8 @@ public partial class Main : Control
     /// <summary>Detaches the session and invalidates worker requests before the scene exits.</summary>
     public override void _ExitTree()
     {
-        if (_session is null) return;
-        DetachSession();
+        if (_match.Session is null) return;
+        _match.Detach(DisplayState);
         Resized -= UpdateLayout;
         if (OS.HasFeature("android")) GetViewport().SizeChanged -= UpdateLayout;
     }
@@ -204,19 +203,13 @@ public partial class Main : Control
     private void StartMatch(MatchConfiguration configuration)
     {
         PredefinedMap map = _mapChoice ?? PredefinedMapCatalog.BuiltIn.SelectRandom();
-        DetachSession();
+        _match.Detach(DisplayState);
         _configuration = configuration;
         _activePlayer = configuration.HumanPlayer;
         if (configuration.Mode == GameMode.LocalMultiplayer) _activePlayer = PlayerId.PlayerOne;
         _displayed = null!;
 
-        var session = new LocalGameSession(map.Definition, configuration.RuleSet);
-        _session = session;
-        if (configuration.CpuPlayer is { } player)
-        {
-            var seeds = _launch.Seed is int seed ? new Random(seed) : new Random();
-            _cpu = new CpuMatchCoordinator(session, player, CpuDifficultyProfiles.Get(configuration.Difficulty), seeds);
-        }
+        var session = _match.Create(map.Definition, configuration, _launch.Seed);
 
         string mapDescription = NewMatchDialog.Describe(map);
         _activeMap.Text = mapDescription;
@@ -225,17 +218,9 @@ public partial class Main : Control
         GD.Print($"Selected map '{map.Id}' ({map.Definition.Width} × {map.Definition.Height}).");
 
         session.StateChanged += DisplayState;
-        SetProcess(_cpu is not null);
+        SetProcess(_match.Cpu is not null);
         DisplayState(session.Current);
         UpdateLayout();
-    }
-
-    private void DetachSession()
-    {
-        if (_session is not null) _session.StateChanged -= DisplayState;
-        _cpu?.Dispose();
-        _cpu = null;
-        _session = null;
     }
 
     private void UpdateLayout()
@@ -308,7 +293,7 @@ public partial class Main : Control
 
     private void SubmitSelection()
     {
-        if (_session is not { } session || _cpu?.Failure is not null ||
+        if (_match.Session is not { } session || _match.Cpu?.Failure is not null ||
             !_configuration.AllowsHumanInput(_activePlayer) || _board.SelectedPosition is not { } position)
         {
             return;
@@ -325,7 +310,7 @@ public partial class Main : Control
 
     private void RestartMatch()
     {
-        if (_session is { } session) ShowRejection(session.RestartDraft(_displayed.RoundId));
+        if (_match.Session is { } session) ShowRejection(session.RestartDraft(_displayed.RoundId));
     }
 
     private void StartNewMatch()
@@ -337,7 +322,7 @@ public partial class Main : Control
 
     private void ShowRejection(SessionCommandResult result)
     {
-        if (result == SessionCommandResult.Accepted || _session is not { } session) return;
+        if (result == SessionCommandResult.Accepted || _match.Session is not { } session) return;
         DisplayState(session.Current);
         _detail.ThemeTypeVariation = RejectionStyle;
         _detail.Text = Array.Find(Rejections, rejection => rejection.Result == result).Text ?? UnknownRejection;
@@ -355,7 +340,7 @@ public partial class Main : Control
         }
 
         _displayed = snapshot;
-        _cpu?.Observe(snapshot);
+        _match.Cpu?.Observe(snapshot);
         // CPU submission republishes the same resolved board; keep the human's current highlight.
         if (!versusCpu || changedRound) UpdateBoardView();
         _banner.ShowScores(snapshot.PlayerOneScore, snapshot.PlayerTwoScore);
@@ -373,7 +358,7 @@ public partial class Main : Control
         GameSessionSnapshot snapshot = _displayed;
         bool playable = MatchConfiguration.IsPlayable(snapshot.Phase);
         bool hasSubmitted = snapshot.HasSubmitted(_activePlayer);
-        bool cpuFailed = _cpu?.Failure is not null;
+        bool cpuFailed = _match.Cpu?.Failure is not null;
         _detail.ThemeTypeVariation = cpuFailed ? RejectionStyle : InstructionStyle;
         UpdatePlayerButton(_playerOne, PlayerId.PlayerOne, snapshot, playable, cpuFailed);
         UpdatePlayerButton(_playerTwo, PlayerId.PlayerTwo, snapshot, playable, cpuFailed);
@@ -423,7 +408,7 @@ public partial class Main : Control
         if (_configuration.CpuPlayer is { } cpu)
         {
             string state = submitted ? "Submitted" : player == cpu ? (cpuFailed ? "Unavailable" : "Thinking") : "Choosing";
-            string name = player == cpu ? $"CPU · {DifficultyName(_configuration.Difficulty)}" : "You";
+            string name = player == cpu ? $"CPU · {MatchCaptions.DifficultyName(_configuration.Difficulty)}" : "You";
             button.Text = playable ? $"{name}\n{state}" : name;
             return;
         }
@@ -450,8 +435,6 @@ public partial class Main : Control
         string state = submitted ? "Submitted" : "Choosing";
         return $"{PlayerName(player)}\n{(active ? "Active · " : "")}{state}";
     }
-
-    internal static string DifficultyName(CpuDifficulty difficulty) => difficulty == CpuDifficulty.VeryHard ? "Very Hard" : difficulty.ToString();
 
     private static string RuleSetName(RuleSet ruleSet) => ruleSet == RuleSet.KnightSupport ? "Knight Support" : "Classic";
 

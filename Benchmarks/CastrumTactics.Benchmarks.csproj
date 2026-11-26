@@ -7,13 +7,14 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Frozen/**/*.cs;Frozen8C/**/*.cs;Frozen8D2/**/*.cs;Frozen8D3/**/*.cs;Frozen8D4/**/*.cs" />
+    <Compile Remove="Frozen/**/*.cs;Frozen8C/**/*.cs;Frozen8D2/**/*.cs;Frozen8D3/**/*.cs;Frozen8D4/**/*.cs;Frozen8E/**/*.cs" />
     <ProjectReference Include="../AI/CastrumTactics.AI.csproj" />
     <ProjectReference Include="Frozen/CastrumTactics.FrozenAI.csproj" Aliases="frozen" />
     <ProjectReference Include="Frozen8C/CastrumTactics.Frozen8C.csproj" Aliases="frozen8c" />
     <ProjectReference Include="Frozen8D2/CastrumTactics.Frozen8D2.csproj" Aliases="frozen8d2" />
     <ProjectReference Include="Frozen8D3/CastrumTactics.Frozen8D3.csproj" Aliases="frozen8d3" />
     <ProjectReference Include="Frozen8D4/CastrumTactics.Frozen8D4.csproj" Aliases="frozen8d4" />
+    <ProjectReference Include="Frozen8E/CastrumTactics.Frozen8E.csproj" Aliases="frozen8e" />
     <InternalsVisibleTo Include="CastrumTactics.AI.Tests" />
     <None Update="Reference/manual-moves.jsonl" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Reference/pocket-meadow.json" CopyToOutputDirectory="PreserveNewest" />
