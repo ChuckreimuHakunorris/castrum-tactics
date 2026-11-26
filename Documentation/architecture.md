@@ -108,7 +108,11 @@ The renderer handles physical left-button and touch presses after GUI input, con
 
 ## Planned
 
-CPU tuning, a remote session, and ranked map validation remain future work.
+## Milestone 8D.3 decisions
+
+Invasion routes, projected formation resilience and the numerical matrix solver are CPU heuristics over resolved snapshots. The authoritative territory classification, simultaneous turn and session submission path are shared with the other players. The development harness keeps frozen CPU versions and exact tables outside the application. [Strategic evaluation and policy experiments](CpuStrategicEvaluation.md)
+
+Opening-draft strategy, difficulty calibration, a remote session and ranked map validation remain future work.
 
 The [Game Design Document](GameDesign.md) records the rules and open design decisions. The [Session Architecture](SessionArchitecture.md) describes the authority and presentation boundaries. The [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) documents the domain rules and local integration.
 

@@ -99,7 +99,8 @@ public sealed class StrategicCpuTests
         Assert.Null(snapshot.MainState!.Advance(new(One, upgrade), new(Two, collision)).Result);
         var report = Engine.DecideWithDiagnostics(snapshot, One, Monster, new Random(42));
         Assert.Equal(collision, report.Decision!.Value.Position);
-        Assert.Equal(10001, report.Search!.Actions[0].Adverse);
+        Assert.Equal(10000, report.Search!.Actions[0].Adverse);
+        Assert.True(report.Search.Actions[0].ProvenWin);
         Assert.Equal(1, report.Candidates[0].Probability);
     }
 

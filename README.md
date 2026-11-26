@@ -104,6 +104,8 @@ dotnet run -c Release --project Benchmarks -- tournament dry-run --config Benchm
 
 Monster can prove wins up to three simultaneous turns ahead on compact tactical positions. See the [8D.2 search optimization report](Documentation/CpuSearchOptimization.md) for the production settings, tournament results, and CLI examples for wider and deeper experiments.
 
+Monster now uses invasion-aware evaluation and can sample a simultaneous mixed policy. Its search remains within the 850-pair budget. [8D.3 strategic evaluation report](Documentation/CpuStrategicEvaluation.md)
+
 After building and importing assets with `godot --headless --path . --import`, run the same two Godot 4.7.2 .NET regressions as CI.
 
 ```sh

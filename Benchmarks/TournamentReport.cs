@@ -26,6 +26,7 @@ internal static partial class Program
         public int AvoidableLosses { get; private set; }
         public long Placements { get; private set; }
         public long InteriorPlacements { get; private set; }
+        public long InteriorWithBetterAlternative { get; private set; }
         public int Scored => Wins + Draws + Losses;
         public int Completed => Scored + DraftRetries;
         public double Points => Wins + Draws / 2d;
@@ -63,6 +64,7 @@ internal static partial class Program
             if (red ? result.RedAvoidableLoss : result.BlueAvoidableLoss) AvoidableLosses++;
             Placements += red ? result.RedPlacements : result.BluePlacements;
             InteriorPlacements += red ? result.RedInterior : result.BlueInterior;
+            InteriorWithBetterAlternative += (red ? result.RedInteriorWithBetterAlternative : result.BlueInteriorWithBetterAlternative) ?? 0;
         }
     }
 

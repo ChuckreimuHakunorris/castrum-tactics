@@ -59,6 +59,19 @@ internal readonly struct Rational : IComparable<Rational>, IEquatable<Rational>
 
     internal (BigInteger Numerator, BigInteger Denominator) Parts => (_numerator, Denominator);
 
+    internal static Rational FromBinary64(double value)
+    {
+        if (!double.IsFinite(value)) throw new ArgumentOutOfRangeException(nameof(value));
+        if (value == 0) return default;
+        long bits = BitConverter.DoubleToInt64Bits(value);
+        int exponent = (int)((bits >> 52) & 2047);
+        long mantissa = bits & ((1L << 52) - 1);
+        if (exponent != 0) mantissa |= 1L << 52;
+        int shift = Math.Max(1, exponent) - 1075;
+        BigInteger signed = bits < 0 ? -mantissa : mantissa;
+        return shift >= 0 ? new(signed << shift, BigInteger.One) : new(signed, BigInteger.One << -shift);
+    }
+
     internal Rational RoundOutward(int scale, bool upper)
     {
         // Keep common small exact ratios and values already on the grid. A shared grid prevents

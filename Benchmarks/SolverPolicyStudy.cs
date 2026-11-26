@@ -1,26 +1,24 @@
 extern alias frozen;
 extern alias frozen8c;
+extern alias frozen8d2;
 
 using CastrumTactics.AI;
 using CastrumTactics.Development.Solver;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using EightC = frozen8c::CastrumTactics.AI;
+using EightD2 = frozen8d2::CastrumTactics.AI;
 using Frozen = frozen::CastrumTactics.AI;
 
 internal static partial class Program
 {
     private static object AnalyzePolicies(SmallBoardGraph graph, PredefinedMap map, string starts, string[] basePath,
-        int sampleSize, CancellationToken token)
+        int sampleSize, string split, CancellationToken token)
     {
         if (sampleSize < 1) throw new ArgumentOutOfRangeException(nameof(sampleSize));
         var variants = SolverStudyOpponents().Select(CreateOpponent).ToArray();
         // Balance sampling across the monotone progress measure. Weight each tested representative equally.
-        var groups = graph.Postorder.Where(node => node.Result is null).GroupBy(node => Stage(node, graph.Postorder[^1]))
-            .OrderBy(group => group.Key).Select(group => group.ToArray()).ToArray();
-        var random = new Random(4242);
-        var selected = groups.SelectMany(group => group.OrderBy(_ => random.Next()).Take((sampleSize + groups.Length - 1) / groups.Length))
-            .Prepend(graph.Postorder[^1]).Where(node => node.Result is null).Distinct().ToArray();
+        var selected = StudyPositions(graph, sampleSize, split, token);
         var comparisons = new List<PolicyComparison>();
         var features = new List<EvaluationPoint>();
         var horizon = new HorizonStudy(graph.Postorder[^1].Board);
@@ -39,11 +37,15 @@ internal static partial class Program
             var tactical = new StrategicPosition(node.Board, RuleSetDefinition.Get(node.Rules), token);
             var f = tactical.Evaluate(node.Board, snapshot.Territory!, snapshot.GetMainPhaseLegalSelections(Red),
                 snapshot.GetMainPhaseLegalSelections(Blue), token);
+            var revised = tactical.Evaluate(node.Board, snapshot.Territory!, snapshot.GetMainPhaseLegalSelections(Red),
+                snapshot.GetMainPhaseLegalSelections(Blue), token, resilient: true, prepareFrontier: false);
             var contributions = f.Contributions(Red);
             features.Add(new(stage, [f.Score(Red), contributions.Secured, contributions.Influence, contributions.Material,
                 contributions.Formation, contributions.Ground, contributions.Mobility], node.Outcome!.Value.Approximate(),
                 node.Margin!.Value.Approximate(), string.Join(',', basePath.Concat(history.Select(move =>
-                    $"{Coordinate(move.RedMove)}/{Coordinate(move.BlueMove)}")))));
+                    $"{Coordinate(move.RedMove)}/{Coordinate(move.BlueMove)}"))),
+                SimultaneousSearch.BoundedEstimate(revised.Score(Red), node.Width * node.Height),
+                node.Outcome.Lower.Approximate(), node.Outcome.Upper.Approximate()));
 
             foreach (var side in new[] { Red, Blue })
             {
@@ -95,7 +97,7 @@ internal static partial class Program
         string[] names = ["score", "secured", "influence", "material", "formation", "ground", "mobility"];
         return new
         {
-            seed = 42, positionSelectionSeed = 4242, stage = "rank thirds (2 early, 1 middle, 0 late)",
+            seed = 42, positionSelectionSeed = 4242, split, stage = "rank thirds (2 early, 1 middle, 0 late)",
             sampledRepresentatives = selected.Length, policyInterpretation =
                 "CPU-reported binary64 probabilities, or uniform over the exact Probe tie set. Guarantees use solved play after the present turn.",
             horizonInterpretation = "Full reply matrices, terminal outcome and quantized h/(3+|h|) at the cutoff. Tested on a subset.",
@@ -109,6 +111,10 @@ internal static partial class Program
                 var outcomeError = subset.Select(point =>
                     Math.Abs(point.Features[0] / (3 + Math.Abs(point.Features[0])) - point.Outcome)).ToArray();
                 return new { stage, n = subset.Length, meanOutcomeAbsoluteError = subset.Length == 0 ? (double?)null : outcomeError.Average(),
+                    resilientMeanOutcomeAbsoluteError = subset.Length == 0 ? (double?)null :
+                        subset.Average(point => Math.Abs(point.Resilient - point.Outcome)),
+                    certifiedLegacySignErrors = subset.Count(point => OppositeSign(point.Features[0], point)),
+                    certifiedResilientSignErrors = subset.Count(point => OppositeSign(point.Resilient, point)),
                     signErrors = subset.Count(point => Math.Sign(point.Features[0]) * point.Outcome < 0),
                     correlations = names.Select((name, i) => new
                 {
@@ -121,6 +127,9 @@ internal static partial class Program
                     new { p.Stage, heuristic = p.Features[0], p.Outcome, p.Margin, p.Path })
         };
 
+        static bool OppositeSign(double heuristic, EvaluationPoint point) =>
+            heuristic > 0 && point.OutcomeUpper < 0 || heuristic < 0 && point.OutcomeLower > 0;
+
         void Compare(string id, int stage, SolvedPosition node, PlayerId side, double[] distribution, int selectedAction,
             HashSet<int>? modeledReplies = null, HashSet<int>? searchedActions = null,
             int? depth = null, int? completedDepth = null, (int Index, double Expected, double Adverse)[]? rating = null)
@@ -128,6 +137,7 @@ internal static partial class Program
             bool red = side == Red;
             foreach (var utility in Enum.GetValues<SolverUtility>())
             {
+                var game = node.Game(utility);
                 var m = node.Matrix(utility);
                 var value = red ? node.Game(utility).Value : -node.Game(utility).Value;
                 var pure = red ? MatrixGame.RowGuarantees(m) : MatrixGame.ColumnCeilings(m).Select(v => -v).ToArray();
@@ -137,6 +147,17 @@ internal static partial class Program
                 double Worst(IEnumerable<int> replies) => replies.Min(j =>
                     distribution.Select((p, i) => p * At(i,j).Approximate()).Sum());
                 double guarantee = Worst(Enumerable.Range(0, replyCount));
+                var probabilities = distribution.Select(Rational.FromBinary64).ToArray();
+                var total = probabilities.Aggregate(default(Rational), (a, b) => a + b);
+                for (int i = 0; i < probabilities.Length; i++) probabilities[i] /= total;
+                Rational PolicyBound(int endpoint)
+                {
+                    var bound = node.Matrix(utility, red ? endpoint : -endpoint);
+                    return Enumerable.Range(0, replyCount).Select(j => probabilities.Select((p, i) =>
+                        p * (red ? bound[i,j] : -bound[j,i])).Aggregate(default(Rational), (a, b) => a + b)).Min();
+                }
+                var gapLower = (red ? game.Lower : -game.Upper) - PolicyBound(1);
+                var gapUpper = (red ? game.Upper : -game.Lower) - PolicyBound(-1);
                 double replyGap = modeledReplies is { Count: > 0 } ? Worst(modeledReplies) - guarantee : 0;
                 bool missedBest = searchedActions is { Count: > 0 } &&
                     searchedActions.Max(i => pure[i]) < pure.Max();
@@ -158,20 +179,71 @@ internal static partial class Program
                     pure[selectedAction].Approximate(), pure.Max() < value, pure[selectedAction] == value,
                     dominated[selectedAction], distribution.Where((_, i) => pure[i] == value).Sum(),
                     distribution.Where((_, i) => dominated[i]).Sum(), replyGap > 1e-10, missedBest,
-                    depth, completedDepth, agreements, comparable));
+                    depth, completedDepth, agreements, comparable,
+                    Math.Max(0, gapLower.Approximate()), gapUpper.Approximate()));
             }
         }
     }
 
+    private static SolvedPosition[] StudyPositions(SmallBoardGraph graph, int sampleSize, string split, CancellationToken token)
+    {
+        var root = graph.Postorder[^1];
+        if (split == "all")
+        {
+            var random = new Random(4242);
+            var groups = graph.Postorder.Where(node => node.Result is null).GroupBy(node => Stage(node, root))
+                .OrderBy(group => group.Key).Select(group => group.ToArray()).ToArray();
+            return groups.SelectMany(group => group.OrderBy(_ => random.Next())
+                    .Take((sampleSize + groups.Length - 1) / groups.Length))
+                .Prepend(root).Where(node => node.Result is null).Distinct().ToArray();
+        }
+
+        int perStage = (sampleSize + 2) / 3;
+        var symmetry = new BoardSymmetry((from geometry in Enumerable.Range(0, root.Width == root.Height ? 8 : 4)
+            from exchange in new[] { false, true } select new BoardTransform(geometry, exchange)).ToArray());
+        var queues = Enumerable.Range(0, 3)
+            .Select(_ => new PriorityQueue<(string Key, SolvedPosition Node), (ulong Hash, string Key)>(
+                Comparer<(ulong Hash, string Key)>.Create((a, b) =>
+                    a.Hash != b.Hash ? b.Hash.CompareTo(a.Hash) : string.CompareOrdinal(b.Key, a.Key)))).ToArray();
+        var retained = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var (key, node) in graph.Positions)
+        {
+            token.ThrowIfCancellationRequested();
+            if (node.Result is not null || ReferenceEquals(node, root)) continue;
+            string identity = symmetry.Canonicalize(key, root.Width, root.Height).Key;
+            ulong hash = 14695981039346656037UL ^ 4242;
+            foreach (char unit in identity) hash = unchecked((hash ^ unit) * 1099511628211UL);
+            hash ^= hash >> 33;
+            hash = unchecked(hash * 0xff51afd7ed558ccdUL);
+            hash ^= hash >> 33;
+            if (((hash & 3) == 0) != (split == "held-out") || !retained.Add(identity)) continue;
+            var queue = queues[Stage(node, root)];
+            queue.Enqueue((identity, node), (hash, identity));
+            if (queue.Count > perStage) retained.Remove(queue.Dequeue().Key);
+        }
+        return queues.SelectMany(queue => queue.UnorderedItems.OrderBy(item => item.Priority.Hash)
+            .ThenBy(item => item.Element.Key, StringComparer.Ordinal).Select(item => item.Element.Node)).ToArray();
+    }
+
     private static IEnumerable<ParticipantSpec> SolverStudyOpponents()
     {
-        foreach (string kind in new[] { "static", "frozen8c", "strategic" })
+        foreach (string kind in new[] { "static", "frozen8c", "frozen8d2", "strategic" })
         foreach (var difficulty in Enum.GetValues<CpuDifficulty>())
             yield return new($"{kind}-{difficulty.ToString().ToLowerInvariant()}", $"{kind}:{difficulty}");
         yield return new("probe", "probe");
         yield return new("monster-one", "strategic:Monster", Search: new(Depth: 1));
         yield return new("monster-narrow-replies", "strategic:Monster", Search: new(Depth: 2, OpponentCandidates: 2));
         yield return new("monster-two", "strategic:Monster", Search: new(Depth: 2));
+        yield return new("resilient", "strategic:Monster", Search: new(Depth: 2, ResilientEvaluation: true));
+        yield return new("bounded", "strategic:Monster", Search: new(Depth: 2, BoundedUtility: true));
+        yield return new("matrix-one", "strategic:Monster", Search: new(Depth: 1, Equilibrium: MatrixPolicy.Root));
+        yield return new("matrix-expected", "strategic:Monster", Search: new(Depth: 2, Equilibrium: MatrixPolicy.Expected));
+        yield return new("matrix-root", "strategic:Monster", Search: new(Depth: 2, Equilibrium: MatrixPolicy.Root));
+        yield return new("matrix-continuations", "strategic:Monster", Search: new(Depth: 2, Equilibrium: MatrixPolicy.Continuations));
+        yield return new("combined", "strategic:Monster", Search: new(Depth: 2, ResilientEvaluation: true,
+            Equilibrium: MatrixPolicy.Continuations));
+        yield return new("resilient-wide", "strategic:Monster", 2000, Search: new(Depth: 2, OwnCandidates: 22,
+            OpponentCandidates: 14, ResilientEvaluation: true));
         yield return new("monster-wide", "strategic:Monster", 2000, Search: new(Depth: 2, OwnCandidates: 22, OpponentCandidates: 14));
         yield return new("monster-deep", "strategic:Monster", 2000, Search: new(Depth: 3,
             ContinuationOwnCandidates: 2, ContinuationOpponentCandidates: 2, DeepFinalists: 2, ProofOnlyDeepening: false));
@@ -191,6 +263,7 @@ internal static partial class Program
         {
             CpuDecisionReport report => report.Candidates.Select(c => (c.Position, c.Probability)),
             EightC.CpuDecisionReport report => report.Candidates.Select(c => (c.Position, c.Probability)),
+            EightD2.CpuDecisionReport baseline => baseline.Candidates.Select(c => (c.Position, c.Probability)),
             Frozen.CpuDecisionReport report => report.Candidates.Select(c => (c.Position, c.Probability)),
             _ => ProbePolicy(snapshot, side)
         };
@@ -238,10 +311,13 @@ internal static partial class Program
     private static object Summarize(string id, string utility, IEnumerable<PolicyComparison> rows)
     {
         var data = rows.ToArray();
+        var gaps = data.Select(row => row.Value - row.Guarantee).Order().ToArray();
         return new { id, utility, n = data.Length, meanValue = data.Average(row => row.Value),
             meanGuarantee = data.Average(row => row.Guarantee), meanGap = data.Average(row => row.Value - row.Guarantee),
+            meanGapLower = data.Average(row => row.GapLower), meanGapUpper = data.Average(row => row.GapUpper),
             meanSampledPureGap = data.Average(row => row.Value - row.PureGuarantee),
-            maxGap = data.Max(row => row.Value - row.Guarantee),
+            medianGap = gaps[(gaps.Length - 1) / 2], p95Gap = gaps[(int)Math.Ceiling(gaps.Length * .95) - 1],
+            maxGap = gaps[^1],
             optimalPureSelections = data.Count(row => row.OptimalPure), dominatedSelections = data.Count(row => row.Dominated),
             meanOptimalPureMass = data.Average(row => row.OptimalPureMass), meanDominatedMass = data.Average(row => row.DominatedMass),
             mixRequired = data.Count(row => row.MixRequired),
@@ -267,11 +343,12 @@ internal static partial class Program
         return aa == 0 || bb == 0 ? null : numerator / Math.Sqrt(aa * bb);
     }
 
-    private sealed record EvaluationPoint(int Stage, double[] Features, double Outcome, double Margin, string Path);
+    private sealed record EvaluationPoint(int Stage, double[] Features, double Outcome, double Margin, string Path,
+        double Resilient, double OutcomeLower, double OutcomeUpper);
     private sealed record PolicyComparison(string Id, string Utility, int Stage, double Value, double Guarantee,
         double PureGuarantee, bool MixRequired, bool OptimalPure, bool Dominated, double OptimalPureMass,
         double DominatedMass, bool MissedReply, bool MissedBest, int? Depth, int? CompletedDepth,
-        int RankingAgreements, int RankingPairs);
+        int RankingAgreements, int RankingPairs, double GapLower, double GapUpper);
 
     private sealed class HorizonStudy(BoardState root)
     {

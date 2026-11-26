@@ -393,13 +393,19 @@ internal sealed class SmallBoardGraph(SolveLimits limits, CancellationToken toke
         }
     }
 
-    internal (bool Red, bool Blue) CanForceDraw(SolvedPosition root)
+    internal (bool Red, bool Blue) CanForceDraw(SolvedPosition root) => GuaranteedResult(root, allowWin: false);
+
+    internal (bool Red, bool Blue) CanAvoidLoss(SolvedPosition root) => GuaranteedResult(root, allowWin: true);
+
+    private (bool Red, bool Blue) GuaranteedResult(SolvedPosition root, bool allowWin)
     {
         var guaranteed = new Dictionary<SolvedPosition, (bool Red, bool Blue)>();
         foreach (var node in _postorder)
         {
             token.ThrowIfCancellationRequested();
-            if (node.Result is { } result) guaranteed[node] = (result.Winner is null, result.Winner is null);
+            if (node.Result is { } result)
+                guaranteed[node] = (result.Winner is null || allowWin && result.Winner == Red,
+                    result.Winner is null || allowWin && result.Winner == Blue);
             else guaranteed[node] = (
                 Enumerable.Range(0, node.Red.Length).Any(i => Enumerable.Range(0, node.Blue.Length)
                     .All(j => Guaranteed(node.Child(i,j), true))),

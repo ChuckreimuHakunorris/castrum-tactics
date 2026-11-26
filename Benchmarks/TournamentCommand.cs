@@ -44,7 +44,14 @@ internal static partial class Program
                 Console.CancelKeyPress += handler;
                 try
                 {
+                    int[]? beforeGc = dedicated ? Enumerable.Range(0, GC.MaxGeneration + 1).Select(GC.CollectionCount).ToArray() : null;
                     var progress = ExecuteTournament(output, plan, dedicated, stop, cancellation.Token);
+                    if (beforeGc is not null)
+                        SaveJson(Path.Combine(output, "process-gc.json"), new
+                        {
+                            collections = beforeGc.Select((count, generation) => GC.CollectionCount(generation) - count).ToArray(),
+                            peakWorkingSetBytes = System.Diagnostics.Process.GetCurrentProcess().PeakWorkingSet64
+                        });
                     Write(progress);
                     return progress.State == "cancelled" ? 130 : progress.Failed != 0 ? 2 : 0;
                 }

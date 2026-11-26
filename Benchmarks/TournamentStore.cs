@@ -20,7 +20,7 @@ internal static partial class Program
     {
         var assemblies = new[] { typeof(Program).Assembly, typeof(CpuDecisionEngine).Assembly,
             typeof(RuleSet).Assembly }.Concat(typeof(Program).Assembly.GetReferencedAssemblies()
-            .Where(name => name.Name is "CastrumTactics.FrozenAI" or "CastrumTactics.Frozen8C")
+            .Where(name => name.Name is "CastrumTactics.FrozenAI" or "CastrumTactics.Frozen8C" or "CastrumTactics.Frozen8D2")
             .Select(System.Reflection.Assembly.Load));
         var binaries = assemblies.OrderBy(assembly => assembly.GetName().Name, StringComparer.Ordinal)
             .ToDictionary(assembly => assembly.GetName().Name!, assembly =>
@@ -68,9 +68,22 @@ internal static partial class Program
         try
         {
             File.WriteAllText(temporary, content);
-            File.Move(temporary, path, overwrite: true);
+            // A Windows reader can briefly deny replacement of the current checkpoint.
+            for (int attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    File.Move(temporary, path, overwrite: true);
+                    break;
+                }
+                catch (Exception error) when (OperatingSystem.IsWindows() && attempt < 6 &&
+                    error is IOException or UnauthorizedAccessException)
+                {
+                    Thread.Sleep(20 << attempt);
+                }
+            }
         }
-        finally { File.Delete(temporary); }
+        finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
     private static string ManifestPath(string directory) => Path.Combine(directory, "manifest.json");

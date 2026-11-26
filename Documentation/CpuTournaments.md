@@ -21,6 +21,8 @@ The JSON examples cover a five-difficulty round robin, explicit fixed drafts aga
 
 ## Participants and configuration
 
+Use `frozen8d2:<difficulty>` for the immutable 8D.2 policy. A live `strategic` participant without a `search` object uses the built-in settings. An explicit `search` object uses the 8D.2 evaluator and sampler by default, with independent overrides for `resilientEvaluation`, `boundedUtility` and `equilibrium` (`off`, `expected`, `root` or `continuations`). Matrix experiments beyond two turns require proof-only deepening. With strategic metrics enabled, the match record also counts historic interior placements for which a legal alternative improved immediate audited terms against the realized reply. Dedicated performance runs record process collection counts and peak working set in `process-gc.json`. [8D.3 configurations and reproduction](CpuStrategicEvaluation.md)
+
 | Opponent ID | Implementation and provenance |
 | --- | --- |
 | `strategic:<difficulty>` | Current production policy and profile. Optional `pairBudget`, `weights` (a complete [CpuEvaluationWeights](xref:CastrumTactics.AI.CpuEvaluationWeights) object), `timeLimitMs`, and `search` overrides apply only to that participant. |

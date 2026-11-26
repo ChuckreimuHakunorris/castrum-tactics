@@ -1,13 +1,16 @@
 extern alias frozen;
 extern alias frozen8c;
+extern alias frozen8d2;
 
 using System.Diagnostics;
+using System.Text.Json.Serialization;
 using CastrumTactics.AI;
 using CastrumTactics.Development;
 using CastrumTactics.Development.Solver;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using Frozen = frozen::CastrumTactics.AI;
+using EightD2 = frozen8d2::CastrumTactics.AI;
 using EightC = frozen8c::CastrumTactics.AI;
 
 internal static partial class Program
@@ -26,7 +29,13 @@ internal static partial class Program
         int RedScore, int BlueScore, int MainTurns, int DraftRounds, int Collisions, int ForcedCollisions,
         int RedCastles, int BlueCastles, bool RedAvoidableLoss, bool BlueAvoidableLoss, int RedInterior,
         int BlueInterior, int RedPlacements, int BluePlacements, string? HistoryDigest, List<TournamentRound> Rounds,
-        string? Error = null);
+        string? Error = null)
+    {
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? RedInteriorWithBetterAlternative { get; init; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? BlueInteriorWithBetterAlternative { get; init; }
+    }
 
     private static TournamentOpponent CreateOpponent(ParticipantSpec spec)
     {
@@ -78,20 +87,31 @@ internal static partial class Program
                 var defaults = CpuDifficultyProfiles.Get(level);
                 var search = defaults.Search!;
                 var overrides = spec.Search;
+                int depth = overrides?.Depth ?? search.Depth;
+                var equilibrium = overrides is null ? search.Equilibrium : overrides.Equilibrium ?? MatrixPolicy.Off;
+                bool proofOnly = overrides?.ProofOnlyDeepening ?? search.ProofOnlyDeepening;
+                if (equilibrium != MatrixPolicy.Off && depth > 2 && !proofOnly)
+                    throw new ArgumentException("Equilibrium search beyond two turns requires proof-only deepening.");
                 var profile = new CpuProfile(spec.Weights ?? defaults.Weights, defaults.OpeningCandidateLimit,
                     defaults.MainCandidateLimit, defaults.MainTemperature, defaults.OpeningTemperature,
                     defaults.OpeningDiversity, defaults.UrgentOpeningDiversity, defaults.OpeningMaximumScoreDifference,
                     defaults.MainMaximumScoreDifference)
                 {
-                    Search = new(overrides?.Depth ?? search.Depth, overrides?.OwnCandidates ?? search.OwnCandidates,
+                    Search = new(depth, overrides?.OwnCandidates ?? search.OwnCandidates,
                         overrides?.OpponentCandidates ?? search.OpponentCandidates, spec.PairBudget ?? search.PairBudget,
                         overrides?.Risk ?? search.Risk, overrides?.ReplyTemperature ?? search.ReplyTemperature,
                         overrides?.ContinuationOwnCandidates ?? search.ContinuationOwnCandidates,
                         overrides?.ContinuationOpponentCandidates ?? search.ContinuationOpponentCandidates,
                         overrides?.DeepFinalists ?? search.DeepFinalists,
-                        overrides?.VerifyTerminalWins ?? search.VerifyTerminalWins,
+                        overrides?.VerifyTerminalWins ?? (level != CpuDifficulty.Monster ||
+                            overrides is null && search.VerifyTerminalWins),
                         overrides?.RequireFullRootReplies ?? search.RequireFullRootReplies,
-                        overrides?.ProofOnlyDeepening ?? search.ProofOnlyDeepening)
+                        proofOnly)
+                    {
+                        ResilientEvaluation = overrides is null ? search.ResilientEvaluation : overrides.ResilientEvaluation ?? false,
+                        BoundedUtility = overrides is null ? search.BoundedUtility : overrides.BoundedUtility ?? false,
+                        Equilibrium = equilibrium
+                    }
                 };
                 var engine = spec.TimeLimitMs is double milliseconds
                     ? new CpuDecisionEngine(TimeSpan.FromMilliseconds(milliseconds)) : Engine;
@@ -117,6 +137,19 @@ internal static partial class Program
                             Depth: report?.Depth, BudgetExhausted: report?.BudgetExhausted,
                             TimeLimitReached: report?.TimeLimitReached, Fallback: report is null ? null : report.Depth == 0,
                             Diagnostics: diagnostics ? decision : null);
+                    });
+            case "frozen8d2":
+                var frozenD2Engine = new EightD2.CpuDecisionEngine();
+                var frozenD2Profile = EightD2.CpuDifficultyProfiles.Get((EightD2.CpuDifficulty)level);
+                return new(spec, "9ef5ad05409efdc7d00cf112bd5b65cdc7ba5474",
+                    (state, player, random, diagnostics, token) =>
+                    {
+                        var decision = frozenD2Engine.DecideWithDiagnostics(state, player, frozenD2Profile, random, token);
+                        var report = decision.Search;
+                        return new(Coordinate(decision.Decision!.Value.Position), Pairs: report?.ResolvedPairs,
+                            Depth: report?.Depth, BudgetExhausted: report?.BudgetExhausted,
+                            TimeLimitReached: report?.TimeLimitReached, Fallback: report is null ? null : report.Depth == 0,
+                            Diagnostics: diagnostics ? decision : null, ReusedPairs: report?.ReusedPairs, CompletedDepth: report?.CompletedDepth);
                     });
             case "static":
                 return new(spec, "afb0dcbab5b789ed8820017c84648ed4dd3bbe14",
@@ -236,7 +269,11 @@ internal static partial class Program
             final.PlayerOneScore, final.PlayerTwoScore, final.ResolvedMainTurns, final.ResolvedRounds,
             collisions, forced, redCastles, blueCastles, metrics[0].AvoidableLoss, metrics[1].AvoidableLoss,
             metrics[0].Interior, metrics[1].Interior, metrics[0].Placements, metrics[1].Placements,
-            status == "completed" ? HistoryDigest(match.Map, config.Ruleset, rounds) : null, rounds, error);
+            status == "completed" ? HistoryDigest(match.Map, config.Ruleset, rounds) : null, rounds, error)
+        {
+            RedInteriorWithBetterAlternative = audit is null ? null : metrics[0].BetterAlternative,
+            BlueInteriorWithBetterAlternative = audit is null ? null : metrics[1].BetterAlternative
+        };
     }
 
     private static (int Red, int Blue) CountCastles(BoardState board)
@@ -256,13 +293,17 @@ internal static partial class Program
         DecisionSample decision, DecisionSample opposing, ref TacticalMetrics metrics, CancellationToken token)
     {
         var action = Position(decision.Move);
+        var reply = new MainPhaseSelection(Other(side), Position(opposing.Move));
         if (before.Board.GetCell(action).Piece == PieceType.None)
         {
             metrics.Placements++;
-            if (IsInteriorPlacement(position, before, after, side, action, token)) metrics.Interior++;
+            if (IsInteriorPlacement(position, before, after, side, action, token))
+            {
+                metrics.Interior++;
+                if (HasBetterPlacement(before, after, side, action, reply, token)) metrics.BetterAlternative++;
+            }
         }
         if (after.Result?.Winner != Other(side)) return;
-        var reply = new MainPhaseSelection(Other(side), Position(opposing.Move));
         foreach (var alternative in before.GetLegalSelections(side))
         {
             token.ThrowIfCancellationRequested();
@@ -274,9 +315,40 @@ internal static partial class Program
         }
     }
 
+    private static bool HasBetterPlacement(MainPhaseState before, MainPhaseState after, PlayerId side,
+        BoardPosition selected, MainPhaseSelection reply, CancellationToken token)
+    {
+        var legalBefore = before.GetLegalSelections(side);
+        var (outcome, margin, newReach, formation) = Measure(after);
+        foreach (var alternative in legalBefore)
+        {
+            token.ThrowIfCancellationRequested();
+            if (alternative == selected || before.Board.GetCell(alternative).Piece != PieceType.None) continue;
+            var (nextOutcome, nextMargin, nextReach, nextFormation) = Measure(before.Advance(new(side, alternative), reply));
+            if (nextOutcome < outcome || nextMargin < margin || nextReach < newReach || nextFormation < formation) continue;
+            if (nextOutcome > outcome || nextMargin > margin || nextReach > newReach || nextFormation > formation)
+                return true;
+        }
+        return false;
+
+        (int Outcome, int Margin, int NewReach, int Formation) Measure(MainPhaseState state)
+        {
+            int delta = state.Territory.PlayerOneScore - state.Territory.PlayerTwoScore;
+            int margin = side == Red ? delta : -delta;
+            int outcome = state.Result is null ? 0 : Math.Sign(margin);
+            int formation = 0;
+            for (int y = 0; y < state.Board.Height; y++)
+            for (int x = 0; x < state.Board.Width; x++)
+                if (state.Board.GetCell(new(x, y)).Owner == side) formation++;
+            int reach = state.GetLegalSelections(side).Count(target => !legalBefore.Contains(target) &&
+                state.Board.GetCell(target).Piece == PieceType.None);
+            return (outcome, margin, reach, formation);
+        }
+    }
+
     private struct TacticalMetrics
     {
-        internal int Interior, Placements;
+        internal int Interior, Placements, BetterAlternative;
         internal bool AvoidableLoss;
     }
 

@@ -129,7 +129,7 @@ internal static partial class Program
                 !(p == own[selected] && search.Actions.Any(a => a.Position == p && a.CollisionChecked))).Select(Coordinate),
             search = search is null ? null : new
             {
-                search.Depth, search.CompletedDepth,
+                search.Depth, search.CompletedDepth, search.Matrix,
                 actions = search.Actions.Select(a => new { at = Coordinate(a.Position), a.Expected, a.Adverse,
                     a.ProvenWin, guarantee = guarantees[Array.IndexOf(own, a.Position)].ToString() }),
                 replies = search.Replies.Select(r => new { at = Coordinate(r.Position), r.Probability })

@@ -149,6 +149,7 @@ public sealed class CpuDecisionEngine
 
         CpuSearchReport? searchReport = null;
         int selectable = candidates.Length;
+        bool usesMatrix = false;
         if (replies is not null)
         {
             var result = new SimultaneousSearch(snapshot, player, opponent, profile, token, start, _searchTimeLimit)
@@ -156,6 +157,7 @@ public sealed class CpuDecisionEngine
             candidates = result.Candidates;
             selectable = result.Selectable;
             searchReport = result.Report;
+            usesMatrix = result.UsesMatrix;
         }
 
         token.ThrowIfCancellationRequested();
@@ -167,9 +169,29 @@ public sealed class CpuDecisionEngine
         double diversity = opening
             ? (noStartingPieces && candidates.Length == 2 ? profile.UrgentOpeningDiversity : profile.OpeningDiversity)
             : 0;
-        int selected = Sample(sampling, poolSize, temperature, diversity, random);
+        int selected = usesMatrix ? SampleMatrix(sampling, random) : Sample(sampling, poolSize, temperature, diversity, random);
         return (new CpuDecision(player, candidates[selected].Position, snapshot.Phase, snapshot.RoundId), candidates,
             searchReport);
+    }
+
+    private static int SampleMatrix(ReadOnlySpan<CpuCandidate> policy, Random random)
+    {
+        int last = 0;
+        int support = 0;
+        for (int i = 0; i < policy.Length; i++)
+        {
+            if (policy[i].Probability <= 0) continue;
+            last = i;
+            support++;
+        }
+        if (support == 1) return last;
+        double draw = random.NextDouble();
+        for (int i = 0; i <= last; i++)
+        {
+            draw -= policy[i].Probability;
+            if (draw < 0) return i;
+        }
+        return last;
     }
 
     internal static CpuCandidate[] RankMain(TacticalBoard board, TerritoryAnalysis territory, PlayerId player,

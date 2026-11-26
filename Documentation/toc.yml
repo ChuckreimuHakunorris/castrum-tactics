@@ -13,6 +13,8 @@ items:
     href: CpuTournaments.md
   - name: CPU search optimization
     href: CpuSearchOptimization.md
+  - name: CPU strategic evaluation
+    href: CpuStrategicEvaluation.md
   - name: Small-board solver
     href: SmallBoardSolver.md
   - name: API Reference
