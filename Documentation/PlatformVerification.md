@@ -46,4 +46,3 @@ Keep the Android preset's package ID `com.castrumtactics.prototype` and use the 
 The template pins NDK `29.0.14206865` for native tooling. The verified debug export used prebuilt native libraries and packaged them without stripping symbols, so it succeeded without that NDK. The current Gradle project has no CMake build. Use the versions in [`config.gradle`](https://github.com/ChuckreimuHakunorris/castrum-tactics/blob/main/android/build/config.gradle) for this project. The general Godot 4.7 setup guide lists older SDK packages. [Godot 4.7 Android setup](https://docs.godotengine.org/en/4.7/tutorials/export/exporting_for_android.html#download-the-android-sdk)
 
 See the [game design](GameDesign.md) and [art direction](ArtDirection.md) for gameplay rules and visual direction.
-
