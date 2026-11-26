@@ -54,13 +54,12 @@ public sealed class GameSessionSnapshot
     /// <param name="playerTwo">Player Two's eligible choice on this snapshot.</param>
     /// <returns>A hypothetical snapshot with no pending submissions and the projected next phase and round.</returns>
     /// <exception cref="InvalidOperationException">The phase is not Opening or either choice is ineligible.</exception>
-    /// <remarks>Ignores submission status and does not modify the originating session.</remarks>
+    /// <remarks>Uses the same resolution as live play, including immediate completion when the final draft board has no Main actions. Ignores submission status and does not modify the originating session.</remarks>
     public GameSessionSnapshot PreviewDraft(BoardPosition playerOne, BoardPosition playerTwo)
     {
         if (Phase != MatchPhase.Opening) throw new InvalidOperationException("The draft is not active.");
-        OpeningDraft draft = _draft.ResolveRound(playerOne, playerTwo);
-        var main = draft.Phase == MatchPhase.Main ? MainPhaseState.Evaluate(draft.Board, RuleSet) : null;
-        return new GameSessionSnapshot(draft, main, 0, RoundId + draft.ResolvedRounds - ResolvedRounds, false, false);
+        var (draft, main, rounds) = _draft.ResolveTransition(playerOne, playerTwo);
+        return new GameSessionSnapshot(draft, main, 0, RoundId + rounds, false, false);
     }
 
     /// <summary>Gets Player One's secured territory total, or zero during the opening or a failed draft.</summary>

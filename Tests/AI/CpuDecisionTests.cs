@@ -117,12 +117,12 @@ public sealed class CpuDecisionTests(ITestOutputHelper output)
             new CpuProfile(default(CpuEvaluationWeights) with { Risk = double.PositiveInfinity }, 1, 1, 1, 1));
 
         CpuCandidate[] ranked = [new(new(0, 0), default, 0, 0), new(new(1, 0), default, -1, 0), new(new(2, 0), default, -2, 0)];
-        Assert.Equal(0, CpuDecisionEngine.Sample(ranked, 2, 1, 0, new FixedRandom(0)));
+        Assert.Equal(0, CandidateSampling.Sample(ranked, 2, 1, 0, new FixedRandom(0)));
         double boundary = ranked[0].Probability;
-        Assert.Equal(1, CpuDecisionEngine.Sample(ranked, 2, 1, 0, new FixedRandom(boundary)));
+        Assert.Equal(1, CandidateSampling.Sample(ranked, 2, 1, 0, new FixedRandom(boundary)));
         Assert.Equal(0, ranked[2].Probability);
         Assert.Equal(1, ranked.Sum(candidate => candidate.Probability), 12);
-        CpuDecisionEngine.Sample(ranked, 2, 0.1, 0, new FixedRandom(0));
+        CandidateSampling.Sample(ranked, 2, 0.1, 0, new FixedRandom(0));
         Assert.True(ranked[0].Probability > boundary);
     }
 
@@ -178,19 +178,19 @@ public sealed class CpuDecisionTests(ITestOutputHelper output)
     public void NominalPoolIncludesCutoffTiesAndScoreCutoffUsesTheWeightedScale()
     {
         CpuCandidate[] ranked = Ranked(8, 6, 6, 6 - 5e-13, 6 - 2e-12, 2);
-        int pool = CpuDecisionEngine.GetPoolSize(ranked, 2, 1, null);
+        int pool = CandidateSampling.GetPoolSize(ranked, 2, 1, null);
         Assert.Equal(4, pool);
-        Assert.Equal(3, CpuDecisionEngine.Sample(ranked, pool, 1, 0, new FixedRandom(1)));
+        Assert.Equal(3, CandidateSampling.Sample(ranked, pool, 1, 0, new FixedRandom(1)));
         Assert.All(ranked.Take(pool), candidate => Assert.True(candidate.Probability > 0));
         Assert.All(ranked.Skip(pool), candidate => Assert.Equal(0, candidate.Probability));
 
-        int unrestricted = CpuDecisionEngine.GetPoolSize(ranked, ranked.Length, 1, null);
+        int unrestricted = CandidateSampling.GetPoolSize(ranked, ranked.Length, 1, null);
         Assert.Equal(ranked.Length, unrestricted);
-        CpuDecisionEngine.Sample(ranked, unrestricted, 1, 0, new FixedRandom(0));
+        CandidateSampling.Sample(ranked, unrestricted, 1, 0, new FixedRandom(0));
         Assert.All(ranked, candidate => Assert.True(candidate.Probability > 0));
-        pool = CpuDecisionEngine.GetPoolSize(ranked, ranked.Length, 1, 2);
+        pool = CandidateSampling.GetPoolSize(ranked, ranked.Length, 1, 2);
         Assert.Equal(4, pool);
-        CpuDecisionEngine.Sample(ranked, pool, 1, 0, new FixedRandom(0));
+        CandidateSampling.Sample(ranked, pool, 1, 0, new FixedRandom(0));
         Assert.All(ranked.Take(pool), candidate => Assert.True(candidate.Probability > 0));
         Assert.All(ranked.Skip(pool), candidate => Assert.Equal(0, candidate.Probability));
         Assert.Equal(1, ranked.Sum(candidate => candidate.Probability), 12);
@@ -200,22 +200,22 @@ public sealed class CpuDecisionTests(ITestOutputHelper output)
     public void ZeroTemperatureSamplesEquivalentBestAndClearsReusedDiagnostics()
     {
         CpuCandidate[] ranked = Ranked(3.5, 3.5, 3.5 - 5e-13, 3.2);
-        CpuDecisionEngine.Sample(ranked, ranked.Length, 1, 0, new FixedRandom(0));
+        CandidateSampling.Sample(ranked, ranked.Length, 1, 0, new FixedRandom(0));
         foreach ((double draw, int index) in new[] { (0.0, 0), (1.0 / 3, 1), (2.0 / 3, 2), (1.0, 2) })
         {
-            Assert.Equal(index, CpuDecisionEngine.Sample(ranked, ranked.Length, 0, 0, new FixedRandom(draw)));
+            Assert.Equal(index, CandidateSampling.Sample(ranked, ranked.Length, 0, 0, new FixedRandom(draw)));
             Assert.Equal(new[] { 1.0 / 3, 1.0 / 3, 1.0 / 3, 0 }, ranked.Select(c => c.Probability));
         }
 
-        int selected = CpuDecisionEngine.Sample(ranked, 1, 0, 0, new Random(42));
-        Assert.Equal(selected, CpuDecisionEngine.Sample(ranked, 1, 0, 0, new Random(42)));
-        Assert.Equal(3, CpuDecisionEngine.GetPoolSize(ranked, 3, 1, 0));
+        int selected = CandidateSampling.Sample(ranked, 1, 0, 0, new Random(42));
+        Assert.Equal(selected, CandidateSampling.Sample(ranked, 1, 0, 0, new Random(42)));
+        Assert.Equal(3, CandidateSampling.GetPoolSize(ranked, 3, 1, 0));
 
         ranked = Ranked(0, -2, -3);
-        Assert.Equal(0, CpuDecisionEngine.Sample(ranked, 3, double.Epsilon, 0, new FixedRandom(1)));
+        Assert.Equal(0, CandidateSampling.Sample(ranked, 3, double.Epsilon, 0, new FixedRandom(1)));
         Assert.Equal(new[] { 1.0, 0, 0 }, ranked.Select(c => c.Probability));
-        CpuDecisionEngine.Sample(ranked, 3, 1, 0, new FixedRandom(0));
-        Assert.Equal(0, CpuDecisionEngine.Sample(ranked, 3, 0, 0, new FixedRandom(0.99)));
+        CandidateSampling.Sample(ranked, 3, 1, 0, new FixedRandom(0));
+        Assert.Equal(0, CandidateSampling.Sample(ranked, 3, 0, 0, new FixedRandom(0.99)));
         Assert.Equal(new[] { 1.0, 0, 0 }, ranked.Select(c => c.Probability));
     }
 

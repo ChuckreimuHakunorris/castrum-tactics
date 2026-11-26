@@ -40,8 +40,8 @@ public sealed class CpuEvaluationTests
         Assert.Equal(new TacticalBoard.Region(2, 1, 0), board.RegionAt(4));
 
         var corridor = new TacticalBoard(ResolvedBoard.Parse("....."), true, default, RuleSet.KnightSupport);
-        CpuFeatures classic = CpuDecisionEngine.OpeningFeatures(corridor, 2, One, Two);
-        CpuFeatures castle = CpuDecisionEngine.OpeningFeatures(corridor, 2, One, Two, knightSupport: true);
+        CpuFeatures classic = TacticalCandidates.OpeningFeatures(corridor, 2, One, Two);
+        CpuFeatures castle = TacticalCandidates.OpeningFeatures(corridor, 2, One, Two, knightSupport: true);
         Assert.True(castle.Bottleneck > 0);
         Assert.True(castle.Territory > classic.Territory);
     }
@@ -173,7 +173,7 @@ public sealed class CpuEvaluationTests
     }
 
     private static CpuFeatures Opening(TacticalBoard board, int x, int y) =>
-        CpuDecisionEngine.OpeningFeatures(board, board.Index(new BoardPosition(x, y)), One, Two);
+        TacticalCandidates.OpeningFeatures(board, board.Index(new BoardPosition(x, y)), One, Two);
 
     private static CpuFeatures EvaluateMain(BoardState board, BoardPosition position, RuleSet ruleSet = RuleSet.Classic)
     {

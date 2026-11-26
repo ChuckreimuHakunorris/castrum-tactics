@@ -305,14 +305,14 @@ public sealed class StrategicCpuTests
         var search = new SimultaneousSearch(snapshot, One, Two, Monster, source.Token, 0, null);
         var ranked = snapshot.EligiblePositions.Select(position => new CpuCandidate(position, default, 0, 0)).ToArray();
         source.Cancel();
-        Assert.Throws<OperationCanceledException>(() => search.Analyze(snapshot, ranked, ranked, diagnostics: true));
+        Assert.Throws<OperationCanceledException>(() => search.AnalyzeDraft(snapshot, ranked, ranked, diagnostics: true));
     }
 
     private static CpuSearchReport AnalyzeDraft(GameSessionSnapshot snapshot, CpuProfile profile)
     {
         var ranked = snapshot.EligiblePositions.Select(position => new CpuCandidate(position, default, 0, 0)).ToArray();
         return new SimultaneousSearch(snapshot, One, Two, profile, default, 0, null)
-            .Analyze(snapshot, ranked, ranked, diagnostics: true).Report!;
+            .AnalyzeDraft(snapshot, ranked, ranked, diagnostics: true).Report!;
     }
 
     private static StrategicPosition.PositionFeatures Features(BoardState board)

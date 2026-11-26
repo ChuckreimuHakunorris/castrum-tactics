@@ -107,12 +107,10 @@ public sealed class LocalGameSession : IGameSession
             return 1;
         }
 
-        OpeningDraft draft = _draft.ResolveRound(first, second);
-        // Score the actual draft board before publishing any main-phase snapshot.
-        _mainPhase = draft.Phase == MatchPhase.Main ? MainPhaseState.Evaluate(draft.Board, draft.RuleSet) : null;
-        int resolvedRounds = draft.ResolvedRounds - _draft.ResolvedRounds;
+        var (draft, main, rounds) = _draft.ResolveTransition(first, second);
         _draft = draft;
-        return resolvedRounds;
+        _mainPhase = main;
+        return rounds;
     }
 
     /// <inheritdoc />

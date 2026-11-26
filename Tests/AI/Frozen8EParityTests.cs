@@ -97,7 +97,7 @@ public sealed class Frozen8EParityTests
                 } : null;
                 var liveSearch = actual.Search is { } newSearch ? newSearch with
                 {
-                    Elapsed = TimeSpan.Zero, Matrix = newSearch.Matrix is { } m ? m with { Elapsed = TimeSpan.Zero } : null
+                    Elapsed = TimeSpan.Zero, Matrix = newSearch.Matrix is { } matrix ? matrix with { Elapsed = TimeSpan.Zero } : null
                 } : null;
                 Assert.Equal(JsonSerializer.Serialize(new { expected.Decision, expected.Candidates, Search = frozenSearch }),
                     JsonSerializer.Serialize(new { actual.Decision, actual.Candidates, Search = liveSearch }));
