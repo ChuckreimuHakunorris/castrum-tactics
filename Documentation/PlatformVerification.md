@@ -46,3 +46,40 @@ Keep the Android preset's package ID `com.castrumtactics.prototype` and use the 
 The template pins NDK `29.0.14206865` for native tooling. The verified debug export used prebuilt native libraries and packaged them without stripping symbols, so it succeeded without that NDK. The current Gradle project has no CMake build. Use the versions in [`config.gradle`](https://github.com/ChuckreimuHakunorris/castrum-tactics/blob/main/android/build/config.gradle) for this project. The general Godot 4.7 setup guide lists older SDK packages. [Godot 4.7 Android setup](https://docs.godotengine.org/en/4.7/tutorials/export/exporting_for_android.html#download-the-android-sdk)
 
 See the [game design](GameDesign.md) and [art direction](ArtDirection.md) for gameplay rules and visual direction.
+
+## Windows x64 debug export
+
+Install the matching Godot .NET export templates and the [pinned SDK](EngineeringVerification.md#toolchain-and-policy). Run from the repository root in PowerShell.
+
+```powershell
+New-Item -ItemType Directory -Force exports/windows | Out-Null
+godot --headless --path . --import
+godot --headless --path . --export-debug "Windows Desktop" exports/windows/CastrumTactics.exe
+dumpbin /headers exports/windows/CastrumTactics.exe
+Test-Path exports/windows/CastrumTactics.pck
+Test-Path exports/windows/data_CastrumTactics_windows_x86_64/CastrumTactics.dll
+./exports/windows/CastrumTactics.console.exe -- --mode local --ruleset classic --map demonstration
+./exports/windows/CastrumTactics.console.exe -- --mode cpu --ruleset knight-support --map demonstration --seed 42
+```
+
+Use `dumpbin` from a Visual Studio Developer Shell to verify x64 (machine `8664`). On Linux, `file` can inspect the PE32+ package. Keep the pack and managed sidecars next to the executable for launch. Complete the Classic walkthrough, then play a short Knight Support CPU match. Start a replacement match while the CPU is thinking and confirm the new game accepts only its own actions.
+
+## Android package validation
+
+After configuring the SDK and templates as [above](#android-export), set `ANDROID_HOME` to the installed Android SDK path for the tool commands below. Use the existing Android preset. On Linux, the tracked `android/build/gradlew` needs its executable bit. On checkouts prior to 9C, set it locally with `chmod +x android/build/gradlew`.
+
+```powershell
+New-Item -ItemType Directory -Force exports/android | Out-Null
+dotnet build CastrumTactics.csproj -p:GodotTargetPlatform=android -warnaserror
+godot --headless --path . --import
+godot --headless --path . --export-debug Android exports/android/CastrumTactics-debug.apk
+$tools = Join-Path $env:ANDROID_HOME 'build-tools/36.1.0'
+& "$tools/apksigner.bat" verify --verbose exports/android/CastrumTactics-debug.apk
+& "$tools/zipalign.exe" -c -P 16 -v 4 exports/android/CastrumTactics-debug.apk
+& "$tools/aapt.exe" dump badging exports/android/CastrumTactics-debug.apk
+./scripts/Install-AndroidDebug.ps1 -Apk exports/android/CastrumTactics-debug.apk
+```
+
+Confirm signature, 16 KiB alignment, package ID `com.castrumtactics.prototype` and ARM64 libraries. On Linux, use the equivalent tools without file extensions. After installing on an authorized phone, launch the app. Follow the rotation and hit-testing walkthrough, then use the normal Knight Support CPU build to exercise New Match, restart and interruption while the CPU is thinking.
+
+For optional device measurement, use the [instrumentation procedure](CpuDifficultyCalibration.md#physical-android-follow-up) with `CastrumDeviceTiming=true` and a separate local output. Record the revision, device and Android version. Discard warm-up samples before summarizing worker timing and thread allocation, and record process GC counts, Android frame timing and thermal observations separately. See the [verification record](EngineeringVerification.md#verification-record) for currently completed checks.

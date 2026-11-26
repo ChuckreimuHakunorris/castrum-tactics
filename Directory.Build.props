@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup Condition="!$(MSBuildProjectName.StartsWith('CastrumTactics.Frozen'))">
+    <AnalysisLevel>10.0</AnalysisLevel>
+    <AnalysisMode>Default</AnalysisMode>
+  </PropertyGroup>
+</Project>

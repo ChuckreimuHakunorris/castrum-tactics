@@ -9,9 +9,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: verification-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -20,15 +25,63 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
       - name: Restore solution
         run: dotnet restore CastrumTactics.sln
       - name: Build solution
-        run: dotnet build CastrumTactics.sln --no-restore
+        run: dotnet build CastrumTactics.sln --no-restore -warnaserror
       - name: Run xUnit tests
         env:
           VSTEST_ARTIFACTS_BASE_DIRECTORY: ${{ runner.temp }}
-        run: dotnet test CastrumTactics.sln --no-build
+        run: dotnet test CastrumTactics.sln --no-build -m:1
+
+  engineering:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository and pull request base
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Check immutable historical evidence
+        run: python3 scripts/verify-archive.py
+      - name: Check reviewed archive entries and changed C# whitespace
+        if: github.event_name == 'pull_request'
+        run: |
+          python3 scripts/verify-archive.py --base HEAD^1
+          python3 scripts/verify-format.py --base HEAD^1
+      - name: Build and smoke-test Release benchmarks
+        run: |
+          dotnet build Benchmarks -c Release -warnaserror
+          bench=Benchmarks/bin/Release/net10.0/CastrumTactics.Benchmarks.dll
+          dotnet "$bench" tournament --help
+          dotnet "$bench" tournament dry-run --config Benchmarks/Examples/round-robin.json > "$RUNNER_TEMP/tournament-plan.json"
+          dotnet "$bench" fixtures > "$RUNNER_TEMP/legacy-fixtures.jsonl"
+          dotnet "$bench" match --maps pocket-meadow --first static:Normal --second static:Normal --count 1 --swap false > "$RUNNER_TEMP/legacy-smoke.jsonl"
+          dotnet "$bench" replay "$RUNNER_TEMP/legacy-smoke.jsonl"
+
+  documentation:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - name: Validate documentation links and DocFX
+        run: |
+          dotnet run --project scripts/DocumentationLinks -- --self-test
+          bash scripts/build-docs.sh
 
   godot-presentation:
     runs-on: ubuntu-latest
@@ -41,9 +94,8 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: |
-            8.0.x
-            10.0.x
+          global-json-file: global.json
+          dotnet-version: '8.0.x'
       - name: Install Godot 4.7.2 .NET
         timeout-minutes: 5
         run: |
@@ -60,7 +112,7 @@ jobs:
       - name: Restore and build game
         run: |
           dotnet restore CastrumTactics.csproj
-          dotnet build CastrumTactics.csproj --no-restore
+          dotnet build CastrumTactics.csproj --no-restore -warnaserror
       - name: Import project assets
         timeout-minutes: 5
         run: '"$GODOT" --headless --path . --import'
