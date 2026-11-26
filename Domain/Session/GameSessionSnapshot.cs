@@ -34,7 +34,8 @@ public sealed class GameSessionSnapshot
     /// <summary>Gets the current match phase, including whether a restart is required.</summary>
     public MatchPhase Phase { get; }
 
-    /// <summary>Gets the shared eligible opening positions, including any privately pending choice. Empty outside Opening.</summary>
+    /// <summary>Gets the shared draft targets in map start order. Empty outside Opening.</summary>
+    /// <remarks>Submitting a choice leaves every target eligible until resolution. Pending coordinates stay private.</remarks>
     public IReadOnlyList<BoardPosition> EligiblePositions { get; }
 
     /// <summary>Gets the number of rounds resolved in this draft, including an automatic final collision. Resets on restart.</summary>
@@ -71,7 +72,7 @@ public sealed class GameSessionSnapshot
     /// <summary>Gets the final score and winner in Finished. Null in all other phases.</summary>
     public MainPhaseResult? FinalResult => MainState?.Result;
 
-    /// <summary>Gets the session-scoped command identifier, which advances once per resolved round and once per restart.</summary>
+    /// <summary>Gets the session-scoped command identifier. It advances for each resolved round, including a forced draft collision, and on restart.</summary>
     public long RoundId { get; }
 
     /// <summary>Gets the immutable set of legal main-phase selections for the specified player.</summary>

@@ -13,6 +13,7 @@ public sealed class DraftTransitionParityTests
         var map = PredefinedMapCatalog.BuiltIn.Get("honeystone-green").Definition;
         var session = new LocalGameSession(map, rules);
         var random = new Random(3951);
+        // Pin published snapshots from integrated 8E independently of the frozen CPU, which shares the live Domain assembly.
         var history = new System.Text.StringBuilder();
         var sides = new[] { PlayerId.PlayerOne, PlayerId.PlayerTwo };
         var coordinates = from y in Enumerable.Range(0, map.Height)

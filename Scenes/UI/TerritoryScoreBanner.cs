@@ -33,6 +33,7 @@ public partial class TerritoryScoreBanner : Control
     }
 
     /// <summary>Displays the current authoritative scores without changing the banner's size.</summary>
+    /// <remarks>Call after the banner has entered the scene and bound its score labels in <c>_Ready</c>.</remarks>
     /// <param name="playerOneScore">The number of secured squares for Player One.</param>
     /// <param name="playerTwoScore">The number of secured squares for Player Two.</param>
     public void ShowScores(int playerOneScore, int playerTwoScore)

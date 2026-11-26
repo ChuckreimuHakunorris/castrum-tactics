@@ -153,6 +153,7 @@ public partial class BoardRenderer : Control
         }
 
         var geometry = GetGeometry(board);
+        // Board geometry uses control coordinates, including when the viewport is stretched.
         Vector2 localPoint = MakeCanvasPositionLocal(point);
         if (geometry.HitTest(localPoint) is not { } position || !_eligiblePositions.Contains(position))
         {

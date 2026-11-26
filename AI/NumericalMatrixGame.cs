@@ -28,6 +28,7 @@ internal static class NumericalMatrixGame
         }
 
         double lower = minima.Max(), upper = maxima.Min();
+        // The best pure row and column certify a saddle within tolerance without building a tableau.
         if (upper - lower <= PivotTolerance)
             return new(Uniform(minima, lower), Uniform(maxima, upper), lower, upper, 0);
 

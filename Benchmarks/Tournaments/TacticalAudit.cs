@@ -10,6 +10,7 @@ internal static class TacticalAudit
         DecisionSample decision, DecisionSample opposing, ref TacticalMetrics metrics, CancellationToken token)
     {
         var action = Position(decision.Move);
+        // Alternatives face the realized reply. A better result here supplies retrospective evidence for this pair only.
         var reply = new MainPhaseSelection(Other(side), Position(opposing.Move));
         if (before.Board.GetCell(action).Piece == PieceType.None)
         {

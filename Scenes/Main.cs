@@ -217,6 +217,7 @@ public partial class Main : Control
         GetWindow().Title = $"Castrum Tactics — {mapDescription}";
         GD.Print($"Selected map '{map.Id}' ({map.Definition.Width} × {map.Definition.Height}).");
 
+        // Publish the battlefield captions before attaching the observer and rendering the first snapshot.
         session.StateChanged += DisplayState;
         SetProcess(_match.Cpu is not null);
         DisplayState(session.Current);

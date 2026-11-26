@@ -83,6 +83,7 @@ public static class TerritoryAnalyzer
                 CellState cell = board.GetCell(neighbor);
                 if (cell.Piece == PieceType.Castle)
                 {
+                    // A castle supplies an owner at the boundary without joining adjacent components.
                     owners |= OwnerOf(cell);
                 }
                 else if (CanTraverse(cell) && control[neighbor.Y, neighbor.X] == TerritoryControl.Inaccessible)

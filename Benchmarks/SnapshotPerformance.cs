@@ -37,6 +37,7 @@ internal static partial class Program
                 if (result.Opening != "main") continue;
                 var rounds = result.Rounds.Where(r => r.Phase == args[2]).ToArray();
                 if (rounds.Length == 0) continue;
+                // Take distinct early, middle and late snapshots from the first eligible history per map before timing decisions.
                 foreach (int i in new[] { 0, rounds.Length / 2, rounds.Length - 1 }.Distinct())
                 {
                     int round = rounds[i].Number;
@@ -66,6 +67,7 @@ internal static partial class Program
             architecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),
             processorCount = Environment.ProcessorCount, repetitions
         }, Json));
+        // Iteration zero is warm-up. Cancellation probes use a separate iteration marker below.
         for (int iteration = 0; iteration <= repetitions; iteration++)
         foreach (var snapshot in snapshots)
         {

@@ -15,6 +15,7 @@ internal sealed partial class SimultaneousSearch
         _matrixLegalReplies = legal.Length;
         if (_options.Depth == 1 && legal.Length <= 32 && (long)choices.Length * legal.Length <= _options.PairBudget)
             return legal;
+        // Promote affordable collisions to common columns so every candidate faces the same opponent actions.
         var paired = IncludeCollisions(choices, replies, legal);
         return (long)choices.Length * paired.Length <= _options.PairBudget ? paired : replies;
     }

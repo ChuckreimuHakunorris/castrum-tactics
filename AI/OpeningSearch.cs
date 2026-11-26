@@ -130,6 +130,7 @@ internal sealed class OpeningSearch(GameSessionSnapshot root, PlayerId player, C
     private double? EvaluateLeaf(GameSessionSnapshot state, int preview)
     {
         if (Stopped()) return null;
+        // A restart delays both players. Penalize it in the draft model without assigning a terminal loss.
         if (state.Phase == MatchPhase.OpeningRestartRequired) return -RestartCost;
         if (state.FinalResult is { } result) return result.Winner is null ? 0 : result.Winner == player ? 1 : -1;
         var territory = state.Territory ?? TerritoryAnalyzer.Analyze(state.Board);

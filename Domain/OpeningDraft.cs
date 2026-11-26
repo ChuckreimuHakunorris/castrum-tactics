@@ -39,7 +39,7 @@ internal sealed class OpeningDraft
     internal (OpeningDraft Draft, MainPhaseState? Main, int Rounds) ResolveTransition(BoardPosition first, BoardPosition second)
     {
         var draft = ResolveRound(first, second);
-        // Evaluate the completed draft board before either caller exposes the next phase.
+        // Live resolution and previews share this calculation. Callers own pending choices and publication.
         var main = draft.Phase == MatchPhase.Main ? MainPhaseState.Evaluate(draft.Board, draft.RuleSet) : null;
         return (draft, main, draft.ResolvedRounds - ResolvedRounds);
     }

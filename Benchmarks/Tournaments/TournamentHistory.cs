@@ -21,6 +21,7 @@ internal static class TournamentHistory
         _ => "main"
     };
 
+    // This digest records the played sequence in seat order. Reporting canonicalizes equivalent assignments separately.
     internal static string HistoryDigest(string map, RuleSet rules, IEnumerable<TournamentRound> rounds) =>
         Digest($"{map}|{rules}|{string.Join(';', rounds.Select(round => $"{round.Phase}|{round.Red.Move}/{round.Blue.Move}"))}");
 }

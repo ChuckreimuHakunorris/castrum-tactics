@@ -39,6 +39,7 @@ internal static partial class Program
                     var alternatives = before.GetLegalSelections(stronger).Where(p => p != action)
                         .OrderBy(p => p.Y).ThenBy(p => p.X).ToArray();
                     if (alternatives.Length == 0) continue;
+                    // Choose one reproducible legal alternative while holding the realized reply fixed.
                     int alternativeIndex = StreamSeed(match.Seed, match.Id, $"action-{round.Number}") % alternatives.Length;
                     var alternate = alternatives[alternativeIndex];
                     int sign = stronger == Red ? 1 : -1;

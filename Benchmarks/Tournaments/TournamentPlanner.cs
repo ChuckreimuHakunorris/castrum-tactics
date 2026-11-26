@@ -62,6 +62,7 @@ internal static class TournamentPlanner
 
         ScheduledMatch Schedule(string map, string first, string second, int seed, bool seat, bool start)
         {
+            // Aliases preserve stream identity across policy variants. The participant slots keep self-play streams separate.
             int firstSeed = StreamSeed(seed, participants[first].Spec.StreamId ?? first, "first");
             int secondSeed = StreamSeed(seed, participants[second].Spec.StreamId ?? second, "second");
             if (firstSeed == secondSeed) secondSeed = (secondSeed + 1) & int.MaxValue;

@@ -1,7 +1,8 @@
 namespace CastrumTactics.Domain.Session;
 
 /// <summary>Accepts gameplay commands and exposes resolved match state to presentation.</summary>
-/// <remarks>Call commands serially. State-change subscribers may read state and should defer further commands.</remarks>
+/// <remarks>Call commands serially on the session’s owning thread. State-change subscribers may read state
+/// and should defer further commands. A round identifier is meaningful only within its originating session.</remarks>
 public interface IGameSession
 {
     /// <summary>Gets the latest public state of the match.</summary>

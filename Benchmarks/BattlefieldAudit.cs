@@ -51,6 +51,7 @@ internal static partial class Program
         var ordered = definition.StartingPositions;
         var state = new LocalGameSession(definition, RuleSet.KnightSupport).Current;
         var openings = new List<OpeningSample>();
+        // Sample one ordering of each distinct first pair plus collisions. Completion patterns stress openings without estimating their natural frequency.
         for (int i = 0; i < ordered.Count; i++)
         {
             var reach = Distances(ordered[i], playable);

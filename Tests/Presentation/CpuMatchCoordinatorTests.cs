@@ -323,6 +323,7 @@ public sealed class CpuMatchCoordinatorTests(ITestOutputHelper output)
 
     private sealed record Invocation(GameSessionSnapshot Snapshot, PlayerId Player, Random Random, CancellationToken Token)
     {
+        // Release a blocked decision without running its continuation inline on the test thread.
         internal TaskCompletionSource<CpuDecision?> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal void Choose(BoardPosition position) => Completion.SetResult(new(Player, position, Snapshot.Phase, Snapshot.RoundId));
     }

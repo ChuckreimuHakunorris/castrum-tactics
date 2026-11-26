@@ -13,6 +13,7 @@ internal sealed class MatchLifetime
     internal IGameSession? Session { get; private set; }
     internal CpuMatchCoordinator? Cpu { get; private set; }
 
+    // The caller must detach the previous session and CPU worker before creating a replacement.
     internal IGameSession Create(MapDefinition map, MatchConfiguration configuration, int? seed)
     {
         var session = new LocalGameSession(map, configuration.RuleSet);

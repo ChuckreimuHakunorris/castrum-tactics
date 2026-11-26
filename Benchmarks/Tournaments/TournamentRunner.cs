@@ -51,6 +51,7 @@ internal static class TournamentRunner
                 {
                     var position = before.EligiblePositions[0];
                     var (first, second) = draftIndex < match.Draft.Length ? ParsePair(match.Draft[draftIndex]) : (position, position);
+                    // Seat and physical assignment swaps are independent. Swapping both restores the original color-to-coordinate pairing.
                     if (match.StartsSwapped ^ match.SeatsSwapped) (first, second) = (second, first);
                     redMove = new(Coordinate(first));
                     blueMove = new(Coordinate(second));

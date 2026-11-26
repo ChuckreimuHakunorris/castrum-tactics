@@ -11,6 +11,7 @@ internal static class TournamentMeasurement
         Random stream, bool diagnostics, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+        // Measure the synchronous decision and its diagnostics on this thread. Match resolution and tactical auditing happen outside this interval.
         long allocated = GC.GetAllocatedBytesForCurrentThread();
         long started = Stopwatch.GetTimestamp();
         var decision = opponent.Decide(state, player, stream, diagnostics, token);

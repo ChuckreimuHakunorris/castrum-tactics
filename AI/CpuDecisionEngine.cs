@@ -18,10 +18,10 @@ public sealed class CpuDecisionEngine
     public CpuDecisionEngine() { }
 
     /// <summary>Creates a decision engine with an additional elapsed-time safeguard for strategic search.</summary>
-    /// <param name="searchTimeLimit">A positive finite duration. Search checks the limit between authoritative resolutions.</param>
+    /// <param name="searchTimeLimit">A positive duration. Search checks elapsed time at cooperative checkpoints.</param>
     /// <exception cref="ArgumentOutOfRangeException">The duration is zero or negative.</exception>
     /// <remarks>A time-limited call can fall back to a completed shallower pass or a static legal decision.
-    /// Omit the limit when comparing seeded benchmark runs.</remarks>
+    /// An individual evaluation can run beyond the limit. Omit the limit when comparing seeded benchmark runs.</remarks>
     public CpuDecisionEngine(TimeSpan searchTimeLimit)
     {
         if (searchTimeLimit <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(searchTimeLimit));
@@ -154,6 +154,7 @@ public sealed class CpuDecisionEngine
         double diversity = opening
             ? (noStartingPieces && candidates.Length == 2 ? profile.UrgentOpeningDiversity : profile.OpeningDiversity)
             : 0;
+        // A completed numerical policy determines its own support and probabilities. The pool and diversity apply to score sampling.
         int selected = usesMatrix ? CandidateSampling.SampleMatrix(sampling, random) : CandidateSampling.Sample(sampling, poolSize, temperature, diversity, random);
         return (new CpuDecision(player, candidates[selected].Position, snapshot.Phase, snapshot.RoundId), candidates,
             searchReport);
