@@ -117,3 +117,5 @@ Opening-draft strategy, difficulty calibration, a remote session and ranked map 
 The [Game Design Document](GameDesign.md) records the rules and open design decisions. The [Session Architecture](SessionArchitecture.md) describes the authority and presentation boundaries. The [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) documents the domain rules and local integration.
 
 The [small-board solver](SmallBoardSolver.md) uses the Domain resolver and exposes exact results through the development benchmark executable.
+
+The [opening strategy](CpuOpeningStrategy.md) evaluates authoritative draft previews with its own matrix and budget while using the same public snapshot and asynchronous proposal path as Main.

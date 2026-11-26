@@ -1,0 +1,14 @@
+{
+  "id": "8d4-baseline-control",
+  "format": "head-to-head",
+  "participants": [
+    { "id": "baseline", "opponent": "frozen8d3:Monster", "mainOpponent": "frozen8d3:Hard" },
+    { "id": "live", "opponent": "strategic:Monster", "legacyOpening": true, "mainOpponent": "frozen8d3:Hard" }
+  ],
+  "maps": { "ids": ["corner-watch", "little-crossing", "pocket-meadow", "stone-center", "narrow-yard", "open-meadow"] },
+  "opening": { "mode": "natural" },
+  "seeds": [31, 79, 103, 199, 227, 313, 479, 563],
+  "swapSeats": true,
+  "workers": 2,
+  "strategicMetrics": false
+}

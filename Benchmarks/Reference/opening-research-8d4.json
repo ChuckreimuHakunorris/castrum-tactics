@@ -1,0 +1,975 @@
+{
+  "baselineCommit": "b4c77ea7553486f6043cd60822f46f9b75dd42fa",
+  "quality": {
+    "scored": 2320,
+    "reports": [
+      {
+        "split": "heldOut",
+        "opponent": "frozen8d3:Easy",
+        "matches": 784,
+        "configurations": 98,
+        "meanTurns": 76.70663265306122,
+        "castleCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "features": {
+          "legacy": {
+            "points": 0.4815827087575132,
+            "margin": 0.6895814861187111
+          },
+          "evaluation": {
+            "points": 0.6257938538986877,
+            "margin": 0.683591579934293
+          },
+          "ablation": {
+            "points": 0.4517472693550139,
+            "margin": 0.3446705675713328
+          },
+          "secured": {
+            "points": null,
+            "margin": null
+          },
+          "coverage": {
+            "points": 0.5805929666181575,
+            "margin": 0.7168756772353366
+          },
+          "accessible": {
+            "points": null,
+            "margin": null
+          },
+          "footholds": {
+            "points": 0.42097417996569075,
+            "margin": 0.30573122173038986
+          },
+          "routes": {
+            "points": 0.4269343649209891,
+            "margin": 0.3477402546315446
+          },
+          "legal": {
+            "points": 0.42097417996569075,
+            "margin": 0.30573122173038986
+          },
+          "friendlySpread": {
+            "points": 0.16354979459448185,
+            "margin": 0.14142773185762267
+          },
+          "enemyDistance": {
+            "points": 0.0047659363093751,
+            "margin": 0.08958230720164748
+          },
+          "earlyMargin": {
+            "points": -0.07514556771195345,
+            "margin": 0.023312137028029638
+          },
+          "earlyFormation": {
+            "points": 0.1713383062975206,
+            "margin": 0.08284948750377984
+          }
+        },
+        "withinMapMatchPointRankAgreement": 0.7191201353637902
+      },
+      {
+        "split": "heldOut",
+        "opponent": "frozen8d3:Normal",
+        "matches": 784,
+        "configurations": 98,
+        "meanTurns": 75.33418367346938,
+        "castleCounts": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "features": {
+          "legacy": {
+            "points": 0.560065093108751,
+            "margin": 0.7554169314260689
+          },
+          "evaluation": {
+            "points": 0.6590915641111528,
+            "margin": 0.7030619212748921
+          },
+          "ablation": {
+            "points": 0.447913974610957,
+            "margin": 0.3712142970773172
+          },
+          "secured": {
+            "points": null,
+            "margin": null
+          },
+          "coverage": {
+            "points": 0.6305405940842467,
+            "margin": 0.7574196891200279
+          },
+          "accessible": {
+            "points": null,
+            "margin": null
+          },
+          "footholds": {
+            "points": 0.40983612714889933,
+            "margin": 0.3308950882544896
+          },
+          "routes": {
+            "points": 0.4674659216645263,
+            "margin": 0.4026017827328739
+          },
+          "legal": {
+            "points": 0.40983612714889933,
+            "margin": 0.3308950882544896
+          },
+          "friendlySpread": {
+            "points": 0.09685713352228016,
+            "margin": 0.02514092481811089
+          },
+          "enemyDistance": {
+            "points": 0.06075713384695432,
+            "margin": 0.060020794703719973
+          },
+          "earlyMargin": {
+            "points": -0.12181002720957945,
+            "margin": -0.04190859499107119
+          },
+          "earlyFormation": {
+            "points": 0.1824137629199268,
+            "margin": 0.10342569150970761
+          }
+        },
+        "withinMapMatchPointRankAgreement": 0.7169491525423729
+      },
+      {
+        "split": "tuning",
+        "opponent": "frozen8d3:Easy",
+        "matches": 376,
+        "configurations": 47,
+        "meanTurns": 40.41755319148936,
+        "castleCounts": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "features": {
+          "legacy": {
+            "points": 0.7312089943535452,
+            "margin": 0.8432843737196158
+          },
+          "evaluation": {
+            "points": 0.7249696100738032,
+            "margin": 0.7656907554429387
+          },
+          "ablation": {
+            "points": 0.5092504327043916,
+            "margin": 0.5338486482173753
+          },
+          "secured": {
+            "points": -0.14103009044876394,
+            "margin": -0.022982025780026002
+          },
+          "coverage": {
+            "points": 0.6911866308490036,
+            "margin": 0.8179783062057893
+          },
+          "accessible": {
+            "points": -0.14103009044876394,
+            "margin": -0.022982025780026002
+          },
+          "footholds": {
+            "points": 0.5148611433942728,
+            "margin": 0.5428936768896745
+          },
+          "routes": {
+            "points": 0.6141217015606654,
+            "margin": 0.6127845892503557
+          },
+          "legal": {
+            "points": 0.5213783937812316,
+            "margin": 0.5436220253979451
+          },
+          "friendlySpread": {
+            "points": -0.13425281178319806,
+            "margin": -0.07733283459041077
+          },
+          "enemyDistance": {
+            "points": 0.031203003927626084,
+            "margin": -0.1242600555363877
+          },
+          "earlyMargin": {
+            "points": 0.17498886196742514,
+            "margin": -0.06358452151485798
+          },
+          "earlyFormation": {
+            "points": -0.1550492430141889,
+            "margin": 0.08699993021772733
+          }
+        },
+        "withinMapMatchPointRankAgreement": 0.8232931726907631
+      },
+      {
+        "split": "tuning",
+        "opponent": "frozen8d3:Normal",
+        "matches": 376,
+        "configurations": 47,
+        "meanTurns": 40.49734042553192,
+        "castleCounts": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "features": {
+          "legacy": {
+            "points": 0.7880854464345683,
+            "margin": 0.868119133480954
+          },
+          "evaluation": {
+            "points": 0.7841826477283641,
+            "margin": 0.7695779170782749
+          },
+          "ablation": {
+            "points": 0.573384892733933,
+            "margin": 0.5195047219047075
+          },
+          "secured": {
+            "points": -0.07151562856900559,
+            "margin": -0.012389608872331563
+          },
+          "coverage": {
+            "points": 0.7526158303396752,
+            "margin": 0.8330634298321132
+          },
+          "accessible": {
+            "points": -0.07151562856900559,
+            "margin": -0.012389608872331563
+          },
+          "footholds": {
+            "points": 0.5737395759524728,
+            "margin": 0.533431149027342
+          },
+          "routes": {
+            "points": 0.6687593797524409,
+            "margin": 0.6226353826321449
+          },
+          "legal": {
+            "points": 0.5768171362057254,
+            "margin": 0.5336487691512446
+          },
+          "friendlySpread": {
+            "points": -0.15974038064444307,
+            "margin": -0.15040676689312518
+          },
+          "enemyDistance": {
+            "points": -0.07464741387357475,
+            "margin": -0.1301110521059179
+          },
+          "earlyMargin": {
+            "points": -0.14993947472558902,
+            "margin": -0.2535913108683415
+          },
+          "earlyFormation": {
+            "points": 0.22276622572919189,
+            "margin": 0.3822581789360587
+          }
+        },
+        "withinMapMatchPointRankAgreement": 0.8293650793650794
+      }
+    ]
+  },
+  "draftControl": [
+    {
+      "draft": "live",
+      "opponent": "baseline",
+      "wins": 12,
+      "draws": 24,
+      "losses": 10,
+      "restarts": 50,
+      "matches": 96,
+      "meanMargin": 0.043478260869565216,
+      "pairedPointRateAndBounds": [
+        0.4864864864864865,
+        0.3783783783783784,
+        0.5878378378378378
+      ],
+      "draftRounds": 162,
+      "submittedCollisions": 60,
+      "forcedCollisions": 56,
+      "castles": {
+        "0": 50,
+        "1": 46
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 56
+    }
+  ],
+  "tuning": [
+    {
+      "draft": "8c",
+      "opponent": "8d3",
+      "wins": 29,
+      "draws": 10,
+      "losses": 19,
+      "restarts": 26,
+      "matches": 84,
+      "meanMargin": 1.7413793103448276,
+      "pairedPointRateAndBounds": [
+        0.5642857142857143,
+        0.44285714285714284,
+        0.6857142857142857
+      ],
+      "draftRounds": 248,
+      "submittedCollisions": 81,
+      "forcedCollisions": 55,
+      "castles": {
+        "0": 26,
+        "1": 27,
+        "2": 10,
+        "3": 19,
+        "4": 2
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 66
+    },
+    {
+      "draft": "8d2",
+      "opponent": "8d3",
+      "wins": 20,
+      "draws": 8,
+      "losses": 22,
+      "restarts": 34,
+      "matches": 84,
+      "meanMargin": -0.12,
+      "pairedPointRateAndBounds": [
+        0.484375,
+        0.359375,
+        0.6015625
+      ],
+      "draftRounds": 260,
+      "submittedCollisions": 103,
+      "forcedCollisions": 57,
+      "castles": {
+        "0": 34,
+        "1": 21,
+        "2": 11,
+        "3": 15,
+        "4": 3
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 58
+    },
+    {
+      "draft": "frontier",
+      "opponent": "8d3",
+      "wins": 24,
+      "draws": 16,
+      "losses": 30,
+      "restarts": 14,
+      "matches": 84,
+      "meanMargin": -1.542857142857143,
+      "pairedPointRateAndBounds": [
+        0.4625,
+        0.35,
+        0.5625
+      ],
+      "draftRounds": 234,
+      "submittedCollisions": 66,
+      "forcedCollisions": 42,
+      "castles": {
+        "0": 14,
+        "1": 37,
+        "2": 13,
+        "3": 17,
+        "4": 3
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 74
+    },
+    {
+      "draft": "legacy-eval",
+      "opponent": "8d3",
+      "wins": 29,
+      "draws": 12,
+      "losses": 25,
+      "restarts": 18,
+      "matches": 84,
+      "meanMargin": -0.48484848484848486,
+      "pairedPointRateAndBounds": [
+        0.5405405405405406,
+        0.4189189189189189,
+        0.6621621621621622
+      ],
+      "draftRounds": 241,
+      "submittedCollisions": 77,
+      "forcedCollisions": 45,
+      "castles": {
+        "0": 18,
+        "1": 35,
+        "2": 13,
+        "3": 14,
+        "4": 4
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 72
+    },
+    {
+      "draft": "matrix-one",
+      "opponent": "8d3",
+      "wins": 31,
+      "draws": 17,
+      "losses": 13,
+      "restarts": 23,
+      "matches": 84,
+      "meanMargin": 3.918032786885246,
+      "pairedPointRateAndBounds": [
+        0.6041666666666666,
+        0.4861111111111111,
+        0.7152777777777778
+      ],
+      "draftRounds": 243,
+      "submittedCollisions": 79,
+      "forcedCollisions": 47,
+      "castles": {
+        "0": 23,
+        "1": 29,
+        "2": 11,
+        "3": 18,
+        "4": 3
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 66
+    },
+    {
+      "draft": "matrix-three",
+      "opponent": "8d3",
+      "wins": 24,
+      "draws": 15,
+      "losses": 20,
+      "restarts": 25,
+      "matches": 84,
+      "meanMargin": 2.440677966101695,
+      "pairedPointRateAndBounds": [
+        0.5075757575757576,
+        0.3939393939393939,
+        0.6136363636363636
+      ],
+      "draftRounds": 242,
+      "submittedCollisions": 74,
+      "forcedCollisions": 50,
+      "castles": {
+        "0": 25,
+        "1": 25,
+        "2": 13,
+        "3": 17,
+        "4": 4
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 64
+    },
+    {
+      "draft": "matrix-two",
+      "opponent": "8d3",
+      "wins": 29,
+      "draws": 17,
+      "losses": 17,
+      "restarts": 21,
+      "matches": 84,
+      "meanMargin": 3.634920634920635,
+      "pairedPointRateAndBounds": [
+        0.5694444444444444,
+        0.4652777777777778,
+        0.6805555555555556
+      ],
+      "draftRounds": 235,
+      "submittedCollisions": 67,
+      "forcedCollisions": 43,
+      "castles": {
+        "0": 21,
+        "1": 31,
+        "2": 11,
+        "3": 12,
+        "4": 9
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 69
+    },
+    {
+      "draft": "no-synergy",
+      "opponent": "8d3",
+      "wins": 28,
+      "draws": 19,
+      "losses": 19,
+      "restarts": 18,
+      "matches": 84,
+      "meanMargin": 2.303030303030303,
+      "pairedPointRateAndBounds": [
+        0.5608108108108109,
+        0.4594594594594595,
+        0.6621621621621622
+      ],
+      "draftRounds": 235,
+      "submittedCollisions": 72,
+      "forcedCollisions": 38,
+      "castles": {
+        "0": 18,
+        "1": 34,
+        "2": 11,
+        "3": 15,
+        "4": 6
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 70
+    },
+    {
+      "draft": "preview-one",
+      "opponent": "8d3",
+      "wins": 27,
+      "draws": 20,
+      "losses": 18,
+      "restarts": 19,
+      "matches": 84,
+      "meanMargin": 3.3846153846153846,
+      "pairedPointRateAndBounds": [
+        0.5394736842105263,
+        0.4342105263157895,
+        0.6513157894736842
+      ],
+      "draftRounds": 237,
+      "submittedCollisions": 71,
+      "forcedCollisions": 43,
+      "castles": {
+        "0": 19,
+        "1": 33,
+        "2": 11,
+        "3": 16,
+        "4": 5
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 70
+    },
+    {
+      "draft": "preview-two",
+      "opponent": "8d3",
+      "wins": 26,
+      "draws": 10,
+      "losses": 18,
+      "restarts": 30,
+      "matches": 84,
+      "meanMargin": 2.240740740740741,
+      "pairedPointRateAndBounds": [
+        0.5294117647058824,
+        0.39705882352941174,
+        0.6470588235294118
+      ],
+      "draftRounds": 249,
+      "submittedCollisions": 87,
+      "forcedCollisions": 51,
+      "castles": {
+        "0": 30,
+        "1": 22,
+        "2": 10,
+        "3": 19,
+        "4": 3
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 61
+    },
+    {
+      "draft": "pure",
+      "opponent": "8d3",
+      "wins": 24,
+      "draws": 13,
+      "losses": 18,
+      "restarts": 29,
+      "matches": 84,
+      "meanMargin": 2.5090909090909093,
+      "pairedPointRateAndBounds": [
+        0.5234375,
+        0.3828125,
+        0.65625
+      ],
+      "draftRounds": 245,
+      "submittedCollisions": 79,
+      "forcedCollisions": 51,
+      "castles": {
+        "0": 29,
+        "1": 24,
+        "2": 8,
+        "3": 17,
+        "4": 6
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 62
+    },
+    {
+      "draft": "static",
+      "opponent": "8d3",
+      "wins": 20,
+      "draws": 11,
+      "losses": 29,
+      "restarts": 24,
+      "matches": 84,
+      "meanMargin": -1.85,
+      "pairedPointRateAndBounds": [
+        0.42857142857142855,
+        0.3142857142857143,
+        0.55
+      ],
+      "draftRounds": 246,
+      "submittedCollisions": 81,
+      "forcedCollisions": 51,
+      "castles": {
+        "0": 24,
+        "1": 30,
+        "2": 11,
+        "3": 14,
+        "4": 5
+      },
+      "distinctSuccessfulBoards": null,
+      "distinctHistories": 66
+    }
+  ],
+  "heldOut": [
+    {
+      "draft": "matrix-one",
+      "opponent": "8c",
+      "wins": 77,
+      "draws": 3,
+      "losses": 32,
+      "restarts": 0,
+      "matches": 112,
+      "meanMargin": 5.660714285714286,
+      "pairedPointRateAndBounds": [
+        0.7008928571428571,
+        0.6205357142857143,
+        0.78125
+      ],
+      "draftRounds": 668,
+      "submittedCollisions": 186,
+      "forcedCollisions": 78,
+      "castles": {
+        "1": 3,
+        "2": 14,
+        "3": 30,
+        "4": 44,
+        "5": 19,
+        "6": 2
+      },
+      "distinctSuccessfulBoards": 111,
+      "distinctHistories": 112
+    },
+    {
+      "draft": "matrix-one",
+      "opponent": "8d3",
+      "wins": 81,
+      "draws": 2,
+      "losses": 29,
+      "restarts": 0,
+      "matches": 112,
+      "meanMargin": 7.142857142857143,
+      "pairedPointRateAndBounds": [
+        0.7321428571428571,
+        0.6428571428571429,
+        0.8169642857142857
+      ],
+      "draftRounds": 668,
+      "submittedCollisions": 179,
+      "forcedCollisions": 85,
+      "castles": {
+        "1": 4,
+        "2": 16,
+        "3": 37,
+        "4": 22,
+        "5": 29,
+        "6": 4
+      },
+      "distinctSuccessfulBoards": 107,
+      "distinctHistories": 112
+    }
+  ],
+  "integration": [
+    {
+      "draft": "live",
+      "opponent": "8d3",
+      "wins": 22,
+      "draws": 2,
+      "losses": 8,
+      "restarts": 0,
+      "matches": 32,
+      "meanMargin": 5.125,
+      "pairedPointRateAndBounds": [
+        0.71875,
+        0.5,
+        0.90625
+      ],
+      "draftRounds": 184,
+      "submittedCollisions": 48,
+      "forcedCollisions": 24,
+      "castles": {
+        "2": 8,
+        "3": 6,
+        "4": 12,
+        "5": 6
+      },
+      "distinctSuccessfulBoards": 32,
+      "distinctHistories": 32
+    }
+  ],
+  "fixedEasyMainSensitivity": {
+    "Easy": {
+      "draft": "live",
+      "opponent": "8d3",
+      "wins": 9,
+      "draws": 3,
+      "losses": 17,
+      "restarts": 3,
+      "matches": 32,
+      "meanMargin": -0.8620689655172413,
+      "pairedPointRateAndBounds": [
+        0.3666666666666667,
+        0.19999999999999996,
+        0.55
+      ],
+      "draftRounds": 113,
+      "submittedCollisions": 32,
+      "forcedCollisions": 18,
+      "castles": {
+        "0": 3,
+        "1": 9,
+        "2": 9,
+        "3": 8,
+        "4": 3
+      },
+      "distinctSuccessfulBoards": 24,
+      "distinctHistories": 31
+    },
+    "Normal": {
+      "draft": "live",
+      "opponent": "8d3",
+      "wins": 9,
+      "draws": 3,
+      "losses": 17,
+      "restarts": 3,
+      "matches": 32,
+      "meanMargin": -0.27586206896551724,
+      "pairedPointRateAndBounds": [
+        0.3666666666666667,
+        0.19999999999999996,
+        0.55
+      ],
+      "draftRounds": 113,
+      "submittedCollisions": 32,
+      "forcedCollisions": 18,
+      "castles": {
+        "0": 3,
+        "1": 9,
+        "2": 8,
+        "3": 10,
+        "4": 2
+      },
+      "distinctSuccessfulBoards": 25,
+      "distinctHistories": 31
+    },
+    "Hard": {
+      "draft": "live",
+      "opponent": "8d3",
+      "wins": 11,
+      "draws": 2,
+      "losses": 16,
+      "restarts": 3,
+      "matches": 32,
+      "meanMargin": 0.034482758620689655,
+      "pairedPointRateAndBounds": [
+        0.41666666666666663,
+        0.23333333333333328,
+        0.5833333333333333
+      ],
+      "draftRounds": 112,
+      "submittedCollisions": 31,
+      "forcedCollisions": 17,
+      "castles": {
+        "0": 3,
+        "1": 8,
+        "2": 10,
+        "3": 8,
+        "4": 3
+      },
+      "distinctSuccessfulBoards": 26,
+      "distinctHistories": 31
+    },
+    "VeryHard": {
+      "draft": "live",
+      "opponent": "8d3",
+      "wins": 11,
+      "draws": 3,
+      "losses": 15,
+      "restarts": 3,
+      "matches": 32,
+      "meanMargin": 0.4827586206896552,
+      "pairedPointRateAndBounds": [
+        0.43333333333333335,
+        0.2666666666666667,
+        0.6166666666666667
+      ],
+      "draftRounds": 110,
+      "submittedCollisions": 28,
+      "forcedCollisions": 16,
+      "castles": {
+        "0": 3,
+        "1": 7,
+        "2": 10,
+        "3": 9,
+        "4": 3
+      },
+      "distinctSuccessfulBoards": 26,
+      "distinctHistories": 31
+    },
+    "Monster": {
+      "draft": "live",
+      "opponent": "8d3",
+      "wins": 8,
+      "draws": 2,
+      "losses": 19,
+      "restarts": 3,
+      "matches": 32,
+      "meanMargin": -1.206896551724138,
+      "pairedPointRateAndBounds": [
+        0.31666666666666665,
+        0.16666666666666663,
+        0.4666666666666667
+      ],
+      "draftRounds": 118,
+      "submittedCollisions": 35,
+      "forcedCollisions": 25,
+      "castles": {
+        "0": 3,
+        "1": 9,
+        "2": 11,
+        "3": 9
+      },
+      "distinctSuccessfulBoards": 25,
+      "distinctHistories": 31
+    }
+  },
+  "threeBanners": [
+    {
+      "map": "three-banners",
+      "starts": "A1/B3",
+      "canForceDraw": {
+        "red": false,
+        "blue": false
+      },
+      "canAvoidLoss": {
+        "red": false,
+        "blue": true
+      },
+      "policyPair": [
+        {
+          "utility": "Outcome",
+          "redWin": "0",
+          "draw": "0",
+          "blueWin": "1",
+          "turns": "12259302517283421920417/2006122600857600000000"
+        },
+        {
+          "utility": "Margin",
+          "redWin": "0",
+          "draw": "0",
+          "blueWin": "1",
+          "turns": "174551/34560"
+        }
+      ],
+      "positionCount": 272623,
+      "openingValues": [
+        {
+          "utility": "Outcome",
+          "lower": "-1",
+          "upper": "-1"
+        },
+        {
+          "utility": "Margin",
+          "lower": "-2",
+          "upper": "-2"
+        }
+      ]
+    },
+    {
+      "map": "three-banners",
+      "starts": "A1/C1",
+      "canForceDraw": {
+        "red": false,
+        "blue": false
+      },
+      "canAvoidLoss": {
+        "red": true,
+        "blue": true
+      },
+      "policyPair": [
+        {
+          "utility": "Outcome",
+          "redWin": "0",
+          "draw": "1",
+          "blueWin": "0",
+          "turns": "942697/233280"
+        },
+        {
+          "utility": "Margin",
+          "redWin": "0",
+          "draw": "1",
+          "blueWin": "0",
+          "turns": "942697/233280"
+        }
+      ],
+      "positionCount": 155402,
+      "openingValues": [
+        {
+          "utility": "Outcome",
+          "lower": "0",
+          "upper": "0"
+        },
+        {
+          "utility": "Margin",
+          "lower": "0",
+          "upper": "0"
+        }
+      ]
+    }
+  ],
+  "sequentialLinuxDraftPerformance": [
+    {
+      "participant": "8d3",
+      "decisions": 131,
+      "medianMs": 0.9826934353509434,
+      "p95Ms": 5.294102518601065,
+      "maxMs": 64.082,
+      "meanBytes": 242122.5648854962,
+      "meanPairs": 48.83969465648855,
+      "budgetStops": 0,
+      "timeStops": 0,
+      "fallbacks": 0
+    },
+    {
+      "participant": "live",
+      "decisions": 131,
+      "medianMs": 0.9826934353509434,
+      "p95Ms": 5.962145462598675,
+      "maxMs": 69.5739,
+      "meanBytes": 228590.6564885496,
+      "meanPairs": 48.83969465648855,
+      "budgetStops": 0,
+      "timeStops": 0,
+      "fallbacks": 0
+    }
+  ],
+  "sequentialLinuxMatrixSolve": {
+    "medianMs": 0.0058,
+    "maxMs": 3.1997,
+    "pivots": 239,
+    "cachedStates": 17,
+    "fullMatrices": 131
+  }
+}

@@ -88,6 +88,9 @@ public sealed class CpuProfile
     /// <summary>Gets the optional simultaneous search configuration for Knight Support. Null uses static evaluation.</summary>
     public CpuSearchOptions? Search { get; init; }
 
+    /// <summary>Gets optional Knight Support opening-only search. Null keeps the legacy opening policy.</summary>
+    public CpuOpeningOptions? OpeningSearch { get; init; }
+
     private static void ValidateTemperature(double value, string parameter, bool allowZero)
     {
         if (!double.IsFinite(value) || value < 0 || value > 10 || (!allowZero && value == 0))
@@ -131,6 +134,7 @@ public static class CpuDifficultyProfiles
             { Search = new(2, 14, 9, 500, 0.36, 1.1) },
         new(WithSupport(new(2.0, 2.1, 2.0, 1.7, 1.2, 1.2, 1.4, 1.25)), 16, 1, 0, 0.5)
             {
+                OpeningSearch = new(1, 16, 256, CpuOpeningPolicy.Equilibrium),
                 Search = new(3, 18, 10, 850, 0.40, 1.0, 6, 6, 3, verifyTerminalWins: true, proofOnlyDeepening: true)
                 {
                     ResilientEvaluation = true,

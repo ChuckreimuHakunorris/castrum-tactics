@@ -14,3 +14,5 @@ DocFX generates this reference from the application, domain, and AI C# projects.
 - [`BoardRenderer`](xref:Global.BoardRenderer) draws the session board, handles board selection, and exposes the exact grid rectangle. [`TerritoryScoreBanner`](xref:Global.TerritoryScoreBanner) displays the snapshot's `PlayerOneScore` and `PlayerTwoScore`. [`AnimatedBackground`](xref:Global.AnimatedBackground) provides the reusable viewport background with configurable motion.
 
 The [development solver commands and tablebase contract](../SmallBoardSolver.md#commands-and-outputs) use internal Benchmarks types.
+
+- [CpuOpeningOptions](xref:CastrumTactics.AI.CpuOpeningOptions), [CpuOpeningPolicy](xref:CastrumTactics.AI.CpuOpeningPolicy), and [CpuOpeningAnalysis](xref:CastrumTactics.AI.CpuOpeningAnalysis) configure and inspect Knight Support draft work independently of Main. See [opening strategy](../CpuOpeningStrategy.md).

@@ -44,7 +44,10 @@ internal static partial class Program
     internal sealed record ParticipantSpec(string Id, string Opponent, int? PairBudget = null,
         CpuEvaluationWeights? Weights = null, double? TimeLimitMs = null,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SearchOverrides? Search = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Tablebase = null);
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Tablebase = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? MainOpponent = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CpuOpeningOptions? OpeningSearch = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? LegacyOpening = null);
 
     internal sealed record SearchOverrides(int? Depth = null, int? OwnCandidates = null, int? OpponentCandidates = null,
         int? ContinuationOwnCandidates = null, int? ContinuationOpponentCandidates = null, int? DeepFinalists = null,

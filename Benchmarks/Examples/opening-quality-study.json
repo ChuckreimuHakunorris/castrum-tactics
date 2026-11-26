@@ -1,0 +1,9 @@
+{
+  "tuning": ["alder-common", "bellflower-reach", "braided-ridges", "pocket-meadow", "little-crossing", "open-meadow"],
+  "heldOut": ["granite-orchard", "twelve-towers", "wrenfield", "vesper-barrows", "quillstone-lawn", "corvid-park", "saffron-bluffs"],
+  "policies": ["frozen8d3:Easy", "frozen8d3:Normal"],
+  "samples": 14,
+  "seeds": 4,
+  "workers": 4,
+  "seed": 713
+}

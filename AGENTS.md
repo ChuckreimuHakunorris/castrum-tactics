@@ -19,3 +19,5 @@
 - Keep live and final territory scores on the same authoritative analysis. Use the board geometry for the score banner and retain both local input modes in runtime regression coverage.
 
 - Follow [Small-board solver](Documentation/SmallBoardSolver.md) for exact simultaneous research. Keep the solver in Benchmarks and store generated tablebases and research runs under ignored exports/ or the external project-files directory.
+
+- Follow [CPU opening strategy](Documentation/CpuOpeningStrategy.md) for draft changes. Use authoritative previews and compare draft policies with the same frozen Main policy on held-out maps.

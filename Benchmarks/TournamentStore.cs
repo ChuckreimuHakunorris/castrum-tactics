@@ -20,7 +20,7 @@ internal static partial class Program
     {
         var assemblies = new[] { typeof(Program).Assembly, typeof(CpuDecisionEngine).Assembly,
             typeof(RuleSet).Assembly }.Concat(typeof(Program).Assembly.GetReferencedAssemblies()
-            .Where(name => name.Name is "CastrumTactics.FrozenAI" or "CastrumTactics.Frozen8C" or "CastrumTactics.Frozen8D2")
+            .Where(name => name.Name is "CastrumTactics.FrozenAI" or "CastrumTactics.Frozen8C" or "CastrumTactics.Frozen8D2" or "CastrumTactics.Frozen8D3")
             .Select(System.Reflection.Assembly.Load));
         var binaries = assemblies.OrderBy(assembly => assembly.GetName().Name, StringComparer.Ordinal)
             .ToDictionary(assembly => assembly.GetName().Name!, assembly =>

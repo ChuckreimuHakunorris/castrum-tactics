@@ -1,0 +1,21 @@
+{
+  "id": "8d4-opening-holdout",
+  "format": "baseline",
+  "participants": [
+    { "id": "8d3", "opponent": "frozen8d3:Monster", "mainOpponent": "frozen8d3:Hard" },
+    { "id": "8c", "opponent": "frozen8c:Monster", "mainOpponent": "frozen8d3:Hard" },
+    { "id": "matrix-one", "opponent": "strategic:Monster", "mainOpponent": "frozen8d3:Hard",
+      "openingSearch": { "depth": 1, "candidateLimit": 16, "pairBudget": 256, "policy": "equilibrium" } }
+  ],
+  "references": ["8d3", "8c"],
+  "maps": {
+    "ids": ["granite-orchard", "twelve-towers", "wrenfield", "vesper-barrows", "quillstone-lawn", "corvid-park", "saffron-bluffs"],
+    "heldOut": ["granite-orchard", "twelve-towers", "wrenfield", "vesper-barrows", "quillstone-lawn", "corvid-park", "saffron-bluffs"],
+    "split": "held-out"
+  },
+  "opening": { "mode": "natural" },
+  "seeds": [349, 479, 563, 653, 739, 827, 941, 1019],
+  "swapSeats": true,
+  "workers": 3,
+  "strategicMetrics": false
+}

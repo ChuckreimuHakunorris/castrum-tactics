@@ -124,3 +124,5 @@ For 8D.2, pair each candidate configuration with frozen 8C on tuning maps, test 
 ## Certified tablebase opponents
 
 Use a solver:<tablebase-id> opponent with a tablebase path and fixed openings within the certified scope. The manifest records the tablebase checksum, and unavailable positions are explicit failures. See the [solver commands and tablebase format](SmallBoardSolver.md).
+
+Use `frozen8d3:<difficulty>` to select the immutable 8D.3 CPU. On a participant with `mainOpponent`, `opponent` and its options supply the draft policy and the named main opponent supplies the built-in Main policy. If either participant composes policies, both receive separate draft streams so draft random consumption cannot perturb Main. Live participants can set `openingSearch` or `legacyOpening: true`. New match records include a resolved opening-board digest alongside the full history digest. [Opening experiments](CpuOpeningStrategy.md)

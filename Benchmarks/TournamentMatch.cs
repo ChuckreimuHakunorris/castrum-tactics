@@ -1,6 +1,7 @@
 extern alias frozen;
 extern alias frozen8c;
 extern alias frozen8d2;
+extern alias frozen8d3;
 
 using System.Diagnostics;
 using System.Text.Json.Serialization;
@@ -10,6 +11,7 @@ using CastrumTactics.Development.Solver;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using Frozen = frozen::CastrumTactics.AI;
+using EightD3 = frozen8d3::CastrumTactics.AI;
 using EightD2 = frozen8d2::CastrumTactics.AI;
 using EightC = frozen8c::CastrumTactics.AI;
 
@@ -18,7 +20,7 @@ internal static partial class Program
     internal delegate DecisionSample TournamentDecision(GameSessionSnapshot state, PlayerId player, Random random,
         bool diagnostics, CancellationToken token);
 
-    internal sealed record TournamentOpponent(ParticipantSpec Spec, string Version, TournamentDecision Decide, string? TablebaseMap = null);
+    internal sealed record TournamentOpponent(ParticipantSpec Spec, string Version, TournamentDecision Decide, string? TablebaseMap = null, bool SeparatePhases = false);
     internal sealed record DecisionSample(string Move, double Milliseconds = 0, long AllocatedBytes = 0,
         int? Pairs = null, int? Depth = null, bool? BudgetExhausted = null, bool? TimeLimitReached = null,
         bool? Fallback = null, object? Diagnostics = null, bool Measured = false, int? ReusedPairs = null,
@@ -35,17 +37,29 @@ internal static partial class Program
         public int? RedInteriorWithBetterAlternative { get; init; }
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? BlueInteriorWithBetterAlternative { get; init; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? OpeningBoardDigest { get; init; }
     }
 
     private static TournamentOpponent CreateOpponent(ParticipantSpec spec)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(spec.Opponent);
+        if (spec.MainOpponent is { } mainName)
+        {
+            var draft = CreateOpponent(spec with { MainOpponent = null });
+            var main = CreateOpponent(new(spec.Id, mainName));
+            if (draft.TablebaseMap is not null)
+                throw new ArgumentException("A tablebase cannot supply a natural draft policy.");
+            return new(spec, $"{draft.Version}/{main.Version}", (state, side, random, diagnostics, token) =>
+                (state.Phase == MatchPhase.Opening ? draft : main).Decide(state, side, random, diagnostics, token),
+                main.TablebaseMap, SeparatePhases: true);
+        }
         if (spec.TimeLimitMs is double time && (!double.IsFinite(time) || time <= 0 || time > 60_000))
             throw new ArgumentException($"'{spec.Id}' has an invalid time limit. Use a positive value up to 60000 ms.");
         string[] parts = spec.Opponent.Split(':');
         string kind = parts[0];
         if (kind != "strategic" && (spec.PairBudget is not null || spec.Weights is not null ||
-            spec.TimeLimitMs is not null || spec.Search is not null))
+            spec.TimeLimitMs is not null || spec.Search is not null || spec.OpeningSearch is not null || spec.LegacyOpening is not null))
             throw new ArgumentException($"'{spec.Id}' can only tune production strategic opponents.");
         if (kind == "solver")
         {
@@ -84,6 +98,8 @@ internal static partial class Program
         switch (kind)
         {
             case "strategic":
+                if (spec.LegacyOpening == true && spec.OpeningSearch is not null)
+                    throw new ArgumentException("Legacy opening and advanced draft options are mutually exclusive.");
                 var defaults = CpuDifficultyProfiles.Get(level);
                 var search = defaults.Search!;
                 var overrides = spec.Search;
@@ -97,6 +113,7 @@ internal static partial class Program
                     defaults.OpeningDiversity, defaults.UrgentOpeningDiversity, defaults.OpeningMaximumScoreDifference,
                     defaults.MainMaximumScoreDifference)
                 {
+                    OpeningSearch = spec.LegacyOpening == true ? null : spec.OpeningSearch ?? defaults.OpeningSearch,
                     Search = new(depth, overrides?.OwnCandidates ?? search.OwnCandidates,
                         overrides?.OpponentCandidates ?? search.OpponentCandidates, spec.PairBudget ?? search.PairBudget,
                         overrides?.Risk ?? search.Risk, overrides?.ReplyTemperature ?? search.ReplyTemperature,
@@ -151,6 +168,19 @@ internal static partial class Program
                             TimeLimitReached: report?.TimeLimitReached, Fallback: report is null ? null : report.Depth == 0,
                             Diagnostics: diagnostics ? decision : null, ReusedPairs: report?.ReusedPairs, CompletedDepth: report?.CompletedDepth);
                     });
+            case "frozen8d3":
+                var frozenD3Engine = new EightD3.CpuDecisionEngine();
+                var frozenD3Profile = EightD3.CpuDifficultyProfiles.Get((EightD3.CpuDifficulty)level);
+                return new(spec, "b4c77ea7553486f6043cd60822f46f9b75dd42fa",
+                    (state, player, random, diagnostics, token) =>
+                    {
+                        var decision = frozenD3Engine.DecideWithDiagnostics(state, player, frozenD3Profile, random, token);
+                        var report = decision.Search;
+                        return new(Coordinate(decision.Decision!.Value.Position), Pairs: report?.ResolvedPairs,
+                            Depth: report?.Depth, BudgetExhausted: report?.BudgetExhausted,
+                            TimeLimitReached: report?.TimeLimitReached, Fallback: report is null ? null : report.Depth == 0,
+                            Diagnostics: diagnostics ? decision : null, ReusedPairs: report?.ReusedPairs, CompletedDepth: report?.CompletedDepth);
+                    });
             case "static":
                 return new(spec, "afb0dcbab5b789ed8820017c84648ed4dd3bbe14",
                     (state, player, random, diagnostics, token) => StaticDecision(state, player, random, diagnostics, token,
@@ -191,13 +221,16 @@ internal static partial class Program
         var blue = plan.Opponents[match.SeatsSwapped ? match.First : match.Second];
         var redRandom = new Random(match.SeatsSwapped ? match.SecondStream : match.FirstStream);
         var blueRandom = new Random(match.SeatsSwapped ? match.FirstStream : match.SecondStream);
+        bool separatePhases = red.SeparatePhases || blue.SeparatePhases;
+        var redDraftRandom = separatePhases ? new Random(StreamSeed(match.Seed, red.Spec.Id, "opening-red")) : redRandom;
+        var blueDraftRandom = separatePhases ? new Random(StreamSeed(match.Seed, blue.Spec.Id, "opening-blue")) : blueRandom;
         var rounds = new List<TournamentRound>();
         var audit = config.StrategicMetrics
             ? new StrategicPosition(session.Current.Board, RuleSetDefinition.Get(config.Ruleset), token) : null;
         var metrics = new TacticalMetrics[2];
         int draftIndex = 0, collisions = 0, forced = 0, redCastles = 0, blueCastles = 0;
         string opening = "unfinished", status = "completed";
-        string? error = null;
+        string? error = null, openingBoardDigest = null;
         int limit = config.MaxRounds ?? checked(8 * definition.Width * definition.Height);
 
         try
@@ -226,8 +259,8 @@ internal static partial class Program
                 }
                 else
                 {
-                    redMove = Measure(red, before, Red, redRandom, config.Diagnostics, token);
-                    blueMove = Measure(blue, before, Blue, blueRandom, config.Diagnostics, token);
+                    redMove = Measure(red, before, Red, draft ? redDraftRandom : redRandom, config.Diagnostics, token);
+                    blueMove = Measure(blue, before, Blue, draft ? blueDraftRandom : blueRandom, config.Diagnostics, token);
                 }
                 token.ThrowIfCancellationRequested();
                 Play(session, redMove.Move, blueMove.Move, match.BlueSubmitsFirst);
@@ -249,6 +282,7 @@ internal static partial class Program
                     if (after.Phase != MatchPhase.Opening)
                     {
                         opening = OpeningOutcome(after);
+                        openingBoardDigest = OpeningDigest(after);
                         (redCastles, blueCastles) = CountCastles(after.Board);
                     }
                 }
@@ -271,6 +305,7 @@ internal static partial class Program
             metrics[0].Interior, metrics[1].Interior, metrics[0].Placements, metrics[1].Placements,
             status == "completed" ? HistoryDigest(match.Map, config.Ruleset, rounds) : null, rounds, error)
         {
+            OpeningBoardDigest = openingBoardDigest,
             RedInteriorWithBetterAlternative = audit is null ? null : metrics[0].BetterAlternative,
             BlueInteriorWithBetterAlternative = audit is null ? null : metrics[1].BetterAlternative
         };
@@ -351,6 +386,10 @@ internal static partial class Program
         internal int Interior, Placements, BetterAlternative;
         internal bool AvoidableLoss;
     }
+
+    private static string OpeningDigest(GameSessionSnapshot snapshot) =>
+        Digest(Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(
+            PositionIdentity.Key(snapshot.Board, snapshot.RuleSet))));
 
     private static bool IsPlayable(MatchPhase phase) => phase is MatchPhase.Opening or MatchPhase.Main;
     private static string OpeningOutcome(GameSessionSnapshot state) => state.Phase switch

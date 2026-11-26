@@ -83,6 +83,9 @@ public sealed record CpuSearchReport(IReadOnlyList<CpuActionAnalysis> Actions, I
     public int CompletedDepth { get; init; }
     /// <summary>Gets numerical diagnostics for a sampled matrix policy, or null when another policy was used.</summary>
     public CpuMatrixAnalysis? Matrix { get; init; }
+
+    /// <summary>Gets draft-specific work and coverage diagnostics when the advanced draft policy is used.</summary>
+    public CpuOpeningAnalysis? Opening { get; init; }
 }
 
 /// <summary>Reports the security interval of the modeled payoff matrix in outcome utility units.</summary>
@@ -96,3 +99,13 @@ public sealed record CpuSearchReport(IReadOnlyList<CpuActionAnalysis> Actions, I
 /// <param name="Elapsed">Wall time spent constructing and solving matrices for this decision.</param>
 public readonly record struct CpuMatrixAnalysis(double Security, double Ceiling, int Pivots, int OwnActions,
     int Replies, bool FullReplies, int Solves, TimeSpan Elapsed);
+
+
+/// <summary>Describes opening-only outcomes and previews tested within the pair budget.</summary>
+/// <param name="RestartPairs">New draft pairs that returned the authoritative restart phase.</param>
+/// <param name="MainPairs">New hypothetical Main-phase pairs resolved during the decision.</param>
+/// <param name="MainPreviewDepth">Deepest completed Main preview tier, or zero for static opening leaves.</param>
+/// <param name="FullRoot">Whether a completed root considered every legal start for both sides.</param>
+/// <param name="CachedStates">Evaluated child states reused within the decision, including transpositions.</param>
+public readonly record struct CpuOpeningAnalysis(int RestartPairs, int MainPairs, int MainPreviewDepth, bool FullRoot,
+    int CachedStates);

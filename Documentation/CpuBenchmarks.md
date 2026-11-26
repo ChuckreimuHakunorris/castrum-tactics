@@ -138,3 +138,5 @@ The ARM64 .NET publish and signed Godot debug APK export passed. The isolated pa
 - In 8E, use several opponent models and a held-out map set to distinguish map imbalance from CPU-specific blind spots. Separate draft restart rates from scored outcomes and compare natural versus fixed openings.
 
 Use the [small-board solver](SmallBoardSolver.md) to certify reachable positions, inspect decision payoffs and compare seeded CPU policies against optimal play. Store generated reports and tablebases under exports/.
+
+Use [advanced opening strategy](CpuOpeningStrategy.md) for fixed-configuration opening studies and draft-only comparisons against frozen 8D.3.
