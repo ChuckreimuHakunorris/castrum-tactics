@@ -41,7 +41,7 @@ def main():
             flags.append("replay immediate terminal openings")
         if min_actions <= 1 or max_asymmetry >= 12:
             flags.append("compare mirrored starts with wide legal-count swings")
-        if natural["meanSecondPairs"] is not None and natural["meanSecondPairs"] >= 450:
+        if natural["meanSecondPairs"] is not None and natural["meanSecondPairs"] >= 350:
             flags.append("profile Monster search on saved positions")
         shared = [s["sharedLegal"] for s in playable]
         castle_counts = sorted({s["redCastles"] for s in playable})
@@ -63,7 +63,7 @@ def main():
             "naturalMonsterPoints": None if natural["pointRate"] is None else round(1 - natural["pointRate"], 4),
             "naturalMonsterPairs": natural["meanSecondPairs"], "naturalMeanTurns": natural["meanTurns"],
             "fixedOneMonsterPoints": monster_points(fixed[1]), "fixedTwoMonsterPoints": monster_points(fixed[2]),
-            "followUp": "; ".join(flags), "digest": layout["digest"],
+            "followUp": " | ".join(flags), "digest": layout["digest"],
         })
     with args.output.open("w", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=list(rows[0]))

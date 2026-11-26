@@ -76,6 +76,8 @@ def experiments():
         ], fixed=True, references=["reference"], seeds=(3613,))
     yield "snapshot-variants", schedule([
         opponent("base", "Monster", timeLimitMs=450),
+        opponent("veryhard-base", "VeryHard", timeLimitMs=450),
+        opponent("veryhard-live", "VeryHard", "strategic", timeLimitMs=450),
         *[opponent(f"limit-{budget}", "Monster", "strategic", timeLimitMs=guard, pairBudget=budget)
           for budget, guard in [(850, 450), (2000, 500), (4000, 1000), (8000, 1000)]],
         opponent("wide", "Monster", "strategic", timeLimitMs=450, pairBudget=850,

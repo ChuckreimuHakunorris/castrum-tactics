@@ -26,9 +26,12 @@ Use `frozen8d2:<difficulty>` for the immutable 8D.2 policy. A live `strategic` p
 | Opponent ID | Implementation and provenance |
 | --- | --- |
 | `strategic:<difficulty>` | Current production policy and profile. Optional `pairBudget`, `weights` (a complete [CpuEvaluationWeights](xref:CastrumTactics.AI.CpuEvaluationWeights) object), `timeLimitMs`, and `search` overrides apply only to that participant. |
+| `frozen8d4:<difficulty>` | The integrated 8D.4 AI from `7ec9a71c0f7a260c013fb08468db76af156692f3`, including opening and Main policies. Accepts an optional `timeLimitMs` for controlled timed runs. |
 | `frozen8c:<difficulty>` | Eight original AI sources from `6d5c1355e1f119a42feb5f2e7f848bc63d66b145`, the corrected 8C draft collision implementation merged in `1682d48`. `Benchmarks/Frozen8C` builds a separate assembly, including the evaluator, search options, and all difficulty profiles. |
 | `static:<difficulty>` | The original five static AI sources from `afb0dcbab5b789ed8820017c84648ed4dd3bbe14` in `Benchmarks/Frozen`. |
 | `probe` | Dot's frozen One-Turn Probe from the original Knight Support benchmark archive for `afb0dcbab5b789ed8820017c84648ed4dd3bbe14`. It uses frozen Normal's shortlist and plays frozen Normal during the draft. |
+
+Set `separatePhaseStreams` to true to keep Main draws independent of the draft even when neither participant uses phase composition. An optional participant `streamId` holds the seed identity constant across alternative labels. Live strategic opponents also accept an optional `mainTemperature` for score-based sampling experiments. Official map selection excludes study layouts unless their IDs are supplied explicitly. [8E calibration and reproduction](CpuDifficultyCalibration.md)
 
 The difficulty names are `Easy`, `Normal`, `Hard`, `VeryHard`, and `Monster`. Each participant has a unique ID, even when several entries share an implementation. A future CPU can register a versioned adapter in `CreateOpponent` that takes a published snapshot, seat, seeded random source, diagnostics flag, and cancellation token. The runner owns timing, session validation, and history. All adapters should return an action from the supplied snapshot and report only the search counters their implementation exposes.
 

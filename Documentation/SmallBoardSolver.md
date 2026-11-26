@@ -235,3 +235,5 @@ All raw Corner Watch statistics agreed across the two enumeration modes, includi
 The solution build passed with warnings treated as errors. All 331 tests passed. The tests cover exact matrix certificates, an independent two-row intersection solver, a forced collision via the public session, the archived fixture's continuation, complete identity, transpositions, the full/reduced correspondence, seeded sampling, resource limits and tablebase corruption. Both Godot 4.7.2 .NET runtime regressions passed. DocFX 2.81.0 generated API metadata from the verified build assemblies and built the site with warnings treated as errors. The cloud environment disallowed the Unix pipe used by DocFX's project-based Roslyn build host.
 
 The [8D.4 draft research](CpuOpeningStrategy.md#mathematical-draft-examples) uses the certified Main values to solve small drafts under an explicit retry model, including Three Banners.
+
+The [8E mathematical reruns](CpuDifficultyCalibration.md#mathematical-regressions) record fresh certificates and policy gaps for the three compact roots and reassess Three Banners.

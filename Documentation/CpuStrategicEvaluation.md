@@ -139,3 +139,5 @@ The certified-opponent tournament uses the Pocket Meadow example with `exports/8
 8E will calibrate the difficulty ladder and battlefield mix. Test whether larger battlefields reduce the influence of individual simultaneous outcomes and increase the consistency with which stronger players win. Isolate board area, geometry, starting-position distribution, match length, computational limits and strategic depth. The small-board study cannot resolve those effects.
 
 Milestone 8D.4 adds an independent Monster draft policy. [Opening strategy](CpuOpeningStrategy.md) records the paired tests with Main fixed at frozen 8D.3 and the original engine parity.
+
+[8E calibration](CpuDifficultyCalibration.md) evaluates the resilient evaluator at lower levels, compares production and frozen policies, and reruns the compact reference study.

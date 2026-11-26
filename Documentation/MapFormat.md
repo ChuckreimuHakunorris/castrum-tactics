@@ -197,3 +197,5 @@ The following exact definitions are archived under `Benchmarks/Reference/Maps/`.
 | Three Terraces | 6 × 7 | Offset terrace walls make expansion follow alternating openings between shallow shelves. |
 | Twin Ledges | 4 × 3 | Rock ledges and four start sites leave little space for future expansion. |
 | Watch Road | 4 × 8 | Two long rock pairs repeatedly reduce the board to single-cell edge tracks. |
+
+The [8E battlefield audit](BattlefieldBalance.md) records structural checks, reachable openings and tournament observations for all 100 entries, including follow-up flags for map review.

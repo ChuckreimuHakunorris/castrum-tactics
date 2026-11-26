@@ -199,7 +199,12 @@ public sealed class TournamentTests
     [InlineData("Monster")]
     public void FrozenEightCMatchesEquivalentProductionSettings(string difficulty)
     {
-        var search = difficulty == "Monster" ? new SearchOverrides(Depth: 2) : null;
+        SearchOverrides? search = difficulty switch
+        {
+            "Monster" => new(Depth: 2),
+            "VeryHard" => new(ResilientEvaluation: false),
+            _ => null
+        };
         var config = Config with { Participants = [new("alpha", $"strategic:{difficulty}", Search: search), new("beta", "static:Normal")] };
         var frozenConfig = config with { Participants = [new("alpha", $"frozen8c:{difficulty}"), config.Participants[1]] };
         var live = PlanTournament(config);

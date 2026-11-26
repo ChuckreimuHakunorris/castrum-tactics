@@ -119,3 +119,5 @@ The [Game Design Document](GameDesign.md) records the rules and open design deci
 The [small-board solver](SmallBoardSolver.md) uses the Domain resolver and exposes exact results through the development benchmark executable.
 
 The [opening strategy](CpuOpeningStrategy.md) evaluates authoritative draft previews with its own matrix and budget while using the same public snapshot and asynchronous proposal path as Main.
+
+The [8E CPU evaluation and calibration](CpuDifficultyCalibration.md) uses separately compiled opponents and replayable tournaments. The [battlefield audit](BattlefieldBalance.md) and its generated size-study maps live in Benchmarks.

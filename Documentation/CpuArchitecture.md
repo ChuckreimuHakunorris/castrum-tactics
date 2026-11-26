@@ -50,7 +50,7 @@ Each pair previews the next draft state or opening completion, including any for
 
 Monster uses the resilient evaluator and bounded outcome utility in Main. Its root and selected continuation matrices share the existing 850-pair budget. A completed matrix supplies the action probabilities and includes a common column for each affordable legal collision. When a comparable second tier does not fit, the engine retains the completed first tier. Compact roots can still enter the three-turn proof-only pass. An immediate win is checked against omitted replies before the engine reports it as proved. [Models and measured results](CpuStrategicEvaluation.md)
 
-The 8D.2 evaluator used for Easy through Very Hard and legacy draft previews clamps its signed nonterminal sum to ±1,000. Its Main terminal win or loss uses ±10,000 plus the signed final margin clamped to ±1,000. A terminal draw is zero. Monster’s bounded Main utility uses the same internal scale of 10,000 with no margin term. [Strategic evaluation](CpuStrategicEvaluation.md)
+Easy, Normal and Hard use the 8D.2 Main evaluator. Very Hard uses resilient evaluation with the same score scaling as Hard and with score-based sampling. Legacy draft previews use the existing draft evaluation. The nonterminal score for these profiles is clamped to ±1,000. Its Main terminal win or loss uses ±10,000 plus the signed final margin clamped to ±1,000. A terminal draw is zero. Monster’s bounded Main utility uses the same internal scale of 10,000 with no margin term. [Strategic evaluation](CpuStrategicEvaluation.md)
 
 | Term | Weight and calculation |
 | --- | --- |
@@ -158,3 +158,5 @@ Evaluate pairs of opposing choices through the authoritative simultaneous resolv
 The development harness wraps CPU implementations as versioned opponents using the same immutable snapshot boundary as the application coordinator. It owns experiment profiles, timing, randomness, match scheduling and persistence. The frozen 8C evaluator, search and profiles build as their own assembly. See [CPU tournaments](CpuTournaments.md) for provenance, diagnostics and experimental workflows.
 
 The development-only [small-board solver](SmallBoardSolver.md) evaluates simultaneous decisions against exact state values and supplies a tablebase reference for experiments.
+
+The [8E calibration report](CpuDifficultyCalibration.md) compares the built-in ladder with the independent 8D.4 baseline and describes the release configuration and platform measurements.

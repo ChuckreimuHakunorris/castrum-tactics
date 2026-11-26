@@ -21,3 +21,5 @@
 - Follow [Small-board solver](Documentation/SmallBoardSolver.md) for exact simultaneous research. Keep the solver in Benchmarks and store generated tablebases and research runs under ignored exports/ or the external project-files directory.
 
 - Follow [CPU opening strategy](Documentation/CpuOpeningStrategy.md) for draft changes. Use authoritative previews and compare draft policies with the same frozen Main policy on held-out maps.
+
+- Keep the 8D.4 CPU baseline in its separate development assembly. Use the [8E calibration](Documentation/CpuDifficultyCalibration.md) and [battlefield audit](Documentation/BattlefieldBalance.md) when extending the ladder or map research. Keep generated maps and instrumentation out of ordinary gameplay builds.
