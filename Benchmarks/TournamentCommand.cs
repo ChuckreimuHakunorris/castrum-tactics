@@ -145,7 +145,7 @@ internal static partial class Program
     internal static GameSessionSnapshot Reconstruct(Manifest manifest, ScheduledMatch match, TournamentResult record,
         string? targetPhase = null, int targetRound = 0)
     {
-        var map = HistoricalBattlefields.Resolve(match.Map);
+        var map = StudyBattlefields.Resolve(match.Map);
         if (Identify(map, manifest.Config.Maps.HeldOut).Digest != manifest.Maps.Single(m => m.Id == match.Map).Digest)
             throw new InvalidDataException($"Map definition changed for '{match.Map}'.");
         var session = new LocalGameSession(map.Definition, manifest.Config.Ruleset);

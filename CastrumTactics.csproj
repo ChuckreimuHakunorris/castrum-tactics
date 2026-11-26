@@ -6,6 +6,9 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(CastrumDeviceTiming)' == 'true'">
+    <DefineConstants>$(DefineConstants);CASTRUM_DEVICE_TIMING</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="Domain/CastrumTactics.Domain.csproj" />
     <ProjectReference Include="AI/CastrumTactics.AI.csproj" />

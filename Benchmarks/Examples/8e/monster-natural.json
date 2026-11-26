@@ -1,0 +1,42 @@
+{
+  "id": "8e-monster-natural",
+  "maps": {
+    "ids": [
+      "the-commons",
+      "open-meadow",
+      "honeystone-green",
+      "twelve-towers"
+    ]
+  },
+  "ruleset": "knightSupport",
+  "opening": {
+    "mode": "natural"
+  },
+  "seeds": [
+    1861
+  ],
+  "swapSeats": true,
+  "separatePhaseStreams": true,
+  "workers": 3,
+  "strategicMetrics": false,
+  "format": "baseline",
+  "references": [
+    "reference"
+  ],
+  "participants": [
+    {
+      "id": "reference",
+      "opponent": "frozen8d4:Monster"
+    },
+    {
+      "id": "prior",
+      "opponent": "frozen8d3:Monster"
+    },
+    {
+      "id": "live",
+      "opponent": "strategic:Monster",
+      "timeLimitMs": 450
+    }
+  ],
+  "swapStarts": false
+}

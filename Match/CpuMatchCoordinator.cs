@@ -32,6 +32,9 @@ internal sealed class CpuMatchCoordinator : IDisposable
         _profile = profile;
         _seedSource = seedSource;
         _decide = decide ?? new CpuDecisionEngine(TimeSpan.FromMilliseconds(450)).Decide;
+#if CASTRUM_DEVICE_TIMING
+        if (decide is null) _decide = DeviceTiming.Wrap(_decide);
+#endif
     }
 
     internal Exception? Failure { get; private set; }

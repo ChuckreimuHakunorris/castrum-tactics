@@ -2,6 +2,7 @@ extern alias frozen;
 extern alias frozen8c;
 extern alias frozen8d2;
 extern alias frozen8d3;
+extern alias frozen8d4;
 
 using System.Diagnostics;
 using System.Text.Json.Serialization;
@@ -11,6 +12,7 @@ using CastrumTactics.Development.Solver;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using Frozen = frozen::CastrumTactics.AI;
+using EightD4 = frozen8d4::CastrumTactics.AI;
 using EightD3 = frozen8d3::CastrumTactics.AI;
 using EightD2 = frozen8d2::CastrumTactics.AI;
 using EightC = frozen8c::CastrumTactics.AI;
@@ -59,7 +61,8 @@ internal static partial class Program
         string[] parts = spec.Opponent.Split(':');
         string kind = parts[0];
         if (kind != "strategic" && (spec.PairBudget is not null || spec.Weights is not null ||
-            spec.TimeLimitMs is not null || spec.Search is not null || spec.OpeningSearch is not null || spec.LegacyOpening is not null))
+            (kind != "frozen8d4" && spec.TimeLimitMs is not null) || spec.Search is not null ||
+            spec.OpeningSearch is not null || spec.LegacyOpening is not null || spec.MainTemperature is not null))
             throw new ArgumentException($"'{spec.Id}' can only tune production strategic opponents.");
         if (kind == "solver")
         {
@@ -109,7 +112,7 @@ internal static partial class Program
                 if (equilibrium != MatrixPolicy.Off && depth > 2 && !proofOnly)
                     throw new ArgumentException("Equilibrium search beyond two turns requires proof-only deepening.");
                 var profile = new CpuProfile(spec.Weights ?? defaults.Weights, defaults.OpeningCandidateLimit,
-                    defaults.MainCandidateLimit, defaults.MainTemperature, defaults.OpeningTemperature,
+                    defaults.MainCandidateLimit, spec.MainTemperature ?? defaults.MainTemperature, defaults.OpeningTemperature,
                     defaults.OpeningDiversity, defaults.UrgentOpeningDiversity, defaults.OpeningMaximumScoreDifference,
                     defaults.MainMaximumScoreDifference)
                 {
@@ -181,6 +184,20 @@ internal static partial class Program
                             TimeLimitReached: report?.TimeLimitReached, Fallback: report is null ? null : report.Depth == 0,
                             Diagnostics: diagnostics ? decision : null, ReusedPairs: report?.ReusedPairs, CompletedDepth: report?.CompletedDepth);
                     });
+            case "frozen8d4":
+                var frozenD4Engine = spec.TimeLimitMs is double frozenTime
+                    ? new EightD4.CpuDecisionEngine(TimeSpan.FromMilliseconds(frozenTime)) : new EightD4.CpuDecisionEngine();
+                var frozenD4Profile = EightD4.CpuDifficultyProfiles.Get((EightD4.CpuDifficulty)level);
+                return new(spec, "7ec9a71c0f7a260c013fb08468db76af156692f3",
+                    (state, player, random, diagnostics, token) =>
+                    {
+                        var decision = frozenD4Engine.DecideWithDiagnostics(state, player, frozenD4Profile, random, token);
+                        var report = decision.Search;
+                        return new(Coordinate(decision.Decision!.Value.Position), Pairs: report?.ResolvedPairs,
+                            Depth: report?.Depth, BudgetExhausted: report?.BudgetExhausted,
+                            TimeLimitReached: report?.TimeLimitReached, Fallback: report is null ? null : report.Depth == 0,
+                            Diagnostics: diagnostics ? decision : null, ReusedPairs: report?.ReusedPairs, CompletedDepth: report?.CompletedDepth);
+                    });
             case "static":
                 return new(spec, "afb0dcbab5b789ed8820017c84648ed4dd3bbe14",
                     (state, player, random, diagnostics, token) => StaticDecision(state, player, random, diagnostics, token,
@@ -215,15 +232,15 @@ internal static partial class Program
     internal static TournamentResult PlayTournamentMatch(TournamentPlan plan, ScheduledMatch match, CancellationToken token)
     {
         var config = plan.Config;
-        var definition = HistoricalBattlefields.Resolve(match.Map).Definition;
+        var definition = StudyBattlefields.Resolve(match.Map).Definition;
         var session = new LocalGameSession(definition, config.Ruleset);
         var red = plan.Opponents[match.SeatsSwapped ? match.Second : match.First];
         var blue = plan.Opponents[match.SeatsSwapped ? match.First : match.Second];
         var redRandom = new Random(match.SeatsSwapped ? match.SecondStream : match.FirstStream);
         var blueRandom = new Random(match.SeatsSwapped ? match.FirstStream : match.SecondStream);
-        bool separatePhases = red.SeparatePhases || blue.SeparatePhases;
-        var redDraftRandom = separatePhases ? new Random(StreamSeed(match.Seed, red.Spec.Id, "opening-red")) : redRandom;
-        var blueDraftRandom = separatePhases ? new Random(StreamSeed(match.Seed, blue.Spec.Id, "opening-blue")) : blueRandom;
+        bool separatePhases = config.SeparatePhaseStreams || red.SeparatePhases || blue.SeparatePhases;
+        var redDraftRandom = separatePhases ? new Random(StreamSeed(match.Seed, red.Spec.StreamId ?? red.Spec.Id, "opening-red")) : redRandom;
+        var blueDraftRandom = separatePhases ? new Random(StreamSeed(match.Seed, blue.Spec.StreamId ?? blue.Spec.Id, "opening-blue")) : blueRandom;
         var rounds = new List<TournamentRound>();
         var audit = config.StrategicMetrics
             ? new StrategicPosition(session.Current.Board, RuleSetDefinition.Get(config.Ruleset), token) : null;

@@ -43,6 +43,50 @@ public sealed class TournamentTests
     }
 
     [Fact]
+    public void StreamAliasesPreservePairedRandomDrawsAcrossCandidateLabels()
+    {
+        var config = Config with { SeparatePhaseStreams = true, Opening = new() };
+        var first = PlanTournament(config);
+        var second = PlanTournament(config with
+        {
+            Participants = [config.Participants[0] with { Id = "alternative", StreamId = "alpha" }, config.Participants[1]]
+        });
+        foreach (var (a, b) in first.Matches.Zip(second.Matches))
+        {
+            Assert.Equal((a.FirstStream, a.SecondStream), (b.FirstStream, b.SecondStream));
+            Assert.Equal(PlayTournamentMatch(first, a, default).HistoryDigest,
+                PlayTournamentMatch(second, b, default).HistoryDigest);
+        }
+    }
+
+    [Fact]
+    public void CatalogAuditUsesReachablePairedCastlesAndKeepsResearchMapsOutOfProduction()
+    {
+        var rows = PredefinedMapCatalog.BuiltIn.Maps.Select(AuditBattlefield).ToArray();
+        Assert.Equal(100, rows.Length);
+        Assert.All(rows, row =>
+        {
+            Assert.Equal(row.Playable, row.Regions.Sum());
+            Assert.Contains(0, row.Symmetries);
+            Assert.Contains(row.Openings, opening => opening.Phase == MatchPhase.Main);
+            Assert.All(row.Openings, opening => Assert.Equal(opening.RedCastles, opening.BlueCastles));
+        });
+        foreach (int size in new[] { 4, 6, 8, 10, 12 })
+        foreach (string family in new[] { "open", "block" })
+        {
+            string id = $"study-{family}-{size}";
+            var map = benchmarks::StudyBattlefields.Resolve(id);
+            var row = AuditBattlefield(map);
+            Assert.Equal(size, row.Width);
+            Assert.Equal(4, row.Starts.Length);
+            Assert.True(family == "open" ? row.Rocks == 0 : row.Rocks > 0);
+            Assert.DoesNotContain(rows, production => production.Id == id);
+            var plan = PlanTournament(Config with { Maps = new() { Ids = [id] } });
+            Assert.Equal("completed", PlayTournamentMatch(plan, plan.Matches[0], default).Status);
+        }
+    }
+
+    [Fact]
     public void MapSubsetsHoldOutAndHistoryRequireExplicitSelection()
     {
         Assert.True(Assert.Single(PlanTournament(Config).Maps).Historical);

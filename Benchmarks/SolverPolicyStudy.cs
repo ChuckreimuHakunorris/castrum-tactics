@@ -1,6 +1,7 @@
 extern alias frozen;
 extern alias frozen8c;
 extern alias frozen8d2;
+extern alias frozen8d4;
 
 using CastrumTactics.AI;
 using CastrumTactics.Development.Solver;
@@ -8,6 +9,7 @@ using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using EightC = frozen8c::CastrumTactics.AI;
 using EightD2 = frozen8d2::CastrumTactics.AI;
+using EightD4 = frozen8d4::CastrumTactics.AI;
 using Frozen = frozen::CastrumTactics.AI;
 
 internal static partial class Program
@@ -56,15 +58,19 @@ internal static partial class Program
                     token.ThrowIfCancellationRequested();
                     var decision = opponent.Decide(snapshot, side, new Random(42), true, token);
                     var modeled = CpuPolicy(snapshot, side, actions, decision);
-                    var indexes = decision.Diagnostics is CpuDecisionReport { Search: { } search }
-                        ? search.Replies.Select(reply => Array.IndexOf(opposing, reply.Position)).ToHashSet()
-                        : null;
-                    var rootActions = decision.Diagnostics is CpuDecisionReport { Search: { } report }
-                        ? report.Actions.Select(action => Array.IndexOf(actions, action.Position)).ToHashSet()
-                        : null;
-                    var rating = decision.Diagnostics is CpuDecisionReport { Search: { } searchReport }
-                        ? searchReport.Actions.Select(a => (Index: Array.IndexOf(actions, a.Position), a.Expected, a.Adverse)).ToArray()
-                        : null;
+                    var (replies, actionRatings) = decision.Diagnostics switch
+                    {
+                        CpuDecisionReport { Search: { } live } => (
+                            live.Replies.Select(r => r.Position),
+                            live.Actions.Select(a => (a.Position, a.Expected, a.Adverse))),
+                        EightD4.CpuDecisionReport { Search: { } frozen } => (
+                            frozen.Replies.Select(r => r.Position),
+                            frozen.Actions.Select(a => (a.Position, a.Expected, a.Adverse))),
+                        _ => (null, null)
+                    };
+                    var indexes = replies?.Select(reply => Array.IndexOf(opposing, reply)).ToHashSet();
+                    var rating = actionRatings?.Select(a => (Index: Array.IndexOf(actions, a.Position), a.Expected, a.Adverse)).ToArray();
+                    var rootActions = rating?.Select(a => a.Index).ToHashSet();
                     Compare(opponent.Spec.Id, stage, node, side, modeled, Array.IndexOf(actions, Position(decision.Move)),
                         indexes, rootActions, decision.Depth, decision.CompletedDepth, rating);
                 }
@@ -227,9 +233,10 @@ internal static partial class Program
 
     private static IEnumerable<ParticipantSpec> SolverStudyOpponents()
     {
-        foreach (string kind in new[] { "static", "frozen8c", "frozen8d2", "strategic" })
+        foreach (string kind in new[] { "static", "frozen8c", "frozen8d2", "frozen8d4", "strategic" })
         foreach (var difficulty in Enum.GetValues<CpuDifficulty>())
             yield return new($"{kind}-{difficulty.ToString().ToLowerInvariant()}", $"{kind}:{difficulty}");
+        yield return new("normal-resilient", "strategic:Normal", Search: new(ResilientEvaluation: true));
         yield return new("probe", "probe");
         yield return new("monster-one", "strategic:Monster", Search: new(Depth: 1));
         yield return new("monster-narrow-replies", "strategic:Monster", Search: new(Depth: 2, OpponentCandidates: 2));
@@ -264,6 +271,7 @@ internal static partial class Program
             CpuDecisionReport report => report.Candidates.Select(c => (c.Position, c.Probability)),
             EightC.CpuDecisionReport report => report.Candidates.Select(c => (c.Position, c.Probability)),
             EightD2.CpuDecisionReport baseline => baseline.Candidates.Select(c => (c.Position, c.Probability)),
+            EightD4.CpuDecisionReport report => report.Candidates.Select(c => (c.Position, c.Probability)),
             Frozen.CpuDecisionReport report => report.Candidates.Select(c => (c.Position, c.Probability)),
             _ => ProbePolicy(snapshot, side)
         };

@@ -37,6 +37,8 @@ internal static partial class Program
         public string? OutputDirectory { get; init; }
         public int? MaxMatches { get; init; }
         public int? MaxRounds { get; init; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool SeparatePhaseStreams { get; init; }
         public bool Diagnostics { get; init; }
         public bool StrategicMetrics { get; init; } = true;
     }
@@ -47,7 +49,9 @@ internal static partial class Program
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Tablebase = null,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? MainOpponent = null,
         [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CpuOpeningOptions? OpeningSearch = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? LegacyOpening = null);
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? LegacyOpening = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? StreamId = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? MainTemperature = null);
 
     internal sealed record SearchOverrides(int? Depth = null, int? OwnCandidates = null, int? OpponentCandidates = null,
         int? ContinuationOwnCandidates = null, int? ContinuationOpponentCandidates = null, int? DeepFinalists = null,
@@ -104,6 +108,7 @@ internal static partial class Program
         {
             ArgumentNullException.ThrowIfNull(spec);
             Identifier(spec.Id, "Participant ID");
+            if (spec.StreamId is not null) Identifier(spec.StreamId, "Stream ID");
             if (!participants.TryAdd(spec.Id, CreateOpponent(spec)))
                 throw new ArgumentException($"Duplicate participant '{spec.Id}'.");
         }
@@ -142,8 +147,8 @@ internal static partial class Program
 
         ScheduledMatch Schedule(string map, string first, string second, int seed, bool seat, bool start)
         {
-            int firstSeed = StreamSeed(seed, first, "first");
-            int secondSeed = StreamSeed(seed, second, "second");
+            int firstSeed = StreamSeed(seed, participants[first].Spec.StreamId ?? first, "first");
+            int secondSeed = StreamSeed(seed, participants[second].Spec.StreamId ?? second, "second");
             if (firstSeed == secondSeed) secondSeed = (secondSeed + 1) & int.MaxValue;
             string[] draft = drafts[map];
             string id = Digest(FormattableString.Invariant(
@@ -182,7 +187,7 @@ internal static partial class Program
                      (filter.MinRocks, filter.MaxRocks), (filter.MinStarts, filter.MaxStarts) })
             if (min < 0 || max < 0 || min > max) throw new ArgumentException("Invalid map filter bounds.");
         IEnumerable<PredefinedMap> candidates = filter.Ids.Length == 0
-            ? PredefinedMapCatalog.BuiltIn.Maps : filter.Ids.Select(HistoricalBattlefields.Resolve);
+            ? PredefinedMapCatalog.BuiltIn.Maps : filter.Ids.Select(StudyBattlefields.Resolve);
         var maps = candidates.Where(map =>
         {
             var info = Identify(map, filter.HeldOut);

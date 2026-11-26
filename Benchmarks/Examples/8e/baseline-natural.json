@@ -1,0 +1,46 @@
+{
+  "id": "8e-baseline-natural",
+  "maps": {
+    "ids": [
+      "the-commons",
+      "open-meadow",
+      "honeystone-green",
+      "twelve-towers"
+    ]
+  },
+  "ruleset": "knightSupport",
+  "opening": {
+    "mode": "natural"
+  },
+  "seeds": [
+    1229,
+    1361
+  ],
+  "swapSeats": true,
+  "separatePhaseStreams": true,
+  "workers": 3,
+  "strategicMetrics": false,
+  "participants": [
+    {
+      "id": "easy",
+      "opponent": "frozen8d4:Easy"
+    },
+    {
+      "id": "normal",
+      "opponent": "frozen8d4:Normal"
+    },
+    {
+      "id": "hard",
+      "opponent": "frozen8d4:Hard"
+    },
+    {
+      "id": "veryhard",
+      "opponent": "frozen8d4:VeryHard"
+    },
+    {
+      "id": "monster",
+      "opponent": "frozen8d4:Monster"
+    }
+  ],
+  "swapStarts": false
+}
