@@ -10,16 +10,17 @@
 
 ## Build locally
 
-Install the .NET 10 SDK and run these commands from the repository root:
+Install the [pinned SDK](EngineeringVerification.md#toolchain-and-policy). Run the following from the repository root:
 
 ```sh
 dotnet tool restore
 dotnet docfx metadata Documentation/docfx.json --warningsAsErrors
 dotnet docfx build Documentation/docfx.json --warningsAsErrors
+dotnet run --project scripts/DocumentationLinks -- Documentation/.docfx/site
 dotnet docfx serve Documentation/.docfx/site
 ```
 
-Open [http://localhost:8080](http://localhost:8080) to preview the site. DocFX reads the application, Domain and AI C# projects and resolves their dependencies. Documentation builds require neither the Godot editor nor Android export tools. The tool manifest pins DocFX, and the API YAML and static HTML are generated locally or in CI.
+Open [http://localhost:8080](http://localhost:8080) to preview the site. DocFX reads the application, Domain and AI C# projects and resolves their dependencies. Documentation builds require neither the Godot editor nor Android export tools. The tool manifest pins DocFX. The API YAML and static HTML are generated locally or in CI. Pull requests run the same build and link checks on a clean checkout without Pages access. See [engineering verification](EngineeringVerification.md#local-commands-and-ci) for the shared script and link coverage.
 
 DocFX can leave old generated files after a type is renamed or removed. To rebuild from scratch, preview the cleanup with `git clean -ndX -- Documentation/api/ Documentation/.docfx/`. Run the same command with `-fdX` to remove the listed ignored files, then rebuild.
 

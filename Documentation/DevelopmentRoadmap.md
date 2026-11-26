@@ -13,13 +13,14 @@
 | 8E | Initial empirical ladder calibration and battlefield studies. The selected configuration is the stopping point for initial CPU development. [Calibration](CpuDifficultyCalibration.md) · [Battlefield balance](BattlefieldBalance.md) |
 | 9A | Behavior-preserving ownership changes across Domain, AI, Godot and Benchmarks, checked against frozen 8E and independent domain histories. [9A refactoring](ArchitectureRefactoring.md) |
 
+| 9B | Reconciled documentation and comments with post-9A code and verified the historical evidence. [9B audit](DocumentationAudit.md) |
+
 ## Current
 
-**9B** reconciles current documentation and comments with the post-9A code, preserves the historical evidence and records verification for review. [9B audit](DocumentationAudit.md)
+**9C** implements reproducible engineering checks and is awaiting review. [Engineering verification](EngineeringVerification.md)
 
 ## Planned
 
-- **9C** covers engineering housekeeping. Candidate work includes a first-party API documentation check, pull-request DocFX validation, warning and analyzer consistency, formatting, and frozen archive integrity.
 - A basic map editor and online multiplayer remain planned. The map data format for user-created maps, backend and hosting, remote authority and restart policy, competitive eligibility, accounts and ranked features are decisions still to be made. The order beyond 9C remains open. [Open design decisions](GameDesign.md#12-open-decisions-and-questions)
 
 ## Deferred research
@@ -32,4 +33,4 @@
 
 ## Platform verification
 
-9A produced a Windows x64 export and a signed ARM64 debug APK and checked their package contents. Native Windows launch and physical Android installation, rotation, gameplay and timing for the integrated baseline remain outstanding. The 8E report records earlier Android instrumentation and subjective observations on their own revisions. [9A platform evidence](ArchitectureRefactoring.md) · [8E device evidence](CpuDifficultyCalibration.md)
+9A verified Windows x64 and signed Android ARM64 package contents. The [9C verification record](EngineeringVerification.md#verification-record) tracks current packaging and managed build results. Native Windows launch and physical Android installation, rotation, gameplay and timing remain outstanding. The 8E report records earlier instrumentation and subjective observations on their own revisions. [9A platform evidence](ArchitectureRefactoring.md) · [8E device evidence](CpuDifficultyCalibration.md)

@@ -4,7 +4,7 @@ Castrum Tactics is a two-player, turn-based strategy game about controlling terr
 
 ## Open and run
 
-1. Install Godot 4.7.2 .NET and a .NET SDK that can build the project's `net8.0` desktop target and `net9.0` Android target. The .NET 10 SDK can build both targets.
+1. Install Godot 4.7.2 .NET and the SDK specified in [global.json](global.json). The SDK builds both the `net8.0` desktop and `net9.0` Android targets. Godot desktop runs also use the .NET 8 runtime. [Toolchain and verification](Documentation/EngineeringVerification.md#toolchain-and-policy)
 2. Import `project.godot` in the Godot Project Manager and press **F5** to play Knight Support as Player One against a Normal CPU on one of 100 randomly selected built-in maps. [Map catalog](Documentation/MapFormat.md)
 3. Run `dotnet build CastrumTactics.csproj` from the repository root to check the Godot C# build from the command line.
 
@@ -81,4 +81,5 @@ godot --headless --path . --script Tests/Presentation/CpuMatchCheck.gd -- --seed
 - [Architecture](Documentation/architecture.md), [CPU configuration](Documentation/CpuArchitecture.md) and [9A ownership changes](Documentation/ArchitectureRefactoring.md)
 - [Roadmap and platform status](Documentation/DevelopmentRoadmap.md) and [decision log](Documentation/DecisionLog.md)
 - [Research and benchmark guide](Documentation/CpuBenchmarks.md), [8E calibration](Documentation/CpuDifficultyCalibration.md) and [battlefield study](Documentation/BattlefieldBalance.md)
+- [Engineering verification and CI](Documentation/EngineeringVerification.md)
 - [Documentation home](Documentation/index.md) and [contributor guide and DocFX commands](Documentation/contributing.md)
