@@ -4,6 +4,9 @@ The synchronous `CastrumTactics.AI` engine reads immutable public domain snapsho
 
 ## Calling the engine
 
+The application defaults to Knight Support, Versus CPU and Normal. The convenience Domain overloads `LocalGameSession(map)` and `MainPhaseState.Evaluate(board)` retain Classic. Tournament configuration defaults to Knight Support. Set a ruleset explicitly for experiments or when invoking the low-level Domain APIs. [Tournament configuration](CpuTournaments.md#participants-and-configuration)
+
+
 ```csharp
 var engine = new CpuDecisionEngine();
 var profile = CpuDifficultyProfiles.Get(CpuDifficulty.Hard);
@@ -32,7 +35,7 @@ The following sequence describes the expected/adverse policy used by Easy throug
 | Very Hard | 2 | 14 / 9 | 500 | 0.36 | 1.1 |
 | Monster | 2 normally, up to 3 for a provable win | 18 / 10 | 850 | 0.40 | 1.0 |
 
-Depth two uses up to four finalists for Hard and Very Hard, and six for Monster. Each finalist receives the same root replies as at depth one. Child search starts at width three or four, contracts to fit the remaining budget and can widen on boards up to 25 cells. A pair budget counts all authoritative simulations in one decision, including extra collisions. The scene worker also has a 450 ms elapsed safeguard between resolutions. The public parameterless engine used for benchmarking relies on deterministic pair budgets.
+Depth two uses up to four finalists for Hard and Very Hard, and six for Monster. Each finalist receives the same root replies as at depth one. Child search starts at width three or four, contracts to fit the remaining budget and can widen on boards up to 25 cells. A pair budget counts all authoritative simulations in one decision, including extra collisions. The scene worker also has a cooperative 450 ms elapsed safeguard. Search checks it between units of work, so ranking, a solver operation or an in-progress resolution can make a call run longer. The parameterless engine has no elapsed safeguard. Benchmarks can select an elapsed limit, and pair-only runs are preferred for seeded comparisons.
 
 Passes beyond depth two compare up to six configured finalists from the best completed tier. Each pass uses the same common root replies, ranks both players from each resolved child and charges every new pair to the same decision budget. A partial pass cannot replace the last completed comparison. [CpuSearchOptions](xref:CastrumTactics.AI.CpuSearchOptions) supports one through six turns and configurable continuation breadth. A legal same-square reply remains an adverse-only check when it is outside the common replies. An experimental check can test apparent immediate wins against omitted replies.
 
@@ -104,7 +107,7 @@ The five profiles use configurable static weights of 1.2 for Formation and 1.6 f
 | Very Hard | 8 | 3 | 0.55 | 0.12 | 2.0 | 1.9 | 1.9 | 1.6 | 1.1 | 1.1 | 1.3 | 1.15 |
 | Monster | 16 | 1 | 0.50 | 0 | 2.0 | 2.1 | 2.0 | 1.7 | 1.2 | 1.2 | 1.4 | 1.25 |
 
-The score-based opening sampler uses 0.20 ordinary and 0.70 urgent opening diversity for all five profiles, with both maximum score differences disabled. The Main sampling limits are separate from search breadth. Monster's zero Main temperature samples equivalent best candidates. Its opening limit covers the largest start list in the current catalog.
+The score-based opening sampler uses 0.20 ordinary and 0.70 urgent opening diversity for all five profiles, with both maximum score differences disabled. The Main sampling limits are separate from search breadth. Monster’s score-based Main fallback samples equivalent best candidates at zero temperature. A completed advanced draft or Main matrix supplies its own sampling probabilities. Monster’s advanced draft limit covers the largest start list in the current catalog.
 
 Custom profiles take positive limits, finite temperatures capped at 10, and finite diversity shares from 0 through 1. Opening temperature must be positive. Either phase can specify a finite, nonnegative maximum score difference from its best candidate. A null score gap disables the cutoff. A custom profile can opt into Knight Support search with its `Search` initializer.
 
@@ -150,6 +153,8 @@ Each new simulation creates a domain board and analyzes territory and legal sets
 If the worker faults, returns no valid proposal, or the command is rejected, the scene displays an error and lets the player start a New Match. The coordinator keeps its profile for the life of a match, including restarts. Confirming New Match cancels and invalidates outstanding work from the previous session and starts a new coordinator with the confirmed CPU profile and battlefield under the configured ruleset.
 
 ## Milestone 8C evaluation
+
+This section records the 8C policy context. See [strategic position value](#strategic-position-value) for the selected 8E evaluators and the [calibration report](CpuDifficultyCalibration.md) for their measured limitations.
 
 Evaluate pairs of opposing choices through the authoritative simultaneous resolver, using `MainPhaseState.Evaluate(snapshot.Board, snapshot.RuleSet)` and carrying that ruleset forward through each hypothetical turn. Reuse the static features for ranking and fallback. The current engine has fixed collision and exposure costs, a static opening appeal model, and local gate estimates that can miss longer paths. Include exact territory and board-wide support effects when comparing plausible opposing replies. Seeded legality and completion checks measure playability. Competitive strength needs separate playtesting.
 

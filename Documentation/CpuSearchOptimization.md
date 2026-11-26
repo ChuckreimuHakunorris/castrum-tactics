@@ -1,5 +1,7 @@
 # Milestone 8D.2 search optimization
 
+This is the 8D.2 search study. Later evaluator, draft and ladder changes are described in the [current CPU architecture](CpuArchitecture.md). The commands below retain their original study settings.
+
 The search engine can compare up to six simultaneous turns in experiments. Production Monster adds a third-turn pass for verified wins on compact tactical positions. It retains its 850-pair budget and the game's cooperative 450 ms safeguard. Easy through Very Hard retain their existing search profiles. The strategic evaluation weights, Knight Support rules, map definitions, and frozen opponent sources are preserved. [Search architecture and profile settings](CpuArchitecture.md)
 
 ## Measuring the original search

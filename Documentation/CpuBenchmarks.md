@@ -1,5 +1,7 @@
 # Milestone 8C CPU benchmarking
 
+The archived match and timing tables describe their named builds. Use the [CPU architecture](CpuArchitecture.md) for live profiles and the [tournament guide](CpuTournaments.md) for current commands.
+
 Later comparisons use frozen 8D.2 alongside the historical opponents, paired tournaments and independent solved-position splits. [8D.3 strategic evaluation](CpuStrategicEvaluation.md)
 
 The [8D.2 search optimization report](CpuSearchOptimization.md) records equal-effort comparisons, wider and deeper experiments, and the final production policy.

@@ -111,9 +111,11 @@ The current local sequence is:
 2. A second press on the highlighted square and the Submit or Revise button use the same command path. The scene submits an [`OpeningSelection`](xref:CastrumTactics.Domain.Session.OpeningSelection) or [`MainPhaseCommand`](xref:CastrumTactics.Domain.Session.MainPhaseCommand) with the player, position, and displayed round identifier.
 3. The session checks the player, round identifier, phase, and eligibility from the applicable domain rules. It keeps an accepted choice private and allows revisions until the other player submits.
 4. The second player's submission resolves both selections against the same board with the session's ruleset. If exactly one opening start remains, the session resolves both players selecting it before publishing. Knight Support applies any support eliminations after both main-phase actions. The session clears pending choices and advances the identifier once per resolved round. After a successful draft or main-phase turn, it evaluates the resulting board for the next main-phase turn or final result.
-5. The session publishes the new snapshot. The scene clears the provisional highlight and renders the updated board and status. A completed match keeps its board, territory, and final result visible and rejects further gameplay submissions.
+5. The session publishes the new snapshot. The scene clears the provisional highlight when the round or active player changes. A CPU submission that leaves the same round unresolved preserves the human highlight. A completed match keeps its board, territory, and final result visible and rejects further gameplay submissions.
 
 Versus CPU uses a separate coordinator in the application. It starts work against the public snapshot and consumes completion on the scene's process callback, after any current session publication has returned. Session identity, phase, round, player, and submission status are checked before issuing the same commands as human input. Human submissions and revisions within that round leave the decision valid. See the [Milestone 8B integration lifecycle](CpuArchitecture.md#milestone-8b-integration-lifecycle).
+
+The shared `OpeningDraft.ResolveTransition` computes the next draft, completed Main state and number of resolved rounds for both live play and previews. The live session alone stores pending choices and publishes updates. Replacing a match detaches the old session observer and retires its CPU worker before creating the replacement. [9A ownership](ArchitectureRefactoring.md)
 
 ### Match configuration
 
@@ -135,7 +137,7 @@ The scene keeps the map-selection preference independently of the active session
 
 ### 4.2 Online multiplayer
 
-For online matches, the server is authoritative.
+Online multiplayer is planned. The current prototype uses local authority. In the proposed online model, the server would be authoritative.
 
 The expected sequence is:
 
@@ -202,7 +204,7 @@ The following constraints should guide future implementation:
 
 ## 8. Implementation strategy
 
-Adopt the architecture incrementally.
+The milestones below record the original implementation sequence. See the [roadmap](DevelopmentRoadmap.md) for current status and plans.
 
 **Milestone 4 — Opening draft**
 

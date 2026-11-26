@@ -1,5 +1,7 @@
 # Exhaustive small-board solver
 
+The reported comparisons use the named historical opponents and settings. See the [8E compact reference study](CpuDifficultyCalibration.md) for later results. A certified nonnegative value establishes that a player can avoid losing within the modeled game. An opponent can still offer a win, and an outcome bound alone gives no territory-margin guarantee.
+
 Milestone 8D.2.1 studies official Knight Support in the development benchmark executable. It uses the archived Pocket Meadow map and the A1 and C3 castle assignments.
 
 ## Solution scope and utility

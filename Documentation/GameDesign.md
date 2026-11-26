@@ -363,15 +363,7 @@ Castrum Tactics is explicitly intended to serve as evidence of the developer's s
 
 ### 10.4 Documentation and decisions
 
-Documentation should be kept accurate as the project evolves. Planned documents include:
-
-- `README.md` — project overview, features, setup, build/test instructions, screenshots, and portfolio presentation.
-- `Documentation/GameDesign.md` — gameplay rules and design.
-- `Documentation/TechnicalArchitecture.md` — architecture and major technical boundaries.
-- `Documentation/DevelopmentRoadmap.md` — milestones and planned work.
-- `Documentation/DecisionLog.md` — significant decisions, alternatives, rationale, and consequences.
-
-Use Architecture Decision Records (ADRs) or a lightweight equivalent for consequential technical choices.
+Keep the [README](https://github.com/ChuckreimuHakunorris/castrum-tactics#readme) current for play, setup and tests. This design document owns game rules and open design requirements. The [architecture overview](architecture.md) and linked specialist guides explain the implementation. The [roadmap](DevelopmentRoadmap.md) tracks status, and the [decision log](DecisionLog.md) indexes significant decisions and their original rationale. Historical experiment reports retain the versions and methods actually tested.
 
 ### 10.5 Code-review standard
 
@@ -387,25 +379,7 @@ Feedback should explain what is wrong, why it matters, what a professional alter
 
 ## 11. Development roadmap
 
-The [CPU decision engine](CpuArchitecture.md) provides five provisional difficulty profiles for the Unlimited Draft and main phase. In-game single-player support and empirical difficulty balancing are future milestones.
-
-The current proposed order is:
-
-1. Establish the repository, Godot 4 .NET project with the Compatibility renderer, VS Code development setup, coding conventions, and documentation baseline.
-2. Export and launch a minimal Windows build that opens a Godot scene and executes a small C# script.
-3. Export a minimal Android APK, install and launch it on a physical Android device, and verify that the scene renders and the C# script runs. Record the tested toolchain, device, Android version, and any blockers. Verify both platform builds before beginning substantial gameplay implementation.
-4. Implement the engine-independent core domain model and a basic 5×5 board. Add xUnit coverage as rules are implemented.
-5. Generalize to configurable board dimensions.
-6. Add terrain and predefined map data.
-7. Implement the opening phase, beginning with Unlimited Draft.
-8. Implement main-phase actions, captures, upgrades, simultaneous resolution, and endgame.
-9. Expand automated test coverage and strengthen the core rules.
-10. Build a basic map editor.
-11. Implement AI opponents using the shared game logic.
-12. Select the multiplayer backend, verify its Android integration, and implement multiplayer and server-authoritative validation.
-13. Add accounts, rankings, leaderboards, and other online features if justified.
-
-The sequence may change as dependencies become clearer. Multiplayer and AI should not be allowed to force duplicated or premature implementations of the core rules.
+The [development roadmap](DevelopmentRoadmap.md) tracks completed, current, planned and deferred work. Versus CPU and initial empirical difficulty calibration are implemented. Fixed Draft, the map editor, online multiplayer and ranked play remain outside the current prototype. See [CPU architecture](CpuArchitecture.md) for the current ladder and the [8E report](CpuDifficultyCalibration.md) for the evidence and limitations.
 
 ## 12. Open decisions and questions
 
@@ -445,6 +419,7 @@ A feature should generally be considered complete when:
 
 | Version | Date | Notes |
 |---|---|---|
+| 0.8 | 2026-11-26 | Reconciled implementation status after 9A and linked the roadmap, decision log and 8E CPU evidence. |
 | 0.7 | 2026-11-25 | Added the experimental Knight Support ruleset with starting castles and post-turn support checks. |
 | 0.6 | 2026-11-24 | Added Versus CPU as the default input mode and documented live secured-territory scores in both local modes. |
 | 0.5 | 2026-11-23 | Implemented main-phase domain rules and confirmed zero points for inaccessible terrain. |

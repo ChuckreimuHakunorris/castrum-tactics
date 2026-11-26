@@ -34,7 +34,7 @@ On a touchscreen, swipe over the map rows to scroll and tap a row to preview its
 
 **Knight Support** is the official ruleset and starts with castles. At the end of each main turn, a knight survives if at least one friendly knight or castle is adjacent, including diagonally. Unsupported knights become neutral graves and lose one ground health. The header shows the active ruleset. [Complete rules and design rationale](Documentation/GameDesign.md#55-knight-support-ruleset)
 
-To play **Classic** with starting knights, set **Rules** to **Classic** in the main scene Inspector, pass `RuleSet.Classic` in a programmatic match configuration, or run with `--ruleset classic`. The configured ruleset carries forward when you start a new match.
+To play **Classic** with starting knights, set **Rules** to **Classic** in the main scene Inspector, pass `RuleSet.Classic` in a programmatic match configuration, or run with `--ruleset classic`. The configured ruleset carries forward when you start a new match. Use `--mode cpu` or `--mode local`, `--ruleset knight-support` or `--ruleset classic`, `--map <id>`, and an optional `--seed <int>` for CPU randomness after Godot’s `--` separator.
 
 ```sh
 godot --path . -- --mode cpu --ruleset knight-support --map demonstration --seed 42
@@ -49,76 +49,36 @@ Gold dots mark shared draft targets. When only one start remains, it automatical
 
 ### Windows and Android walkthrough
 
-Start on the demonstration map with `godot --path . -- --mode local --ruleset classic --map demonstration`. For an editor run or a deterministic Android debug export, set **Mode** to **Local Multiplayer**, **Rules** to **Classic**, and **Map Id Override** to `demonstration` on the main scene. Leave the map override blank for random startup. Count columns A–G from left to right and rows 1–5 from top to bottom. Submit both selections in each row with coordinates.
-
-| Turn | Player One | Player Two | What to check |
-| --- | --- | --- | --- |
-| Draft 1 | B2 | D3 | Each player gets a knight. Try revising Player One's choice to B2 before Player Two submits. |
-| Draft 2 | E1 | F4 | Each player gets a second knight. |
-| Draft 3 | Automatic | Automatic | B5 becomes a grave immediately after Draft 2, and the first main turn begins. |
-| Main 1 | C3 | E2 | Both players place a knight. |
-| Main 2 | B3 | E1 | Player Two captures the knight at E1 and the ground beneath it degrades. |
-| Main 3 | B1 | G3 | Both players place a knight. |
-| Main 4 | A1 | D3 | Player Two upgrades D3 to a castle with battlements. |
-| Main 5 | C3 | C3 | A direct collision creates a grave at C3. |
-| Main 6 | A2 | D2 | Both players place a knight. |
-| Main 7 | B3 | D4 | Player One upgrades B3 to a castle. Empty A3 is now tinted red and cannot be selected by either player. |
-| Main 8 | C4 | C4 | The final collision ends the match. Player Two wins **18–8**. The final board stays visible and submission controls disappear. |
-
-- On Windows, resize the window from tall to wide during a provisional selection. Check that tiles remain square, the outline stays selected, and hit testing follows the board. Switch players and verify the outline clears. Finish the walkthrough, click **Restart Match**, and check for an empty board, restored ground, five gold dots, and Player One active at Draft 1.
-- To verify the draft retry, start a fresh match and submit the same dot for both players in four draft rounds. The fifth dot should resolve automatically. **Restart Draft** should restore all five dots and the initial ground. Complete a successful draft to confirm normal play resumes.
+Follow the [Classic 18–8 walkthrough and draft retry](Documentation/PlatformVerification.md#windows-and-android-walkthrough) for a repeatable local-match and resize check.
 
 ### Android rotation checks
 
-The Android build is configured for automatic rotation between portrait and landscape. The gameplay scene fits its controls inside the available safe area, stacks them beneath the board on narrow screens, and puts them beside the board on wide screens.
-
-1. Enable Android auto-rotate and launch the game in portrait. Complete Draft 1 from the walkthrough.
-2. For Draft 2, submit Player One's choice, switch to Player Two, and highlight Player Two's square. Rotate to landscape before submitting. Check that the status still shows Player One's submission, Player Two is active, and the provisional outline stayed on the chosen square.
-3. Submit Player Two's selection. Confirm that B5 becomes a grave and Main 1 begins. Select and submit some main turns in landscape.
-4. Rotate back to portrait. Check that the board fits, stays centered in its area, and has square tiles. Tap a tile center, a tile gap, and the player and submit buttons to check hit testing. Confirm targets and status are readable in both orientations.
-5. Finish the walkthrough and verify Player Two's 18–8 win and both visible scores. Tap **Restart Match** in portrait and confirm a fresh draft on the same map.
-6. Enable the device's rotation lock and rotate the phone. Verify that the app follows the locked orientation where Android applies the preference.
+Use the [rotation walkthrough](Documentation/PlatformVerification.md#android-rotation-checks) to test safe areas, selection retention and touch input.
 
 ## Android export
 
-1. Install the Godot 4.7.2 .NET export templates, JDK 17, Android SDK Platform 36, and Build Tools 36.1.0. Install Android SDK Platform-Tools for device deployment and configure the Java and Android SDK paths in Godot's editor settings. The checked-in template uses compile and target API 36 and minimum API 24. Gradle can install missing SDK packages when their licenses have already been accepted. [Gradle SDK downloads](https://developer.android.com/studio/intro/update#download-with-gradle)
-2. On a fresh checkout, open the installed export templates' `android_source.zip` and copy `libs/debug/godot-lib.template_debug.aar` and `libs/release/godot-lib.template_release.aar` into their corresponding folders under `android/build/`. This preserves the project's Gradle scripts and Android resources. Godot generates the project assets and .NET runtime files during export.
-3. In **Project > Export**, choose the **Android** preset to export an ARM64 debug APK. Choose a local output directory such as `exports/`. Keep signing keys and credentials local.
-4. Connect a physical ARM64 Android device through USB or wireless debugging. From the repository root on Windows, run `./scripts/Install-AndroidDebug.ps1 -Apk <path-to-apk>`. Use `-Serial <adb-device>` when multiple devices are connected. Launch **CastrumTactics** and test Versus CPU with the normal preset or use the editor overrides above for the deterministic two-human walkthrough.
-
-Keep the Android preset's package ID `com.castrumtactics.prototype` and use the same signing key for repeat installs. The installer checks the APK's embedded package ID before copying it to the phone. The isolated 8C exports used `com.castrumtactics.milestone8c`, which Android installs alongside the standard game. If the installer detects that old copy, rerun with `-RemoveLegacy8C` to remove it after installing the standard APK. Android keeps the old package's data separately.
-
-The template pins NDK `29.0.14206865` for native tooling. The verified debug export used prebuilt native libraries and packaged them without stripping symbols, so it succeeded without that NDK. The current Gradle project has no CMake build. Use the versions in [`config.gradle`](android/build/config.gradle) for this project. The general Godot 4.7 setup guide lists older SDK packages. [Godot 4.7 Android setup](https://docs.godotengine.org/en/4.7/tutorials/export/exporting_for_android.html#download-the-android-sdk)
-
-See the [game design](Documentation/GameDesign.md) and [art direction](Documentation/ArtDirection.md) for gameplay rules and visual direction.
+See the [Android setup, export and installer guide](Documentation/PlatformVerification.md#android-export) for the Godot .NET templates, SDK packages, ARM64 APK and stable package ID.
 
 ## Developer documentation
 
-With the .NET 10 SDK, run `dotnet build CastrumTactics.sln` to build all projects and `dotnet test CastrumTactics.sln` to run the domain, local session, CPU, and presentation tests. The tests run without the Godot editor or runtime. All five CPU difficulties use simultaneous search under Knight Support. Deprecated Classic is available for development and uses the legacy static policy. See the [CPU architecture](Documentation/CpuArchitecture.md), [benchmark commands and results](Documentation/CpuBenchmarks.md), and [session architecture](Documentation/SessionArchitecture.md).
-
-The [CPU tournament guide](Documentation/CpuTournaments.md) covers headless round robins, frozen baseline comparisons, fixed and natural drafts, resumable parallel runs, and replay. Preview the example schedule with the .NET 10 SDK.
+With the .NET 10 SDK, run the solution build and tests from the repository root.
 
 ```sh
+dotnet build CastrumTactics.sln -warnaserror
+dotnet test CastrumTactics.sln --no-build
 dotnet run -c Release --project Benchmarks -- tournament dry-run --config Benchmarks/Examples/round-robin.json
 ```
 
-Monster can prove wins up to three simultaneous turns ahead on compact tactical positions. See the [8D.2 search optimization report](Documentation/CpuSearchOptimization.md) for the production settings, tournament results, and CLI examples for wider and deeper experiments.
-
-Monster now uses invasion-aware evaluation and can sample a simultaneous mixed policy. Its search remains within the 850-pair budget. [8D.3 strategic evaluation report](Documentation/CpuStrategicEvaluation.md)
-
-After building and importing assets with `godot --headless --path . --import`, run the same two Godot 4.7.2 .NET regressions as CI.
+After building, import assets and run the two Godot .NET presentation regressions. Use the Godot .NET executable name on your system in place of `godot` if needed.
 
 ```sh
+godot --headless --path . --import
 godot --headless --path . --script Tests/Presentation/DraftLayoutCheck.gd
 godot --headless --path . --script Tests/Presentation/CpuMatchCheck.gd -- --seed 42
 ```
 
-The tests replay complete Classic local and CPU matches, exercise Knight Support gameplay, and check map previews, replacement, scores, and restarts at different viewport sizes. For development launches, use `--mode cpu` or `--mode local`, `--ruleset classic` or `--ruleset knight-support`, `--map <id>`, and an optional `--seed <int>` after the Godot `--` separator. The seed controls CPU randomness. The map override fixes the initial map.
-
-See the [documentation homepage source](Documentation/index.md) for architecture and API reference navigation, and the [documentation contributor guide](Documentation/contributing.md) for local builds, writing conventions, and GitHub Pages setup.
-
-The [small-board solver](Documentation/SmallBoardSolver.md) provides exact simultaneous analysis and development tablebase opponents for archived maps.
-
-[Advanced opening strategy](Documentation/CpuOpeningStrategy.md) describes the draft evaluator, the sampled equilibrium policy for Monster, and the opening-quality experiments.
-
-[8E CPU difficulty calibration](Documentation/CpuDifficultyCalibration.md) reports the ladder and search-budget experiments. [Battlefield balance](Documentation/BattlefieldBalance.md) covers the catalog audit and size study.
+- [Rules](Documentation/GameDesign.md) and [art direction and credits](Documentation/ArtDirection.md)
+- [Architecture](Documentation/architecture.md), [CPU configuration](Documentation/CpuArchitecture.md) and [9A ownership changes](Documentation/ArchitectureRefactoring.md)
+- [Roadmap and platform status](Documentation/DevelopmentRoadmap.md) and [decision log](Documentation/DecisionLog.md)
+- [Research and benchmark guide](Documentation/CpuBenchmarks.md), [8E calibration](Documentation/CpuDifficultyCalibration.md) and [battlefield study](Documentation/BattlefieldBalance.md)
+- [Documentation home](Documentation/index.md) and [contributor guide and DocFX commands](Documentation/contributing.md)

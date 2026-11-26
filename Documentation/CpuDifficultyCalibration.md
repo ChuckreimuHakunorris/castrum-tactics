@@ -144,6 +144,8 @@ The full solution build passed with warnings treated as errors and all 361 tests
 
 ### Physical Android follow-up
 
+These measurements and reported observations belong to their named 8E and comparison revisions. Later [9A checks](ArchitectureRefactoring.md#verification) covered exports and package inspection. Native launch and device measurements for integrated 9A are tracked in the [roadmap](DevelopmentRoadmap.md#platform-verification).
+
 A Windows workstation with the project's Godot .NET export templates and Android toolchain can build an opt-in instrumentation APK. The instrumented path still calls the standard production CPU with the 450 ms guard. It appends a CSV line after each worker call, including cancellation status, allocation and collection count deltas. File output occurs after the worker timer. Use the ordinary preset for the uninstrumented app and the instrumented preset invocation for worker measurements. [Android setup](https://github.com/ChuckreimuHakunorris/castrum-tactics/blob/main/README.md#android-export)
 
 ```powershell

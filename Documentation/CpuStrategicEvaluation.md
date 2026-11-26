@@ -1,5 +1,7 @@
 # Milestone 8D.3 strategic evaluation and simultaneous policies
 
+This is the 8D.3 strategic evaluation study. Use the [current CPU architecture](CpuArchitecture.md) for live settings and [8E calibration](CpuDifficultyCalibration.md) for the selected ladder. Its device observations apply to the 8D.3 builds.
+
 The study tests whether better territorial estimates, better response modeling, or more search improve Knight Support. Frozen 8D.2 uses the source at `9ef5ad05409efdc7d00cf112bd5b65cdc7ba5474` with the shared Domain assembly. Before changing the live CPU, the five difficulty profiles reproduced the frozen opponent’s complete match histories, moves and search counts. The tournament manifest records the frozen assemblies and the authoritative map fingerprints.
 
 ## Position evaluation
@@ -133,6 +135,8 @@ dotnet $bench solver-query exports/8d3/pocket-meadow.ctb --opponent study --side
 The certified-opponent tournament uses the Pocket Meadow example with `exports/8d3/pocket-meadow.ctb` as the tablebase path. Add `frozen8d2:Monster` and a depth-one `strategic:Monster` with `equilibrium` set to `root` to reproduce the comparisons alongside the current production profile. [Tournament example and configuration](CpuTournaments.md)
 
 ## Roadmap
+
+The following were the 8D.3 plans. See the completed [8D.4 opening strategy](CpuOpeningStrategy.md), [8E ladder calibration](CpuDifficultyCalibration.md) and [battlefield balance study](BattlefieldBalance.md).
 
 8D.4 will compare natural and fixed starts with the same Main opponent and characterize multi-castle openings before redesigning the draft. Track first foothold security, collision costs and disconnected fronts independently from their final match result.
 

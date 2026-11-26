@@ -2,6 +2,23 @@
 
 ## Implemented
 
+```text
+Godot input and display (Main, BoardRenderer, NewMatchDialog)
+  -> MatchLifetime -> IGameSession -> Domain rules and immutable snapshots
+  -> CpuMatchCoordinator -> AI -> public Domain snapshots and previews
+Benchmarks -> live and frozen AI -> shared Domain
+```
+
+The application composes Match and Scenes and references Domain and AI. Domain owns authoritative rules and has no engine dependency. AI consumes a public snapshot and proposes one action. `Main` refreshes captions before attaching its observer and showing the new snapshot. `MatchLifetime` creates the local session and the optional CPU coordinator, and detaches the observer before retiring the worker during replacement. `CpuMatchCoordinator` owns background work and checks identity, phase, round and legality at the main-thread submission boundary. [Session authority and integration](SessionArchitecture.md) · [CPU lifecycle](CpuArchitecture.md#milestone-8b-integration-lifecycle)
+
+`OpeningDraft.ResolveTransition` is shared by previews and live resolution, including the forced last collision and completed-opening evaluation. Only the session owns pending coordinates, validates submissions and publishes snapshots. A remote session could adapt this boundary. Backend, protocol and server authority remain open.
+
+`CpuDecisionEngine` selects the phase path and coordinates `TacticalCandidates` and `CandidateSampling`. Main and legacy draft have separate entry points in the internal `SimultaneousSearch` and share reply weighting and result assembly. `OpeningSearch` owns advanced draft interruption, caching and pair accounting, which have different semantics. [CPU policies](CpuArchitecture.md)
+
+`MatchLayout` and `StableInstructionLayout` compute responsive layout and stable text space for the controls that Main updates. `NewMatchDialog` builds the catalog list and preview in code, using the same difficulty captions as Main through `MatchCaptions`. `BoardRenderer` owns selection and drawing using shared `BoardGeometry`.
+
+Benchmarks dispatches commands through `Program`. Legacy commands retain shared Program helpers. Tournament contracts, opponent creation, planning, execution, replay, history, persistence, measurements and tactical audit have separate owners. Research studies and the exact solver remain development commands. Frozen AI generations, including frozen 8E, use the live Domain assembly. Independent snapshot-history fixtures also verify Domain. [9A ownership and evidence](ArchitectureRefactoring.md) · [Tournament guide](CpuTournaments.md)
+
 The Godot project references [CastrumTactics.Domain](xref:CastrumTactics.Domain) as a separate assembly. The Godot project's compile items exclude domain and test source files. The domain library targets .NET 8 and has no Godot or NuGet package dependencies. The xUnit test project exercises both rules and coordination in that assembly.
 
 [`Main`](xref:Global.Main) creates a [`LocalGameSession`](xref:CastrumTactics.Domain.Session.LocalGameSession) on one of 100 predefined maps. Both input modes use [`IGameSession`](xref:CastrumTactics.Domain.Session.IGameSession) to issue commands and read state from the opening draft through final scoring. The scene passes the board, current targets for the active human, and territory analysis to [`BoardRenderer`](xref:Global.BoardRenderer). [Predefined maps](MapFormat.md)
@@ -17,6 +34,8 @@ The renderer handles physical left-button and touch presses after GUI input, con
 - [`BoardState`](xref:CastrumTactics.Domain.BoardState) initializes empty, unowned cells and exposes immutable [`CellState`](xref:CastrumTactics.Domain.CellState) values. Playable ground starts at 3 health. Inaccessible ground carries 0 health and cannot contain pieces. A grave makes playable terrain unusable while leaving the underlying terrain unchanged.
 - [`TerrainType`](xref:CastrumTactics.Domain.TerrainType) has two values, playable and inaccessible. Rocks and rivers are visual treatments for inaccessible ground. [`PlayerId`](xref:CastrumTactics.Domain.PlayerId) identifies the player independently of faction color.
 - [`TerritoryAnalyzer`](xref:CastrumTactics.Domain.TerritoryAnalyzer) flood-fills each traversable component once using eight-neighbor adjacency. [`MainPhaseState`](xref:CastrumTactics.Domain.MainPhaseState) exposes per-player legal selections, resolves a simultaneous pair, and reports a final score when either player has no legal selections.
+
+The sections below preserve the chronological milestone decisions. See the [decision log](DecisionLog.md) for an index.
 
 ## Milestone 4 decisions
 
@@ -108,11 +127,13 @@ The renderer handles physical left-button and touch presses after GUI input, con
 
 ## Planned
 
+See the [development roadmap](DevelopmentRoadmap.md#planned) for current plans.
+
 ## Milestone 8D.3 decisions
 
 Invasion routes, projected formation resilience and the numerical matrix solver are CPU heuristics over resolved snapshots. The authoritative territory classification, simultaneous turn and session submission path are shared with the other players. The development harness keeps frozen CPU versions and exact tables outside the application. [Strategic evaluation and policy experiments](CpuStrategicEvaluation.md)
 
-Opening-draft strategy, difficulty calibration, a remote session and ranked map validation remain future work.
+At 8D.3 the advanced opening and difficulty calibration were still planned. They landed in [8D.4](CpuOpeningStrategy.md) and [8E](CpuDifficultyCalibration.md). A remote session and ranked map validation remain open.
 
 The [Game Design Document](GameDesign.md) records the rules and open design decisions. The [Session Architecture](SessionArchitecture.md) describes the authority and presentation boundaries. The [Main-Phase Rules and Architecture](MainPhaseArchitecture.md) documents the domain rules and local integration.
 
