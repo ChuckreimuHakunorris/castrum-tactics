@@ -3,6 +3,8 @@ using CastrumTactics.Development;
 using CastrumTactics.Development.Solver;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
+using static CastrumTactics.Development.TournamentPlanner;
+using static CastrumTactics.Development.TournamentStore;
 
 internal static partial class Program
 {
@@ -167,7 +169,7 @@ internal static partial class Program
         }
     }
 
-    private static SolvedTablebase LoadSolverTablebase(string path)
+    internal static SolvedTablebase LoadSolverTablebase(string path)
     {
         var tablebase = SolvedTablebase.Load(path);
         var metadata = tablebase.Info;
@@ -228,11 +230,11 @@ internal static partial class Program
                 if (opponent == "study")
                 {
                     var decisions = SolverStudyOpponents().Select(spec => new { spec.Id,
-                        decision = InspectSearch(session.Current, position, CreateOpponent(spec), side, null, default, seed) }).ToArray();
+                        decision = InspectSearch(session.Current, position, TournamentOpponentFactory.Create(spec), side, null, default, seed) }).ToArray();
                     WriteSolverResult(options, new { position = InspectPosition(position), decisions });
                 }
                 else WriteSolverResult(options, new { position = InspectPosition(position),
-                    decision = InspectSearch(session.Current, position, CreateOpponent(new("query", opponent)), side,
+                    decision = InspectSearch(session.Current, position, TournamentOpponentFactory.Create(new("query", opponent)), side,
                         null, default, seed) });
             }
             else WriteSolverResult(options, InspectPosition(position));

@@ -1,6 +1,9 @@
 using CastrumTactics.Development.Solver;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
+using static CastrumTactics.Development.TournamentPlanner;
+using static CastrumTactics.Development.TournamentStore;
+using static CastrumTactics.Development.TournamentRunner;
 
 internal static partial class Program
 {

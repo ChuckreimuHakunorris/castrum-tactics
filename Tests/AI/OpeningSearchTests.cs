@@ -4,6 +4,8 @@ using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using Xunit;
 using Tournament = benchmarks::Program;
+using TournamentPlanner = benchmarks::CastrumTactics.Development.TournamentPlanner;
+using TournamentRunner = benchmarks::CastrumTactics.Development.TournamentRunner;
 
 namespace CastrumTactics.AI.Tests;
 
@@ -136,7 +138,7 @@ public sealed class OpeningSearchTests
                 new("b", "frozen8d3:Easy", MainOpponent: "frozen8d3:Normal")],
             Maps = new() { Ids = ["pocket-meadow"] }, SwapSeats = false, StrategicMetrics = false
         };
-        var plan = Tournament.PlanTournament(config);
+        var plan = TournamentPlanner.PlanTournament(config);
         var match = Assert.Single(plan.Matches);
         var first = plan.Opponents["a"];
         var second = plan.Opponents["b"];
@@ -150,7 +152,7 @@ public sealed class OpeningSearchTests
         {
             plan.Opponents["a"] = WithDraft(first, true);
             plan.Opponents["b"] = WithDraft(second, false);
-            return Tournament.PlayTournamentMatch(plan, match, default);
+            return TournamentRunner.PlayTournamentMatch(plan, match, default);
 
             Tournament.TournamentOpponent WithDraft(Tournament.TournamentOpponent opponent, bool red) =>
                 opponent with { Decide = (s, side, random, diagnostics, token) =>

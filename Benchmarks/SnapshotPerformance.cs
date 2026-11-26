@@ -1,10 +1,12 @@
 extern alias frozen8d4;
 
+using CastrumTactics.Development;
 using System.Diagnostics;
 using CastrumTactics.AI;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using Frozen = frozen8d4::CastrumTactics.AI;
+using static CastrumTactics.Development.TournamentStore;
 
 internal static partial class Program
 {
@@ -20,7 +22,7 @@ internal static partial class Program
             throw new ArgumentException("Usage: snapshot-performance <tournament-dir> <frozen8d4|strategic|config.json> <draft|main> <repetitions> <guard-ms> <output.jsonl>");
 
         TournamentOpponent[] opponents = args[1] is "frozen8d4" or "strategic" ? [] :
-            ReadJson<TournamentConfig>(args[1]).Participants.Select(CreateOpponent).ToArray();
+            ReadJson<TournamentConfig>(args[1]).Participants.Select(TournamentOpponentFactory.Create).ToArray();
         if (opponents.Length == 0 && args[1] is not ("frozen8d4" or "strategic"))
             throw new ArgumentException("The snapshot configuration must name at least one opponent.");
         var manifest = ReadJson<Manifest>(ManifestPath(args[0]));
@@ -39,7 +41,7 @@ internal static partial class Program
                 {
                     int round = rounds[i].Number;
                     snapshots.Add(new(match.Map, match.Id, args[2], round,
-                        Reconstruct(manifest, match, result, args[2], round)));
+                        TournamentReplay.Reconstruct(manifest, match, result, args[2], round)));
                 }
                 break;
             }
@@ -71,7 +73,7 @@ internal static partial class Program
                 WriteMeasurement(snapshot, iteration, CancellationToken.None);
             foreach (var opponent in opponents)
             {
-                var decision = Measure(opponent, snapshot.State, Red, new Random(7319), diagnostics: false, CancellationToken.None);
+                var decision = TournamentMeasurement.Measure(opponent, snapshot.State, Red, new Random(7319), diagnostics: false, CancellationToken.None);
                 Write(new(snapshot.Map, snapshot.Match, snapshot.Phase, snapshot.Round, iteration, opponent.Spec.Id,
                     decision.Move, decision.Milliseconds, decision.AllocatedBytes, false, decision.Pairs,
                     decision.Depth, decision.CompletedDepth, decision.TimeLimitReached));

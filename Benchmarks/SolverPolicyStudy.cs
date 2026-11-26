@@ -3,6 +3,7 @@ extern alias frozen8c;
 extern alias frozen8d2;
 extern alias frozen8d4;
 
+using CastrumTactics.Development;
 using CastrumTactics.AI;
 using CastrumTactics.Development.Solver;
 using CastrumTactics.Domain;
@@ -11,6 +12,7 @@ using EightC = frozen8c::CastrumTactics.AI;
 using EightD2 = frozen8d2::CastrumTactics.AI;
 using EightD4 = frozen8d4::CastrumTactics.AI;
 using Frozen = frozen::CastrumTactics.AI;
+using static CastrumTactics.Development.TournamentPlanner;
 
 internal static partial class Program
 {
@@ -18,7 +20,7 @@ internal static partial class Program
         int sampleSize, string split, CancellationToken token)
     {
         if (sampleSize < 1) throw new ArgumentOutOfRangeException(nameof(sampleSize));
-        var variants = SolverStudyOpponents().Select(CreateOpponent).ToArray();
+        var variants = SolverStudyOpponents().Select(TournamentOpponentFactory.Create).ToArray();
         // Balance sampling across the monotone progress measure. Weight each tested representative equally.
         var selected = StudyPositions(graph, sampleSize, split, token);
         var comparisons = new List<PolicyComparison>();

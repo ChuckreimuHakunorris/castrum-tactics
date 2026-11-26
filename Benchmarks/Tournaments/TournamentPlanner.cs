@@ -1,101 +1,16 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using CastrumTactics.AI;
-using CastrumTactics.Development;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 
-internal static partial class Program
+using static Program;
+
+namespace CastrumTactics.Development;
+
+internal static class TournamentPlanner
 {
-    private const int TournamentSchema = 1;
-    private static readonly JsonSerializerOptions TournamentJson = new(Json)
-    {
-        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false) }
-    };
-
-    internal sealed record TournamentConfig
-    {
-        public required string Id { get; init; }
-        public string Format { get; init; } = "round-robin";
-        public required ParticipantSpec[] Participants { get; init; }
-        public string[] References { get; init; } = [];
-        public MapSubset Maps { get; init; } = new();
-        public RuleSet Ruleset { get; init; } = RuleSet.KnightSupport;
-        public OpeningSpec Opening { get; init; } = new();
-        public int FirstSeed { get; init; } = 1;
-        public int SeedCount { get; init; } = 1;
-        public int[]? Seeds { get; init; }
-        public bool SwapSeats { get; init; } = true;
-        public bool SwapStarts { get; init; }
-        public bool AlternateSubmission { get; init; } = true;
-        public int Workers { get; init; } = Math.Clamp(Environment.ProcessorCount, 1, 2);
-        public string? OutputDirectory { get; init; }
-        public int? MaxMatches { get; init; }
-        public int? MaxRounds { get; init; }
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public bool SeparatePhaseStreams { get; init; }
-        public bool Diagnostics { get; init; }
-        public bool StrategicMetrics { get; init; } = true;
-    }
-
-    internal sealed record ParticipantSpec(string Id, string Opponent, int? PairBudget = null,
-        CpuEvaluationWeights? Weights = null, double? TimeLimitMs = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] SearchOverrides? Search = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Tablebase = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? MainOpponent = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CpuOpeningOptions? OpeningSearch = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? LegacyOpening = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? StreamId = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? MainTemperature = null);
-
-    internal sealed record SearchOverrides(int? Depth = null, int? OwnCandidates = null, int? OpponentCandidates = null,
-        int? ContinuationOwnCandidates = null, int? ContinuationOpponentCandidates = null, int? DeepFinalists = null,
-        double? Risk = null, double? ReplyTemperature = null, bool? VerifyTerminalWins = null,
-        bool? RequireFullRootReplies = null, bool? ProofOnlyDeepening = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? ResilientEvaluation = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? BoundedUtility = null,
-        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] MatrixPolicy? Equilibrium = null);
-
-    internal sealed record MapSubset
-    {
-        public string[] Ids { get; init; } = [];
-        public string[] HeldOut { get; init; } = [];
-        public string Split { get; init; } = "all";
-        public int? Sample { get; init; }
-        public int SampleSeed { get; init; } = 1;
-        public int? MinWidth { get; init; }
-        public int? MaxWidth { get; init; }
-        public int? MinHeight { get; init; }
-        public int? MaxHeight { get; init; }
-        public int? MinRocks { get; init; }
-        public int? MaxRocks { get; init; }
-        public int? MinStarts { get; init; }
-        public int? MaxStarts { get; init; }
-        public bool? Square { get; init; }
-    }
-
-    internal sealed record OpeningSpec
-    {
-        public string Mode { get; init; } = "natural";
-        public int Pairs { get; init; } = 1;
-        public int Seed { get; init; } = 1;
-        public Dictionary<string, string[]> Fixed { get; init; } = new(StringComparer.Ordinal);
-    }
-
-    internal sealed record ScheduledMatch(string Id, string Map, string First, string Second, int Seed,
-        int FirstStream, int SecondStream, bool SeatsSwapped, bool StartsSwapped, bool BlueSubmitsFirst, string[] Draft);
-
-    internal sealed record MapIdentity(string Id, int Width, int Height, int Rocks, int Starts, bool Historical,
-        bool HeldOut, string Digest);
-
-    internal sealed record TournamentPlan(TournamentConfig Config, MapIdentity[] Maps, ScheduledMatch[] Matches,
-        Dictionary<string, TournamentOpponent> Opponents);
-
     internal static TournamentPlan PlanTournament(TournamentConfig config)
     {
         Identifier(config.Id, "Tournament ID");
@@ -109,7 +24,7 @@ internal static partial class Program
             ArgumentNullException.ThrowIfNull(spec);
             Identifier(spec.Id, "Participant ID");
             if (spec.StreamId is not null) Identifier(spec.StreamId, "Stream ID");
-            if (!participants.TryAdd(spec.Id, CreateOpponent(spec)))
+            if (!participants.TryAdd(spec.Id, TournamentOpponentFactory.Create(spec)))
                 throw new ArgumentException($"Duplicate participant '{spec.Id}'.");
         }
 
@@ -204,7 +119,7 @@ internal static partial class Program
             .OrderBy(map => map.Id, StringComparer.Ordinal).ToArray();
     }
 
-    private static MapIdentity Identify(PredefinedMap map, string[] heldOut)
+    internal static MapIdentity Identify(PredefinedMap map, string[] heldOut)
     {
         var definition = map.Definition;
         var terrain = new StringBuilder();
@@ -260,7 +175,7 @@ internal static partial class Program
         }
     }
 
-    private static (BoardPosition First, BoardPosition Second) ParsePair(string pair)
+    internal static (BoardPosition First, BoardPosition Second) ParsePair(string pair)
     {
         string[] parts = pair.Split('/');
         if (parts.Length != 2 || parts.Any(part => !Regex.IsMatch(part, @"\A[A-Z](?:[1-9]|1[0-2])\z")))
@@ -270,11 +185,11 @@ internal static partial class Program
 
     private static bool InRange(int value, int? min, int? max) => value >= (min ?? 0) && value <= (max ?? int.MaxValue);
     private static bool[] Variants(bool swap) => swap ? [false, true] : [false];
-    private static int StreamSeed(int seed, string participant, string slot) =>
+    internal static int StreamSeed(int seed, string participant, string slot) =>
         BinaryPrimitives.ReadInt32LittleEndian(SHA256.HashData(Encoding.UTF8.GetBytes(
             FormattableString.Invariant($"8d.1|{seed}|{participant}|{slot}")))) & int.MaxValue;
-    private static string Digest(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
-    private static void Identifier(string value, string label)
+    internal static string Digest(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
+    internal static void Identifier(string value, string label)
     {
         if (value is null || !Regex.IsMatch(value, @"\A[a-z0-9][a-z0-9-]{0,63}\z"))
             throw new ArgumentException($"{label} must use 1–64 lowercase letters, digits, or hyphens.");

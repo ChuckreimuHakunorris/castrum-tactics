@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Text;
 using CastrumTactics.Domain;
+using static CastrumTactics.Development.TournamentPlanner;
+using static CastrumTactics.Development.TournamentStore;
 
 internal static partial class Program
 {
@@ -201,7 +203,7 @@ internal static partial class Program
         }).ToArray();
     }
 
-    private static void WriteReports(string directory, Manifest manifest, Progress progress, Dictionary<string, string> states)
+    internal static void WriteReports(string directory, Manifest manifest, Progress progress, Dictionary<string, string> states)
     {
         var bins = new Dictionary<(string Group, string Key, string Participant), Scores>();
         var performance = new Dictionary<(string Participant, string Phase), Timings>();

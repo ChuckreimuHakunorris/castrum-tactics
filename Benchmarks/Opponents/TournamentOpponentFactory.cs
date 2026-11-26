@@ -5,11 +5,7 @@ extern alias frozen8d3;
 extern alias frozen8d4;
 extern alias frozen8e;
 
-using System.Diagnostics;
-using System.Text.Json.Serialization;
 using CastrumTactics.AI;
-using CastrumTactics.Development;
-using CastrumTactics.Development.Solver;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using Frozen = frozen::CastrumTactics.AI;
@@ -19,39 +15,20 @@ using EightD3 = frozen8d3::CastrumTactics.AI;
 using EightD2 = frozen8d2::CastrumTactics.AI;
 using EightC = frozen8c::CastrumTactics.AI;
 
-internal static partial class Program
+using static Program;
+using static CastrumTactics.Development.TournamentPlanner;
+
+namespace CastrumTactics.Development;
+
+internal static class TournamentOpponentFactory
 {
-    internal delegate DecisionSample TournamentDecision(GameSessionSnapshot state, PlayerId player, Random random,
-        bool diagnostics, CancellationToken token);
-
-    internal sealed record TournamentOpponent(ParticipantSpec Spec, string Version, TournamentDecision Decide, string? TablebaseMap = null, bool SeparatePhases = false);
-    internal sealed record DecisionSample(string Move, double Milliseconds = 0, long AllocatedBytes = 0,
-        int? Pairs = null, int? Depth = null, bool? BudgetExhausted = null, bool? TimeLimitReached = null,
-        bool? Fallback = null, object? Diagnostics = null, bool Measured = false, int? ReusedPairs = null,
-        int? CompletedDepth = null);
-    internal sealed record TournamentRound(string Phase, int Number, DecisionSample Red, DecisionSample Blue,
-        int RedScore, int BlueScore);
-    internal sealed record TournamentResult(string Id, string Status, string Opening, PlayerId? Winner,
-        int RedScore, int BlueScore, int MainTurns, int DraftRounds, int Collisions, int ForcedCollisions,
-        int RedCastles, int BlueCastles, bool RedAvoidableLoss, bool BlueAvoidableLoss, int RedInterior,
-        int BlueInterior, int RedPlacements, int BluePlacements, string? HistoryDigest, List<TournamentRound> Rounds,
-        string? Error = null)
-    {
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public int? RedInteriorWithBetterAlternative { get; init; }
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public int? BlueInteriorWithBetterAlternative { get; init; }
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? OpeningBoardDigest { get; init; }
-    }
-
-    private static TournamentOpponent CreateOpponent(ParticipantSpec spec)
+    internal static TournamentOpponent Create(ParticipantSpec spec)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(spec.Opponent);
         if (spec.MainOpponent is { } mainName)
         {
-            var draft = CreateOpponent(spec with { MainOpponent = null });
-            var main = CreateOpponent(new(spec.Id, mainName));
+            var draft = Create(spec with { MainOpponent = null });
+            var main = Create(new(spec.Id, mainName));
             if (draft.TablebaseMap is not null)
                 throw new ArgumentException("A tablebase cannot supply a natural draft policy.");
             return new(spec, $"{draft.Version}/{main.Version}", (state, side, random, diagnostics, token) =>
@@ -201,8 +178,8 @@ internal static partial class Program
                             Diagnostics: diagnostics ? decision : null, ReusedPairs: report?.ReusedPairs, CompletedDepth: report?.CompletedDepth);
                     });
             case "frozen8e":
-                var frozen8EEngine = spec.TimeLimitMs is double frozenTime
-                    ? new EightE.CpuDecisionEngine(TimeSpan.FromMilliseconds(frozenTime)) : new EightE.CpuDecisionEngine();
+                var frozen8EEngine = spec.TimeLimitMs is double frozen8ETime
+                    ? new EightE.CpuDecisionEngine(TimeSpan.FromMilliseconds(frozen8ETime)) : new EightE.CpuDecisionEngine();
                 var frozen8EProfile = EightE.CpuDifficultyProfiles.Get((EightE.CpuDifficulty)level);
                 return new(spec, "b63e7fbbb5450b4f9a5b6bb4047579bc978669c5",
                     (state, player, random, diagnostics, token) =>
@@ -232,207 +209,4 @@ internal static partial class Program
             return new(Coordinate(report.Decision!.Value.Position), Pairs: 0, Depth: 0, Diagnostics: report);
         }
     }
-
-    private static DecisionSample Measure(TournamentOpponent opponent, GameSessionSnapshot state, PlayerId player,
-        Random stream, bool diagnostics, CancellationToken token)
-    {
-        token.ThrowIfCancellationRequested();
-        long allocated = GC.GetAllocatedBytesForCurrentThread();
-        long started = Stopwatch.GetTimestamp();
-        var decision = opponent.Decide(state, player, stream, diagnostics, token);
-        long bytes = GC.GetAllocatedBytesForCurrentThread() - allocated;
-        return decision with { Measured = true, Milliseconds = Stopwatch.GetElapsedTime(started).TotalMilliseconds,
-            AllocatedBytes = bytes };
-    }
-
-    internal static TournamentResult PlayTournamentMatch(TournamentPlan plan, ScheduledMatch match, CancellationToken token)
-    {
-        var config = plan.Config;
-        var definition = StudyBattlefields.Resolve(match.Map).Definition;
-        var session = new LocalGameSession(definition, config.Ruleset);
-        var red = plan.Opponents[match.SeatsSwapped ? match.Second : match.First];
-        var blue = plan.Opponents[match.SeatsSwapped ? match.First : match.Second];
-        var redRandom = new Random(match.SeatsSwapped ? match.SecondStream : match.FirstStream);
-        var blueRandom = new Random(match.SeatsSwapped ? match.FirstStream : match.SecondStream);
-        bool separatePhases = config.SeparatePhaseStreams || red.SeparatePhases || blue.SeparatePhases;
-        var redDraftRandom = separatePhases ? new Random(StreamSeed(match.Seed, red.Spec.StreamId ?? red.Spec.Id, "opening-red")) : redRandom;
-        var blueDraftRandom = separatePhases ? new Random(StreamSeed(match.Seed, blue.Spec.StreamId ?? blue.Spec.Id, "opening-blue")) : blueRandom;
-        var rounds = new List<TournamentRound>();
-        var audit = config.StrategicMetrics
-            ? new StrategicPosition(session.Current.Board, RuleSetDefinition.Get(config.Ruleset), token) : null;
-        var metrics = new TacticalMetrics[2];
-        int draftIndex = 0, collisions = 0, forced = 0, redCastles = 0, blueCastles = 0;
-        string opening = "unfinished", status = "completed";
-        string? error = null, openingBoardDigest = null;
-        int limit = config.MaxRounds ?? checked(8 * definition.Width * definition.Height);
-
-        try
-        {
-            foreach (var opponent in new[] { red, blue })
-                if (opponent.TablebaseMap is { } map && (map != match.Map || config.Ruleset != RuleSet.KnightSupport))
-                    throw new InvalidOperationException("The tournament map or rules are outside the reference tablebase scope.");
-            while (IsPlayable(session.Current.Phase))
-            {
-                token.ThrowIfCancellationRequested();
-                if (rounds.Count - forced >= limit)
-                {
-                    status = "limit";
-                    break;
-                }
-                var before = session.Current;
-                bool draft = before.Phase == MatchPhase.Opening;
-                DecisionSample redMove, blueMove;
-                if (draft && config.Opening.Mode == "fixed")
-                {
-                    var position = before.EligiblePositions[0];
-                    var (first, second) = draftIndex < match.Draft.Length ? ParsePair(match.Draft[draftIndex]) : (position, position);
-                    if (match.StartsSwapped ^ match.SeatsSwapped) (first, second) = (second, first);
-                    redMove = new(Coordinate(first));
-                    blueMove = new(Coordinate(second));
-                }
-                else
-                {
-                    redMove = Measure(red, before, Red, draft ? redDraftRandom : redRandom, config.Diagnostics, token);
-                    blueMove = Measure(blue, before, Blue, draft ? blueDraftRandom : blueRandom, config.Diagnostics, token);
-                }
-                token.ThrowIfCancellationRequested();
-                Play(session, redMove.Move, blueMove.Move, match.BlueSubmitsFirst);
-                var after = session.Current;
-                rounds.Add(new(draft ? "draft" : "main", draft ? before.ResolvedRounds + 1 : before.ResolvedMainTurns + 1,
-                    redMove, blueMove, after.PlayerOneScore, after.PlayerTwoScore));
-                if (draft)
-                {
-                    draftIndex++;
-                    if (redMove.Move == blueMove.Move) collisions++;
-                    if (after.ResolvedRounds == before.ResolvedRounds + 2)
-                    {
-                        var last = before.EligiblePositions.Single(p => p != Position(redMove.Move) && p != Position(blueMove.Move));
-                        var move = new DecisionSample(Coordinate(last));
-                        rounds.Add(new("auto-draft-collision", after.ResolvedRounds, move, move,
-                            after.PlayerOneScore, after.PlayerTwoScore));
-                        forced++;
-                    }
-                    if (after.Phase != MatchPhase.Opening)
-                    {
-                        opening = OpeningOutcome(after);
-                        openingBoardDigest = OpeningDigest(after);
-                        (redCastles, blueCastles) = CountCastles(after.Board);
-                    }
-                }
-                else if (audit is not null)
-                {
-                    Audit(audit, before.MainState!, after.MainState!, Red, redMove, blueMove, ref metrics[0], token);
-                    Audit(audit, before.MainState!, after.MainState!, Blue, blueMove, redMove, ref metrics[1], token);
-                }
-            }
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            status = "failed";
-            error = $"{exception.GetType().Name}: {exception.Message}";
-        }
-        var final = session.Current;
-        return new(match.Id, status, opening, status == "completed" ? final.FinalResult?.Winner : null,
-            final.PlayerOneScore, final.PlayerTwoScore, final.ResolvedMainTurns, final.ResolvedRounds,
-            collisions, forced, redCastles, blueCastles, metrics[0].AvoidableLoss, metrics[1].AvoidableLoss,
-            metrics[0].Interior, metrics[1].Interior, metrics[0].Placements, metrics[1].Placements,
-            status == "completed" ? HistoryDigest(match.Map, config.Ruleset, rounds) : null, rounds, error)
-        {
-            OpeningBoardDigest = openingBoardDigest,
-            RedInteriorWithBetterAlternative = audit is null ? null : metrics[0].BetterAlternative,
-            BlueInteriorWithBetterAlternative = audit is null ? null : metrics[1].BetterAlternative
-        };
-    }
-
-    private static (int Red, int Blue) CountCastles(BoardState board)
-    {
-        int red = 0, blue = 0;
-        for (int y = 0; y < board.Height; y++)
-        for (int x = 0; x < board.Width; x++)
-        {
-            var cell = board.GetCell(new(x, y));
-            if (cell.Piece != PieceType.Castle) continue;
-            if (cell.Owner == Red) red++; else blue++;
-        }
-        return (red, blue);
-    }
-
-    private static void Audit(StrategicPosition position, MainPhaseState before, MainPhaseState after, PlayerId side,
-        DecisionSample decision, DecisionSample opposing, ref TacticalMetrics metrics, CancellationToken token)
-    {
-        var action = Position(decision.Move);
-        var reply = new MainPhaseSelection(Other(side), Position(opposing.Move));
-        if (before.Board.GetCell(action).Piece == PieceType.None)
-        {
-            metrics.Placements++;
-            if (IsInteriorPlacement(position, before, after, side, action, token))
-            {
-                metrics.Interior++;
-                if (HasBetterPlacement(before, after, side, action, reply, token)) metrics.BetterAlternative++;
-            }
-        }
-        if (after.Result?.Winner != Other(side)) return;
-        foreach (var alternative in before.GetLegalSelections(side))
-        {
-            token.ThrowIfCancellationRequested();
-            if (alternative != action && before.Advance(new(side, alternative), reply).Result?.Winner != Other(side))
-            {
-                metrics.AvoidableLoss = true;
-                break;
-            }
-        }
-    }
-
-    private static bool HasBetterPlacement(MainPhaseState before, MainPhaseState after, PlayerId side,
-        BoardPosition selected, MainPhaseSelection reply, CancellationToken token)
-    {
-        var legalBefore = before.GetLegalSelections(side);
-        var (outcome, margin, newReach, formation) = Measure(after);
-        foreach (var alternative in legalBefore)
-        {
-            token.ThrowIfCancellationRequested();
-            if (alternative == selected || before.Board.GetCell(alternative).Piece != PieceType.None) continue;
-            var (nextOutcome, nextMargin, nextReach, nextFormation) = Measure(before.Advance(new(side, alternative), reply));
-            if (nextOutcome < outcome || nextMargin < margin || nextReach < newReach || nextFormation < formation) continue;
-            if (nextOutcome > outcome || nextMargin > margin || nextReach > newReach || nextFormation > formation)
-                return true;
-        }
-        return false;
-
-        (int Outcome, int Margin, int NewReach, int Formation) Measure(MainPhaseState state)
-        {
-            int delta = state.Territory.PlayerOneScore - state.Territory.PlayerTwoScore;
-            int margin = side == Red ? delta : -delta;
-            int outcome = state.Result is null ? 0 : Math.Sign(margin);
-            int formation = 0;
-            for (int y = 0; y < state.Board.Height; y++)
-            for (int x = 0; x < state.Board.Width; x++)
-                if (state.Board.GetCell(new(x, y)).Owner == side) formation++;
-            int reach = state.GetLegalSelections(side).Count(target => !legalBefore.Contains(target) &&
-                state.Board.GetCell(target).Piece == PieceType.None);
-            return (outcome, margin, reach, formation);
-        }
-    }
-
-    private struct TacticalMetrics
-    {
-        internal int Interior, Placements, BetterAlternative;
-        internal bool AvoidableLoss;
-    }
-
-    private static string OpeningDigest(GameSessionSnapshot snapshot) =>
-        Digest(Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(
-            PositionIdentity.Key(snapshot.Board, snapshot.RuleSet))));
-
-    private static bool IsPlayable(MatchPhase phase) => phase is MatchPhase.Opening or MatchPhase.Main;
-    private static string OpeningOutcome(GameSessionSnapshot state) => state.Phase switch
-    {
-        MatchPhase.Opening => "unfinished",
-        MatchPhase.OpeningRestartRequired => "retry",
-        MatchPhase.Finished when state.ResolvedMainTurns == 0 => "draftscore",
-        _ => "main"
-    };
-
-    private static string HistoryDigest(string map, RuleSet rules, IEnumerable<TournamentRound> rounds) =>
-        Digest($"{map}|{rules}|{string.Join(';', rounds.Select(round => $"{round.Phase}|{round.Red.Move}/{round.Blue.Move}"))}");
 }

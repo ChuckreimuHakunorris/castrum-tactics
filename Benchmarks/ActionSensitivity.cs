@@ -1,5 +1,8 @@
+using CastrumTactics.Development;
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
+using static CastrumTactics.Development.TournamentPlanner;
+using static CastrumTactics.Development.TournamentStore;
 
 internal static partial class Program
 {
@@ -30,7 +33,7 @@ internal static partial class Program
                 foreach (int index in new[] { 0, Math.Min(2, turns.Length - 1) }.Distinct())
                 {
                     var round = turns[index];
-                    var before = Reconstruct(manifest, match, result, "main", round.Number).MainState!;
+                    var before = TournamentReplay.Reconstruct(manifest, match, result, "main", round.Number).MainState!;
                     var action = Position(stronger == Red ? round.Red.Move : round.Blue.Move);
                     var reply = Position(stronger == Red ? round.Blue.Move : round.Red.Move);
                     var alternatives = before.GetLegalSelections(stronger).Where(p => p != action)
