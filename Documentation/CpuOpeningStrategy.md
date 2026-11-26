@@ -119,3 +119,5 @@ The solution build and **357 tests** passed. The tests include legal decisions a
 ## Priorities for 8E
 
 Use fixed assignment swaps to distinguish area from terrain layout, initial legal options, castle geometry, opponent strength, and match duration. Include openings with the same count and sharply different marginal reach, and repeat conclusions with several fixed Main policies. Keep outcomes and territory margins as separate targets. The current measurements do not determine whether larger maps reduce sensitivity to individual simultaneous outcomes. Collect warmed and sustained Android latency, allocations and thermal measurements before expanding the production draft budget.
+
+The [8E calibration](CpuDifficultyCalibration.md#opening-sensitivity) repeats the Easy and Hard Main comparisons on the same draft schedule and extends it to Monster Main. [Battlefield balance](BattlefieldBalance.md) reports the catalog-wide draft sweep.

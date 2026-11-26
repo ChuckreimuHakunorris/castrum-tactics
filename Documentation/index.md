@@ -9,3 +9,5 @@ The Godot application runs a local two-player match on a 7-by-5 demonstration ma
 - [API reference](api/index.md) lists the types and members available in the C# project.
 - [Design](design.md) links to the game design and art direction documents.
 - [Contributing](contributing.md) covers documentation conventions, local builds, and publishing.
+
+- [8E CPU difficulty calibration](CpuDifficultyCalibration.md) and [battlefield balance](BattlefieldBalance.md) report the release-candidate tests and map research.

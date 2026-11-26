@@ -140,3 +140,5 @@ The ARM64 .NET publish and signed Godot debug APK export passed. The isolated pa
 Use the [small-board solver](SmallBoardSolver.md) to certify reachable positions, inspect decision payoffs and compare seeded CPU policies against optimal play. Store generated reports and tablebases under exports/.
 
 Use [advanced opening strategy](CpuOpeningStrategy.md) for fixed-configuration opening studies and draft-only comparisons against frozen 8D.3.
+
+The [8E calibration report](CpuDifficultyCalibration.md) covers the current measured ladder, budget sweep and platform verification. The archived tables above retain their original profiles and schedules.

@@ -1,0 +1,26 @@
+{
+  "id": "8e-catalog",
+  "maps": {},
+  "ruleset": "knightSupport",
+  "opening": {
+    "mode": "natural"
+  },
+  "seeds": [
+    2591
+  ],
+  "swapSeats": true,
+  "separatePhaseStreams": true,
+  "workers": 3,
+  "strategicMetrics": false,
+  "format": "head-to-head",
+  "participants": [
+    {
+      "id": "monster",
+      "opponent": "frozen8d4:Monster"
+    },
+    {
+      "id": "hard",
+      "opponent": "frozen8d4:Hard"
+    }
+  ]
+}

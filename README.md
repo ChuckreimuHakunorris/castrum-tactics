@@ -120,3 +120,5 @@ See the [documentation homepage source](Documentation/index.md) for architecture
 The [small-board solver](Documentation/SmallBoardSolver.md) provides exact simultaneous analysis and development tablebase opponents for archived maps.
 
 [Advanced opening strategy](Documentation/CpuOpeningStrategy.md) describes the draft evaluator, the sampled equilibrium policy for Monster, and the opening-quality experiments.
+
+[8E CPU difficulty calibration](Documentation/CpuDifficultyCalibration.md) reports the ladder and search-budget experiments. [Battlefield balance](Documentation/BattlefieldBalance.md) covers the catalog audit and size study.

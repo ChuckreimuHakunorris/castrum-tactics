@@ -17,6 +17,10 @@ items:
     href: CpuStrategicEvaluation.md
   - name: CPU opening strategy
     href: CpuOpeningStrategy.md
+  - name: CPU difficulty calibration
+    href: CpuDifficultyCalibration.md
+  - name: Battlefield balance
+    href: BattlefieldBalance.md
   - name: Small-board solver
     href: SmallBoardSolver.md
   - name: API Reference

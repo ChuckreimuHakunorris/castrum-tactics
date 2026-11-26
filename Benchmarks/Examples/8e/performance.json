@@ -1,0 +1,34 @@
+{
+  "id": "8e-performance",
+  "maps": {
+    "ids": [
+      "honeystone-green",
+      "twelve-towers"
+    ]
+  },
+  "ruleset": "knightSupport",
+  "opening": {
+    "mode": "natural"
+  },
+  "seeds": [
+    1861
+  ],
+  "swapSeats": true,
+  "separatePhaseStreams": true,
+  "workers": 1,
+  "strategicMetrics": false,
+  "format": "head-to-head",
+  "participants": [
+    {
+      "id": "reference",
+      "opponent": "frozen8d4:Monster",
+      "timeLimitMs": 450
+    },
+    {
+      "id": "live",
+      "opponent": "strategic:Monster",
+      "timeLimitMs": 450
+    }
+  ],
+  "diagnostics": true
+}
