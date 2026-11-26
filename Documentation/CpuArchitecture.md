@@ -17,6 +17,8 @@ The opening reads `EligiblePositions` and previews draft pairs with `GameSession
 
 ## Simultaneous search
 
+The following sequence describes the expected/adverse policy used by Easy through Very Hard and by score-based fallbacks. Monster uses the same authoritative resolver and tactical shortlist to build the payoff matrices described below.
+
 1. Rank all legal actions for each player on the current resolved board. At wide nodes, keep roughly half the shortlist from the top tactical ranks, then reserve room for a castle upgrade, a capture or defensive response, and frontier alternatives. Frontier ordering combines estimated marginal reach with distance from already shortlisted targets. A low-branching node is exhaustive within its limits.
 2. Evaluate each own action against one common opponent shortlist. Reply probabilities combine 90% softmax over the opponent's public tactical scores with 10% uniform probability. In both the draft and Main, evaluate an omitted legal same-square reply once and include its value only in the adverse outcome. The expected value uses the same common reply distribution for every candidate. A collision already in the common set contributes to both values.
 3. Resolve every tested pair through the domain. Rate an action with `(1 - risk) × expected + risk × adverse`, where adverse is the minimum tested value. In Main, actions that win against every tested reply take precedence, followed by actions with no immediate loss among tested replies. Sampling stays in the best available tier. Replies outside the shortlist can still change a result.
@@ -42,7 +44,9 @@ Each pair previews the next draft state or opening completion, including any for
 
 ## Strategic position value
 
-The following is the acting player's signed value of a nonterminal resolved position. The calculation clamps the sum to ±1,000. A terminal win or loss uses ±10,000 plus the signed final margin clamped to ±1,000. A terminal draw is zero.
+Monster uses the resilient evaluator and bounded outcome utility in Main. Its root and selected continuation matrices share the existing 850-pair budget. A completed matrix supplies the action probabilities and includes a common column for each affordable legal collision. When a comparable second tier does not fit, the engine retains the completed first tier. Compact roots can still enter the three-turn proof-only pass. An immediate win is checked against omitted replies before the engine reports it as proved. [Models and measured results](CpuStrategicEvaluation.md)
+
+The 8D.2 evaluator used for Easy through Very Hard and draft previews clamps its signed nonterminal sum to ±1,000. Its Main terminal win or loss uses ±10,000 plus the signed final margin clamped to ±1,000. A terminal draw is zero. Monster’s bounded Main utility uses the same internal scale of 10,000 with no margin term. [Strategic evaluation](CpuStrategicEvaluation.md)
 
 | Term | Weight and calculation |
 | --- | --- |
@@ -114,7 +118,7 @@ var custom = new CpuProfile(
 
 The static evaluator scores every legal candidate and breaks score ties in row-major order. Sampling operates on the best comparable search tier or the static pool. It applies the nominal pool limit and optional score gap, retaining at least two evaluated Opening choices when available and at least one Main choice. It includes every eligible candidate within an absolute `1e-12` score difference of the last retained score. This margin covers floating-point roundoff.
 
-Positive temperatures use softmax after subtracting the best score. In Main, positive temperature can deliberately select lower-rated moves from the retained pool. At zero temperature, the engine samples uniformly among scores within `1e-12` of the best. A unique best receives probability one, and inferior scores receive zero. Randomizing among equivalent best choices preserves Monster's preference for the strongest rated move.
+Positive temperatures use softmax after subtracting the best score. In Main, positive temperature can deliberately select lower-rated moves from the retained pool. At zero temperature, the score-based sampler uses equal probabilities among scores within `1e-12` of the best. Monster uses the matrix policy's probabilities when a solve completes and the score-based sampler when no matrix policy is available.
 
 Opening mixes uniform probability into the retained pool. The urgent setting applies when two starts remain and neither player has a starting piece. With the built-in urgent share, either start receives at least 35% probability. A single retained candidate receives probability one. Excluded candidates receive zero.
 

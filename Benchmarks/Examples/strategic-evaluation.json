@@ -1,0 +1,28 @@
+{
+  "id": "8d3-strategy",
+  "format": "baseline",
+  "participants": [
+    { "id": "8d2", "opponent": "frozen8d2:Monster" },
+    { "id": "8c", "opponent": "frozen8c:Monster" },
+    { "id": "static", "opponent": "static:Monster" },
+    { "id": "probe", "opponent": "probe" },
+    { "id": "one", "opponent": "strategic:Monster", "search": { "depth": 1 } },
+    { "id": "resilient", "opponent": "strategic:Monster", "search": { "resilientEvaluation": true } },
+    { "id": "bounded", "opponent": "strategic:Monster", "search": { "depth": 2, "boundedUtility": true } },
+    { "id": "matrix", "opponent": "strategic:Monster", "search": { "depth": 2, "equilibrium": "root" } },
+    { "id": "continuations", "opponent": "strategic:Monster", "search": { "depth": 2, "equilibrium": "continuations" } },
+    { "id": "combined", "opponent": "strategic:Monster", "search": { "depth": 2, "equilibrium": "continuations", "resilientEvaluation": true } },
+    { "id": "wide", "opponent": "strategic:Monster", "pairBudget": 2000, "search": { "depth": 2, "ownCandidates": 22, "opponentCandidates": 14 } },
+    { "id": "resilient-wide", "opponent": "strategic:Monster", "pairBudget": 2000, "search": { "depth": 2, "ownCandidates": 22, "opponentCandidates": 14, "resilientEvaluation": true } },
+    { "id": "deep", "opponent": "strategic:Monster", "pairBudget": 2000, "search": { "depth": 3, "continuationOwnCandidates": 3, "proofOnlyDeepening": false } }
+  ],
+  "references": ["8d2"],
+  "maps": { "ids": ["bellflower-reach", "twin-basins", "banner-plain", "broadshield-field", "amber-fallow", "silver-bracken"],
+    "heldOut": ["broadshield-field", "amber-fallow", "silver-bracken"], "split": "tuning" },
+  "opening": { "mode": "fixed" },
+  "seeds": [42, 71],
+  "swapSeats": true,
+  "swapStarts": true,
+  "workers": 2,
+  "outputDirectory": "exports/8d3/tuning"
+}

@@ -65,7 +65,8 @@ public sealed class CpuProfile
     /// <summary>Gets the nominal main-phase pool limit, subject to cutoff ties.</summary>
     public int MainCandidateLimit { get; }
 
-    /// <summary>Gets main-phase temperature. Zero samples equally among the best-rated candidates.</summary>
+    /// <summary>Gets main-phase temperature for the score-based sampler. Zero samples equally among the best-rated candidates.</summary>
+    /// <remarks>A completed matrix policy uses its own action probabilities.</remarks>
     /// <remarks>Higher temperatures flatten the distribution within the retained pool.</remarks>
     public double MainTemperature { get; }
 
@@ -129,7 +130,13 @@ public static class CpuDifficultyProfiles
         new(WithSupport(new(2.0, 1.9, 1.9, 1.6, 1.1, 1.1, 1.3, 1.15)), 8, 3, 0.12, 0.55)
             { Search = new(2, 14, 9, 500, 0.36, 1.1) },
         new(WithSupport(new(2.0, 2.1, 2.0, 1.7, 1.2, 1.2, 1.4, 1.25)), 16, 1, 0, 0.5)
-            { Search = new(3, 18, 10, 850, 0.40, 1.0, 6, 6, 3, verifyTerminalWins: false, proofOnlyDeepening: true) },
+            {
+                Search = new(3, 18, 10, 850, 0.40, 1.0, 6, 6, 3, verifyTerminalWins: true, proofOnlyDeepening: true)
+                {
+                    ResilientEvaluation = true,
+                    Equilibrium = MatrixPolicy.Continuations
+                }
+            },
     ];
 
     private static CpuEvaluationWeights WithSupport(CpuEvaluationWeights weights) =>

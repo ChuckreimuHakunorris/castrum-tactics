@@ -17,6 +17,7 @@ internal sealed class StrategicPosition
     private readonly int[] _twoInfluence;
     private readonly Queue<int>[] _waves = Enumerable.Range(0, CastleStrength + 1).Select(_ => new Queue<int>()).ToArray();
     private readonly int _width;
+    private InvasionReach? _reach;
 
     internal StrategicPosition(BoardState board, RuleSetDefinition rules, CancellationToken token)
     {
@@ -42,9 +43,12 @@ internal sealed class StrategicPosition
 
     internal PositionFeatures Evaluate(BoardState board, TerritoryAnalysis territory,
         IReadOnlySet<BoardPosition> oneLegal, IReadOnlySet<BoardPosition> twoLegal, CancellationToken token,
-        bool opening = false)
+        bool opening = false, bool resilient = false, bool prepareFrontier = true)
     {
         double material = 0, formation = 0, mobility = 0, influence = 0, health = 0;
+        InvasionReach? reach = resilient && !opening
+            ? _reach ??= new(_positions, _neighbors, _cells, _control, _rules) : null;
+        reach?.Reset();
         Array.Clear(_oneInfluence);
         Array.Clear(_twoInfluence);
         for (int i = 0; i < _positions.Length; i++)
@@ -65,7 +69,8 @@ internal sealed class StrategicPosition
             if (cell.Piece == PieceType.Castle)
             {
                 field[i] = CastleStrength;
-                material += sign * 1.15;
+                if (reach is null) material += sign * 1.15;
+                reach?.Seed(i, one, 0, _rules.CastlePlacementRange, one ? oneLegal : twoLegal);
                 continue;
             }
 
@@ -83,24 +88,42 @@ internal sealed class StrategicPosition
             // A knight exposed directly or through its sole supporter projects less reliable influence.
             bool threatened = enemyLegal.Contains(_positions[i]);
             field[i] = 7 - (threatened ? 1 : 0) - (safe == 0 && supports < 2 ? 1 : 0);
-            formation += sign * (castle ? 0.24 : supports > 1 || safe > 0 ? 0.15 : -0.15);
-            material += sign * (threatened ? 0.30 : 0.43);
+            if (reach is null)
+            {
+                formation += sign * (castle ? 0.24 : supports > 1 || safe > 0 ? 0.15 : -0.15);
+                material += sign * (threatened ? 0.30 : 0.43);
+            }
+            else if (_control[i] == TerritoryControl.Contested)
+            {
+                bool fragile = safe == 0 && supports < 2;
+                reach.Seed(i, one, (threatened ? 1 : 0) + (fragile ? 2 : 0),
+                    _rules.KnightPlacementRange, one ? oneLegal : twoLegal);
+                material += sign * (threatened ? 0.22 : 0.32);
+                // Safe surplus supporters have little marginal value. Exposure makes redundancy matter.
+                if (threatened || fragile)
+                    formation += sign * (castle ? 0.32 : fragile ? -0.26 : safe > 0 ? 0.15 : 0.06);
+            }
         }
 
-        Propagate(_oneInfluence, opening, token);
-        Propagate(_twoInfluence, opening, token);
+        if (reach is null || prepareFrontier)
+        {
+            Propagate(_oneInfluence, opening, token);
+            Propagate(_twoInfluence, opening, token);
+        }
+        reach?.Propagate(oneLegal, twoLegal, token);
         for (int i = 0; i < _positions.Length; i++)
         {
             if (i % _width == 0) token.ThrowIfCancellationRequested();
             if (!_cells[i].IsPlayable || _cells[i].Piece == PieceType.Castle ||
                 (!opening && _control[i] != TerritoryControl.Contested)) continue;
             int one = _oneInfluence[i], two = _twoInfluence[i];
-            double advantage = Math.Clamp((one - two) / 3.0, -1, 1) * (Math.Min(4, Math.Max(one, two)) / 4.0);
+            double advantage = reach?.Advantage(i)
+                ?? Math.Clamp((one - two) / 3.0, -1, 1) * (Math.Min(4, Math.Max(one, two)) / 4.0);
             influence += advantage;
             health += advantage * (Math.Min(3, _cells[i].GroundHealth) - 3) / 3.0;
 
             // Invasion and expansion opportunities count once per cell and taper in already dominant areas.
-            if (_cells[i].Piece == PieceType.None)
+            if (reach is null && _cells[i].Piece == PieceType.None)
             {
                 mobility += (oneLegal.Contains(_positions[i]) ? 1 - Math.Max(0, advantage) : 0)
                     - (twoLegal.Contains(_positions[i]) ? 1 + Math.Min(0, advantage) : 0);

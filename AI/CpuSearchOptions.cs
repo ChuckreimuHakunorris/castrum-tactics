@@ -81,4 +81,10 @@ public sealed class CpuSearchOptions
     public bool RequireFullRootReplies { get; }
     /// <summary>Gets whether deeper refinement is limited to compact, fully covered root matrices and verified wins.</summary>
     public bool ProofOnlyDeepening { get; }
+
+    internal bool ResilientEvaluation { get; init; }
+    internal bool BoundedUtility { get; init; }
+    internal MatrixPolicy Equilibrium { get; init; }
 }
+
+internal enum MatrixPolicy { Off, Expected, Root, Continuations }

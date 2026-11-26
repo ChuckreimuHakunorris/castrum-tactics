@@ -24,7 +24,7 @@ internal static partial class Program
     private static int RunSolver(string[] args, CancellationToken token)
     {
         string[] allowed = ["--map", "--starts", "--path", "--max-states", "--max-seconds", "--max-mib",
-            "--output", "--fixture", "--replay", "--analysis", "--tablebase", "--symmetry", "--ignore-locked-health", "--enumerate-only", "--interval-scale", "--fast-policy"];
+            "--output", "--fixture", "--replay", "--analysis", "--analysis-split", "--tablebase", "--symmetry", "--ignore-locked-health", "--enumerate-only", "--interval-scale", "--fast-policy"];
         var options = new Dictionary<string, string>(StringComparer.Ordinal);
         for (int i = 0; i < args.Length; i += 2)
             if (i + 1 == args.Length || !allowed.Contains(args[i]) || !options.TryAdd(args[i], args[i+1]))
@@ -61,6 +61,10 @@ internal static partial class Program
         bool standardPocketSolve = mapId == "pocket-meadow" && path.Length == 0 && !enumerateOnly;
         bool ignoreLockedHealth = options.TryGetValue("--ignore-locked-health", out var projection)
             ? bool.Parse(projection) : standardPocketSolve;
+        string analysisSplit = options.GetValueOrDefault("--analysis-split", "all");
+        if (analysisSplit is not ("all" or "both" or "tuning" or "held-out") ||
+            analysisSplit != "all" && (!options.ContainsKey("--analysis") || !ignoreLockedHealth || !symmetry))
+            throw new ArgumentException("Analysis splits require --analysis, symmetry and locked-health equivalence.");
         if (enumerateOnly)
         {
             if (new[] { "--fixture", "--replay", "--analysis", "--tablebase", "--interval-scale", "--fast-policy" }.Any(options.ContainsKey))
@@ -91,11 +95,16 @@ internal static partial class Program
             object? replay = options.TryGetValue("--replay", out var replayFile)
                 ? InspectReplays(replayFile, s => BuildInspection(s, graph.Lookup), mapId, token) : null;
             object? analysis = options.TryGetValue("--analysis", out string? sampleSize)
-                ? AnalyzePolicies(graph, map, starts, path, int.Parse(sampleSize), token) : null;
+                ? analysisSplit == "both"
+                    ? new { tuning = AnalyzePolicies(graph, map, starts, path, int.Parse(sampleSize), "tuning", token),
+                        heldOut = AnalyzePolicies(graph, map, starts, path, int.Parse(sampleSize), "held-out", token) }
+                    : AnalyzePolicies(graph, map, starts, path, int.Parse(sampleSize), analysisSplit, token)
+                : null;
             string? tablebaseDigest = options.TryGetValue("--tablebase", out var tablebasePath)
                 ? SolvedTablebase.Save(tablebasePath, mapId, Identify(map, []).Digest, starts, path, graph, complete: true, token) : null;
             using var process = Process.GetCurrentProcess();
             var forcedDraw = graph.CanForceDraw(root);
+            var avoidLoss = graph.CanAvoidLoss(root);
             WriteSolverResult(options, new
             {
                 map = mapId, rules = RuleSet.KnightSupport.ToString(), starts, path, complete = true,
@@ -111,6 +120,7 @@ internal static partial class Program
                         draw = policy.Draw.ToString(), blueWin = policy.Loss.ToString(), turns = policy.Turns.ToString() };
                 }).ToArray(),
                 canForceDraw = new { red = forcedDraw.Red, blue = forcedDraw.Blue },
+                canAvoidLoss = new { red = avoidLoss.Red, blue = avoidLoss.Blue },
                 resources = new { solveSeconds, process.PeakWorkingSet64,
                     managedBytes = GC.GetTotalMemory(false) }
             });

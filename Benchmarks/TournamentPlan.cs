@@ -49,7 +49,10 @@ internal static partial class Program
     internal sealed record SearchOverrides(int? Depth = null, int? OwnCandidates = null, int? OpponentCandidates = null,
         int? ContinuationOwnCandidates = null, int? ContinuationOpponentCandidates = null, int? DeepFinalists = null,
         double? Risk = null, double? ReplyTemperature = null, bool? VerifyTerminalWins = null,
-        bool? RequireFullRootReplies = null, bool? ProofOnlyDeepening = null);
+        bool? RequireFullRootReplies = null, bool? ProofOnlyDeepening = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? ResilientEvaluation = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? BoundedUtility = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] MatrixPolicy? Equilibrium = null);
 
     internal sealed record MapSubset
     {

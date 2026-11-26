@@ -52,7 +52,7 @@ public readonly record struct CpuActionAnalysis(BoardPosition Position, double E
 /// <summary>Shows the weighted, signed nonterminal evaluation terms from the acting player's perspective.</summary>
 /// <param name="Secured">Authoritative secured score lead times its phase weight.</param>
 /// <param name="Influence">Estimated contested or draft influence lead times its weight.</param>
-/// <param name="Material">Castle and knight value with a discount for threatened knights.</param>
+/// <param name="Material">Piece value with a discount for threatened knights. The resilient evaluator accounts for castles through secured score and influence.</param>
 /// <param name="Formation">Resilience adjustment from the available survival supporters.</param>
 /// <param name="Ground">Ground degradation weighted by the relative influence at each square.</param>
 /// <param name="Mobility">Meaningful expansion and disruption opportunities times their weight.</param>
@@ -81,4 +81,18 @@ public sealed record CpuSearchReport(IReadOnlyList<CpuActionAnalysis> Actions, I
     public int ReusedPairs { get; init; }
     /// <summary>Gets the deepest complete comparison, including a deeper pass that the selection policy declined.</summary>
     public int CompletedDepth { get; init; }
+    /// <summary>Gets numerical diagnostics for a sampled matrix policy, or null when another policy was used.</summary>
+    public CpuMatrixAnalysis? Matrix { get; init; }
 }
+
+/// <summary>Reports the security interval of the modeled payoff matrix in outcome utility units.</summary>
+/// <param name="Security">Minimum modeled payoff of the selected row policy against a common reply.</param>
+/// <param name="Ceiling">Maximum modeled payoff of any included own action against the dual reply policy.</param>
+/// <param name="Pivots">Simplex pivots, with zero for a pure saddle.</param>
+/// <param name="OwnActions">Number of included own actions.</param>
+/// <param name="Replies">Number of included opposing actions.</param>
+/// <param name="FullReplies">Whether every legal opposing root action was included. Continuations may still be approximate.</param>
+/// <param name="Solves">Number of attempted numerical solves across all tiers.</param>
+/// <param name="Elapsed">Wall time spent constructing and solving matrices for this decision.</param>
+public readonly record struct CpuMatrixAnalysis(double Security, double Ceiling, int Pivots, int OwnActions,
+    int Replies, bool FullReplies, int Solves, TimeSpan Elapsed);

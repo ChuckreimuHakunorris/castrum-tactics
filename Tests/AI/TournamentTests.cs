@@ -168,6 +168,29 @@ public sealed class TournamentTests
             b.Rounds.Select(r => (r.Red.Move, r.Red.Pairs, r.Red.Depth, r.Red.BudgetExhausted)));
     }
 
+    [Theory]
+    [InlineData("Easy")]
+    [InlineData("Normal")]
+    [InlineData("Hard")]
+    [InlineData("VeryHard")]
+    [InlineData("Monster")]
+    public void FrozenEightD2MatchesExplicitLegacySearch(string difficulty)
+    {
+        var config = Config with
+        {
+            Participants = [new("alpha", $"strategic:{difficulty}", Search: new()), new("beta", "static:Normal")]
+        };
+        var frozenConfig = config with { Participants = [new("alpha", $"frozen8d2:{difficulty}"), config.Participants[1]] };
+        var live = PlanTournament(config);
+        var frozen = PlanTournament(frozenConfig);
+        var a = PlayTournamentMatch(live, live.Matches[0], default);
+        var b = PlayTournamentMatch(frozen, frozen.Matches[0], default);
+        Assert.Equal("completed", a.Status);
+        Assert.Equal(a.HistoryDigest, b.HistoryDigest);
+        Assert.Equal(a.Rounds.Select(r => (r.Red.Move, r.Red.Pairs, r.Red.Depth, r.Red.BudgetExhausted)),
+            b.Rounds.Select(r => (r.Red.Move, r.Red.Pairs, r.Red.Depth, r.Red.BudgetExhausted)));
+    }
+
     [Fact]
     public void SearchOverridesRoundTripAndArePartOfTheManifestIdentity()
     {
