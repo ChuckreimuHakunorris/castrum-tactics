@@ -1,32 +1,65 @@
 items:
-  - name: Home
+  - name: Getting started
     href: index.md
+    items:
+      - name: Project overview
+        href: index.md
+      - name: Run, play and export
+        href: PlatformVerification.md
+      - name: Contributing
+        href: contributing.md
+  - name: Game design
+    href: design.md
+    items:
+      - name: Design overview
+        href: design.md
+      - name: Game design document
+        href: GameDesign.md
+      - name: Art direction
+        href: ArtDirection.md
+      - name: Predefined maps
+        href: MapFormat.md
+      - name: Development roadmap
+        href: DevelopmentRoadmap.md
   - name: Architecture
     href: architecture.md
-  - name: Predefined maps
-    href: MapFormat.md
-  - name: CPU architecture
-    href: CpuArchitecture.md
-  - name: CPU benchmarks
+    items:
+      - name: Architecture overview
+        href: architecture.md
+      - name: Session architecture
+        href: SessionArchitecture.md
+      - name: Main-phase architecture
+        href: MainPhaseArchitecture.md
+      - name: CPU architecture
+        href: CpuArchitecture.md
+      - name: 9A architecture refactoring
+        href: ArchitectureRefactoring.md
+      - name: Decision log
+        href: DecisionLog.md
+  - name: Research and benchmarks
     href: CpuBenchmarks.md
-  - name: CPU tournaments
-    href: CpuTournaments.md
-  - name: CPU search optimization
-    href: CpuSearchOptimization.md
-  - name: CPU strategic evaluation
-    href: CpuStrategicEvaluation.md
-  - name: CPU opening strategy
-    href: CpuOpeningStrategy.md
-  - name: CPU difficulty calibration
-    href: CpuDifficultyCalibration.md
-  - name: Battlefield balance
-    href: BattlefieldBalance.md
-  - name: Small-board solver
-    href: SmallBoardSolver.md
-  - name: API Reference
-    href: api/
-    topicHref: api/index.md
-  - name: Design
-    href: design.md
-  - name: Contributing
-    href: contributing.md
+    items:
+      - name: CPU benchmarks
+        href: CpuBenchmarks.md
+      - name: CPU tournaments
+        href: CpuTournaments.md
+      - name: Small-board solver
+        href: SmallBoardSolver.md
+      - name: 8D.2 CPU search optimization
+        href: CpuSearchOptimization.md
+      - name: 8D.3 strategic evaluation
+        href: CpuStrategicEvaluation.md
+      - name: 8D.4 opening strategy
+        href: CpuOpeningStrategy.md
+      - name: 8E difficulty calibration
+        href: CpuDifficultyCalibration.md
+      - name: 8E battlefield balance
+        href: BattlefieldBalance.md
+  - name: Reference
+    href: api/index.md
+    items:
+      - name: API reference
+        href: api/
+        topicHref: api/index.md
+      - name: 9B documentation audit
+        href: DocumentationAudit.md
