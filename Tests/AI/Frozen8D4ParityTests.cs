@@ -12,10 +12,24 @@ public sealed class Frozen8D4ParityTests
     [Theory]
     [InlineData(RuleSet.KnightSupport)]
     [InlineData(RuleSet.Classic)]
-    public void FrozenDraftAndMainMatchAcrossTheCatalog(RuleSet rules)
+    public void FrozenDraftAndMainMatchTheReferenceAcrossTheCatalog(RuleSet rules)
     {
         var engine = new CpuDecisionEngine();
         var frozen = new Frozen.CpuDecisionEngine();
+        var calibrated = CpuDifficultyProfiles.Get(CpuDifficulty.VeryHard);
+        var limits = calibrated.Search!;
+        Assert.True(limits.ResilientEvaluation);
+        Assert.False(limits.BoundedUtility);
+        Assert.Equal(MatrixPolicy.Off, limits.Equilibrium);
+        Assert.Null(calibrated.OpeningSearch);
+        Assert.Equal((2, 14, 9, 500), (limits.Depth, limits.OwnCandidates, limits.OpponentCandidates, limits.PairBudget));
+        var priorVeryHard = new CpuProfile(calibrated.Weights, calibrated.OpeningCandidateLimit, calibrated.MainCandidateLimit,
+            calibrated.MainTemperature, calibrated.OpeningTemperature, calibrated.OpeningDiversity,
+            calibrated.UrgentOpeningDiversity, calibrated.OpeningMaximumScoreDifference, calibrated.MainMaximumScoreDifference)
+        {
+            Search = new(2, 14, 9, 500, 0.36, 1.1)
+        };
+        int changedDecisions = 0;
         foreach (var map in PredefinedMapCatalog.BuiltIn.Maps)
         {
             var session = new LocalGameSession(map.Definition, rules);
@@ -45,9 +59,20 @@ public sealed class Frozen8D4ParityTests
                 foreach (var level in Enum.GetValues<CpuDifficulty>())
                 {
                     var current = CpuDifficultyProfiles.Get(level);
+                    bool calibratedMain = level == CpuDifficulty.VeryHard && rules == RuleSet.KnightSupport &&
+                        state.Phase == MatchPhase.Main;
                     foreach (var side in new[] { PlayerId.PlayerOne, PlayerId.PlayerTwo })
                     {
-                        var actual = engine.DecideWithDiagnostics(state, side, current, new Random(451));
+                        var actual = engine.DecideWithDiagnostics(state, side,
+                            calibratedMain ? priorVeryHard : current, new Random(451));
+                        if (calibratedMain)
+                        {
+                            var promoted = engine.DecideWithDiagnostics(state, side, current, new Random(451));
+                            Assert.NotNull(promoted.Decision);
+                            Assert.Contains(promoted.Decision.Value.Position, state.GetMainPhaseLegalSelections(side));
+                            Assert.InRange(promoted.Search!.ResolvedPairs, 0, limits.PairBudget);
+                            if (promoted.Decision != actual.Decision) changedDecisions++;
+                        }
                         var expected = frozen.DecideWithDiagnostics(state, side,
                             Frozen.CpuDifficultyProfiles.Get((Frozen.CpuDifficulty)level), new Random(451));
                         Assert.NotNull(actual.Decision);
@@ -62,5 +87,6 @@ public sealed class Frozen8D4ParityTests
                 }
             }
         }
+        if (rules == RuleSet.KnightSupport) Assert.True(changedDecisions > 0);
     }
 }

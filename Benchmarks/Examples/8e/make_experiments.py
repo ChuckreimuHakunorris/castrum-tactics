@@ -165,6 +165,9 @@ def experiments():
             opponent(level.lower(), level, "strategic", search={"resilientEvaluation": True, "verifyTerminalWins": True})
             if level == "VeryHard" else opponent(level.lower(), level) for level in LEVELS
         ], maps=HOLDOUT, seeds=(4903, 5059, 5279), fixed=fixed)
+        yield f"holdout-production-{mode}", schedule([
+            opponent(level.lower(), level, "strategic") for level in LEVELS
+        ], maps=HOLDOUT, seeds=(4903, 5059, 5279), fixed=fixed)
         maps = ["pocket-meadow", "corner-watch", "stone-center", "open-meadow",
                 "alder-common", "honeystone-green", "twelve-towers"] + [
             f"study-{family}-{size}" for family in ["open", "block"] for size in [4, 6, 8, 10, 12]
@@ -177,6 +180,9 @@ def experiments():
             opponent("monster", "Monster"), opponent("hard", "Hard"), opponent("veryhard", "VeryHard"),
             opponent("old-monster", "Monster", "frozen8d3")
         ], maps=maps, seeds=(5501, 5669), fixed=fixed, references=["hard", "old-monster"], **fixed_options)
+        yield f"size-calibrated-{mode}", schedule([
+            opponent("veryhard", "VeryHard", "strategic"), opponent("hard", "Hard")
+        ], maps=maps, seeds=(5501, 5669), fixed=fixed, references=["hard"], **fixed_options)
         yield f"size-equal-{mode}", schedule([
             opponent("equal-1", "Monster"), opponent("equal-2", "Monster"),
         ], maps=maps, seeds=(5501, 5669), fixed=fixed, **fixed_options)

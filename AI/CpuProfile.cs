@@ -9,7 +9,7 @@ public enum CpuDifficulty
     Normal,
     /// <summary>Favors stronger territorial choices and adds a narrow second turn when the budget permits.</summary>
     Hard,
-    /// <summary>Uses strategic search with two-turn planning and little variation.</summary>
+    /// <summary>Uses resilient Knight Support evaluation, two-turn planning, and little variation.</summary>
     VeryHard,
     /// <summary>Uses the widest strategic search, verifies deeper tactical wins, and varies draft choices.</summary>
     Monster
@@ -131,7 +131,7 @@ public static class CpuDifficultyProfiles
         new(WithSupport(new(2.0, 1.6, 1.8, 1.4, 0.9, 0.8, 1.1, 0.95)), 10, 5, 0.3, 0.65)
             { Search = new(2, 12, 8, 360, 0.32, 1.2) },
         new(WithSupport(new(2.0, 1.9, 1.9, 1.6, 1.1, 1.1, 1.3, 1.15)), 8, 3, 0.12, 0.55)
-            { Search = new(2, 14, 9, 500, 0.36, 1.1) },
+            { Search = new(2, 14, 9, 500, 0.36, 1.1) { ResilientEvaluation = true } },
         new(WithSupport(new(2.0, 2.1, 2.0, 1.7, 1.2, 1.2, 1.4, 1.25)), 16, 1, 0, 0.5)
             {
                 OpeningSearch = new(1, 16, 256, CpuOpeningPolicy.Equilibrium),

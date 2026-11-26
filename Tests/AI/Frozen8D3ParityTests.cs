@@ -1,8 +1,10 @@
 extern alias frozen8d3;
+extern alias frozen8d4;
 
 using CastrumTactics.Domain;
 using CastrumTactics.Domain.Session;
 using Xunit;
+using EightD4 = frozen8d4::CastrumTactics.AI;
 using Frozen = frozen8d3::CastrumTactics.AI;
 
 namespace CastrumTactics.AI.Tests;
@@ -14,7 +16,7 @@ public sealed class Frozen8D3ParityTests
     [InlineData(RuleSet.Classic)]
     public void FrozenMainAndDisabledAdvancedDraftMatchAcrossTheCatalog(RuleSet rules)
     {
-        var engine = new CpuDecisionEngine();
+        var engine = new EightD4.CpuDecisionEngine();
         var frozen = new Frozen.CpuDecisionEngine();
         foreach (var map in PredefinedMapCatalog.BuiltIn.Maps)
         {
@@ -34,9 +36,9 @@ public sealed class Frozen8D3ParityTests
             {
                 foreach (var level in Enum.GetValues<CpuDifficulty>())
                 {
-                    var current = CpuDifficultyProfiles.Get(level);
+                    var current = EightD4.CpuDifficultyProfiles.Get((EightD4.CpuDifficulty)level);
                     // The explicit 8D.3 profile opts out of any later opening-only policy.
-                    var profile = state.Phase == MatchPhase.Main || rules == RuleSet.Classic ? current : new CpuProfile(current.Weights, current.OpeningCandidateLimit, current.MainCandidateLimit,
+                    var profile = state.Phase == MatchPhase.Main || rules == RuleSet.Classic ? current : new EightD4.CpuProfile(current.Weights, current.OpeningCandidateLimit, current.MainCandidateLimit,
                         current.MainTemperature, current.OpeningTemperature, current.OpeningDiversity,
                         current.UrgentOpeningDiversity, current.OpeningMaximumScoreDifference, current.MainMaximumScoreDifference)
                         { Search = current.Search };
