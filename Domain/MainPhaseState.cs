@@ -137,7 +137,7 @@ public sealed class MainPhaseState
             {
                 var position = new BoardPosition(x, y);
                 CellState cell = board.GetCell(position);
-                // Only knights and castles have owners. Read every relationship from the post-action board.
+                // Accumulate eliminations against one post-action board so scan order cannot affect survival.
                 if (cell.Piece == PieceType.Knight &&
                     !HasSupport(board, position, cell.Owner, rules))
                 {

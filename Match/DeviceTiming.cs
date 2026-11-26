@@ -36,6 +36,7 @@ internal static class DeviceTiming
             }
             finally
             {
+                // Capture worker latency before record formatting or file I/O. Allocation is thread-local and GC counts are process-wide.
                 double milliseconds = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
                 allocated = GC.GetAllocatedBytesForCurrentThread() - allocated;
                 int gc0 = GC.CollectionCount(0) - gen0, gc1 = GC.CollectionCount(1) - gen1, gc2 = GC.CollectionCount(2) - gen2;

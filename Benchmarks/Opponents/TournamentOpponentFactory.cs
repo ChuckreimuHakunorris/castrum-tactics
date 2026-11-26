@@ -31,6 +31,7 @@ internal static class TournamentOpponentFactory
             var main = Create(new(spec.Id, mainName));
             if (draft.TablebaseMap is not null)
                 throw new ArgumentException("A tablebase cannot supply a natural draft policy.");
+            // Report both policy versions and separate phase streams so draft draws cannot shift Main randomness.
             return new(spec, $"{draft.Version}/{main.Version}", (state, side, random, diagnostics, token) =>
                 (state.Phase == MatchPhase.Opening ? draft : main).Decide(state, side, random, diagnostics, token),
                 main.TablebaseMap, SeparatePhases: true);

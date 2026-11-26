@@ -19,6 +19,7 @@ public sealed class Frozen8EParityTests
     public void ProductionMatchesFrozenSourceAcrossCatalogAndResolvedPlay(RuleSet rules)
     {
         var production = new CpuDecisionEngine();
+        // The frozen assembly fixes AI behavior. Separate domain history tests cover the rules both engines share.
         var reference = new Frozen.CpuDecisionEngine();
         foreach (var map in PredefinedMapCatalog.BuiltIn.Maps.Concat(
             CastrumTactics.Development.HistoricalBattlefields.Maps.Where(map =>

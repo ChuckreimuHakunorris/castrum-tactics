@@ -108,6 +108,7 @@ internal static class TournamentStore
         try
         {
             var envelope = ReadJson<ResultEnvelope>(path);
+            // Verify the original serialized payload before interpreting the result under the current schema.
             if (envelope.Schema != TournamentSchema || envelope.Payload.ValueKind != JsonValueKind.Object ||
                 envelope.Checksum != Digest(envelope.Payload.GetRawText())) throw new InvalidDataException("Checksum or version mismatch.");
             var result = envelope.Payload.Deserialize<TournamentResult>(TournamentJson);
@@ -132,6 +133,7 @@ internal static class TournamentStore
         Directory.CreateDirectory(directory);
         using var directoryLock = LockTournament(directory);
         Directory.CreateDirectory(ResultsPath(directory));
+        // Resume requires the same schedule, data, opponents and executable identity under the output directory lock.
         var current = MakeManifest(plan, dedicated);
         var manifest = current;
         if (File.Exists(ManifestPath(directory)))

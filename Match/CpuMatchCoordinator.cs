@@ -69,6 +69,7 @@ internal sealed class CpuMatchCoordinator : IDisposable
         }
 
         if (_request is not { } request || !request.Work.IsCompleted) return;
+        // Clear the request before submission because a successful command can synchronously publish a new round.
         _request = null;
         bool canceled = request.Cancellation.IsCancellationRequested;
         request.Cancellation.Dispose();

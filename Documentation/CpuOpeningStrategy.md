@@ -1,5 +1,7 @@
 # Advanced opening strategy
 
+This is the 8D.4 opening study. The [current CPU architecture](CpuArchitecture.md) documents how the selected draft policy fits into the 8E ladder.
+
 Milestone 8D.4 gives Monster an opening-specific evaluator and a simultaneous policy. The selected production configuration completes one draft matrix of up to 16 starts, uses a 256-pair cap, and enables no Main preview. It sits behind the public snapshot boundary and the existing worker and elapsed-time safeguard. The [Main policy](CpuStrategicEvaluation.md) continues to use its 8D.3 evaluator, profiles, and selection path. Classic and the four other difficulties retain their existing draft policies.
 
 ## Baseline and experimental design

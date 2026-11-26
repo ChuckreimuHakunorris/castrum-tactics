@@ -21,6 +21,7 @@ internal static partial class Program
         ["twin-basins"] = "C4/H4", ["sixteen-standards"] = "E3/E8", ["banner-plain"] = "A1/L12"
     };
 
+    // The legacy command retains its historical schedules and record format for replay and baseline comparisons.
     private static void RunMatches(string[] args)
     {
         var options = new Dictionary<string, string>();

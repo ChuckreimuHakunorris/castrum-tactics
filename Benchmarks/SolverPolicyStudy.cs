@@ -218,6 +218,7 @@ internal static partial class Program
         {
             token.ThrowIfCancellationRequested();
             if (node.Result is not null || ReferenceEquals(node, root)) continue;
+            // Keep geometrically equivalent and color-exchanged positions in the same tuning or held-out split.
             string identity = symmetry.Canonicalize(key, root.Width, root.Height).Key;
             ulong hash = 14695981039346656037UL ^ 4242;
             foreach (char unit in identity) hash = unchecked((hash ^ unit) * 1099511628211UL);

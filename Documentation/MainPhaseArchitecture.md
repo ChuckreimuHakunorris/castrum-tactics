@@ -126,7 +126,7 @@ Opening eligibility and collisions are shared by both rulesets. A distinct openi
 
 [`RuleSetDefinition`](xref:CastrumTactics.Domain.RuleSetDefinition) holds the starting piece and independent placement and survival ranges per supporting piece type. The legal-selection generator reads placement range against the common pre-turn territory map. The post-action support pass reads survival range against the complete post-action board. Eight-connected territory remains an independent classification.
 
-[`MainPhaseState.Advance`](xref:CastrumTactics.Domain.MainPhaseState.Advance*) uses the same pair resolution and evaluation for the live session and CPU search. The state retains its rules definition when advancing. A domain regression exercises castle survival range two with placement range one. The application still exposes Knight Support and deprecated Classic as the two selectable variants.
+[`MainPhaseState.Advance`](xref:CastrumTactics.Domain.MainPhaseState.Advance*) uses the same pair resolution and evaluation for the live session and CPU search. The state retains its rules definition when advancing. The convenience overload `MainPhaseState.Evaluate(board)` uses Classic. The application constructs sessions explicitly with its configured ruleset, which defaults to Knight Support. A domain regression exercises castle survival range two with placement range one. The application still exposes Knight Support and deprecated Classic as the two selectable variants.
 
 ## 7. Required test scenarios
 

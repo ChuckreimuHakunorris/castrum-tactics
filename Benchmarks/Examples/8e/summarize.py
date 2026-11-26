@@ -43,6 +43,7 @@ def transformed(move, width, height, geometry):
 
 
 def canonical(result, swapped, geometry):
+    # Normalize participant order first, then choose a representative under map-and-start symmetries.
     width, height, symmetries = geometry
     positional = [(r["phase"], r["red"]["move"], r["blue"]["move"]) for r in result["rounds"]]
     return min(tuple((phase, transformed(b if swapped else a, width, height, t),

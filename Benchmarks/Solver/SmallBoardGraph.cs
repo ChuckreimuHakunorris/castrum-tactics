@@ -188,6 +188,7 @@ internal sealed class SmallBoardGraph(SolveLimits limits, CancellationToken toke
                 Pairs++;
                 var next = state.ResolveTurn(new(Red, red), new(Blue, blue));
                 long nextRank = PositionIdentity.RemainingWork(next);
+                // A strict decrease makes recursive evaluation acyclic, including after symmetry canonicalization.
                 if (nextRank >= rank)
                     throw new InvalidOperationException("Authoritative transition violated the strict progress measure.");
                 string childKey = Identity(next, rules);
@@ -232,6 +233,7 @@ internal sealed class SmallBoardGraph(SolveLimits limits, CancellationToken toke
                     : game with { Blue = reflected.Blue, Upper = -game.Lower };
             }
         }
+        // Round each endpoint away from the interval so downstream games inherit valid security bounds.
         var lower = game.Lower.RoundOutward(intervalScale, upper: false);
         var upper = game.Upper.RoundOutward(intervalScale, upper: true);
         return _pool.Intern(game with { Value = (lower + upper) / 2, Lower = lower, Upper = upper });
@@ -397,6 +399,7 @@ internal sealed class SmallBoardGraph(SolveLimits limits, CancellationToken toke
 
     internal (bool Red, bool Blue) CanAvoidLoss(SolvedPosition root) => GuaranteedResult(root, allowWin: true);
 
+    // Evaluate the Boolean guarantee separately from equilibrium value. A qualifying action must cover every opposing reply.
     private (bool Red, bool Blue) GuaranteedResult(SolvedPosition root, bool allowWin)
     {
         var guaranteed = new Dictionary<SolvedPosition, (bool Red, bool Blue)>();

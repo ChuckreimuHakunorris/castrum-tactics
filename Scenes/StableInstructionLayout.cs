@@ -36,6 +36,7 @@ internal sealed class StableInstructionLayout
             foreach (string text in texts)
             {
                 float textHeight = font.GetMultilineStringSize(text, HorizontalAlignment.Left, width, size, -1, breaks).Y;
+                // Font measurements give the unspaced line count. Apply the theme spacing only between lines.
                 float extraLines = Mathf.Max(0f, Mathf.Round(textHeight / lineHeight) - 1f);
                 height = Mathf.Max(height, Mathf.Ceil(textHeight + extraLines * spacing));
             }

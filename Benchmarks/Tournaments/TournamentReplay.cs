@@ -27,6 +27,7 @@ internal static class TournamentReplay
             int number = (draft ? before.ResolvedRounds : before.ResolvedMainTurns) + 1;
             if (!IsPlayable(before.Phase) || round.Phase != phase || round.Number != number)
                 throw new InvalidDataException($"Unexpected phase or round at action {i + 1}.");
+            // Capture the pre-action snapshot and still validate the remainder of the recorded history.
             if (phase == targetPhase && number == targetRound) target = before;
             Play(session, round.Red.Move, round.Blue.Move, match.BlueSubmitsFirst);
             var after = session.Current;

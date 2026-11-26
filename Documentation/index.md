@@ -1,13 +1,13 @@
 # Castrum Tactics
 
-Castrum Tactics is a two-player, turn-based strategy game in development for Windows and Android. Players compete to control territory on a configurable 2D grid.
+Castrum Tactics is a turn-based territory strategy prototype for Windows and Android. Play **Versus CPU** at one of five difficulty levels or share a device in **Local Multiplayer**. Both modes support the official Knight Support ruleset, from the Unlimited Draft through simultaneous Main turns and final scoring, on a catalog of 100 selectable battlefields. Classic remains available for development and historical reproduction.
 
-The Godot application runs a local two-player match on a 7-by-5 demonstration map, from the Unlimited Draft through the main phase and final score.
+Start with the [README](https://github.com/ChuckreimuHakunorris/castrum-tactics#readme) for installation, play, tests and export. The [roadmap](DevelopmentRoadmap.md#platform-verification) records platform evidence for specific revisions and the outstanding native Windows and physical Android checks.
 
-- [Architecture](architecture.md) describes the current scene and how Godot uses the domain library.
-- [Main-phase architecture](MainPhaseArchitecture.md) documents the domain rules and local session integration.
-- [API reference](api/index.md) lists the types and members available in the C# project.
-- [Design](design.md) links to the game design and art direction documents.
-- [Contributing](contributing.md) covers documentation conventions, local builds, and publishing.
-
-- [8E CPU difficulty calibration](CpuDifficultyCalibration.md) and [battlefield balance](BattlefieldBalance.md) report the release-candidate tests and map research.
+| Find | Start here |
+| --- | --- |
+| Rules, maps and visuals | [Game design](GameDesign.md), [map catalog](MapFormat.md), [art direction](ArtDirection.md) |
+| Implementation and APIs | [Architecture](architecture.md), [CPU architecture](CpuArchitecture.md), [C# API reference](api/index.md) |
+| Development status and rationale | [Development roadmap](DevelopmentRoadmap.md), [decision log](DecisionLog.md), [9A refactoring](ArchitectureRefactoring.md) |
+| CPU evidence and reproduction | [8E calibration](CpuDifficultyCalibration.md), [battlefield balance](BattlefieldBalance.md), [benchmark commands](CpuBenchmarks.md) |
+| Documentation changes | [Documentation contributor guide](contributing.md), [9B audit](DocumentationAudit.md) |

@@ -4,6 +4,9 @@ The synchronous `CastrumTactics.AI` engine reads immutable public domain snapsho
 
 ## Calling the engine
 
+The application defaults to Knight Support, Versus CPU and Normal. The convenience Domain overloads `LocalGameSession(map)` and `MainPhaseState.Evaluate(board)` retain Classic. Tournament configuration defaults to Knight Support. Set a ruleset explicitly for experiments or when invoking the low-level Domain APIs. [Tournament configuration](CpuTournaments.md#participants-and-configuration)
+
+
 ```csharp
 var engine = new CpuDecisionEngine();
 var profile = CpuDifficultyProfiles.Get(CpuDifficulty.Hard);
@@ -22,7 +25,7 @@ The following sequence describes the expected/adverse policy used by Easy throug
 1. Rank all legal actions for each player on the current resolved board. At wide nodes, keep roughly half the shortlist from the top tactical ranks, then reserve room for a castle upgrade, a capture or defensive response, and frontier alternatives. Frontier ordering combines estimated marginal reach with distance from already shortlisted targets. A low-branching node is exhaustive within its limits.
 2. Evaluate each own action against one common opponent shortlist. Reply probabilities combine 90% softmax over the opponent's public tactical scores with 10% uniform probability. In both the draft and Main, evaluate an omitted legal same-square reply once and include its value only in the adverse outcome. The expected value uses the same common reply distribution for every candidate. A collision already in the common set contributes to both values.
 3. Resolve every tested pair through the domain. Rate an action with `(1 - risk) × expected + risk × adverse`, where adverse is the minimum tested value. In Main, actions that win against every tested reply take precedence, followed by actions with no immediate loss among tested replies. Sampling stays in the best available tier. Replies outside the shortlist can still change a result.
-4. Hard, Very Hard, and Monster can revisit a small group of root finalists. At each nonterminal resolved child, they generate both players' choices afresh and analyze another simultaneous pair matrix. The child value blends 15% of the immediate nonterminal estimate with 85% of its best continuation. Terminal children retain their exact value. The deeper pass is used only when all retained finalists fit. Otherwise play uses the comparable completed first pass. If the first pass cannot complete a comparable set, it falls back to the static legal ranking.
+4. Hard, Very Hard, and Monster can revisit a small group of root finalists. At each nonterminal resolved child, they generate both players' choices afresh and analyze another simultaneous pair matrix. The child value blends 15% of the immediate nonterminal estimate with 85% of its best continuation. Terminal children retain their exact value. The deeper pass is used only when all retained finalists fit. Otherwise play uses the completed root comparison. An interrupted first pass can still use completed rows with common reply weights. If no Main row completes, it falls back to static legal ranking.
 
 | Difficulty | Main depth | Own / common reply limit | Pair budget | Risk | Reply temperature |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -32,13 +35,13 @@ The following sequence describes the expected/adverse policy used by Easy throug
 | Very Hard | 2 | 14 / 9 | 500 | 0.36 | 1.1 |
 | Monster | 2 normally, up to 3 for a provable win | 18 / 10 | 850 | 0.40 | 1.0 |
 
-Depth two uses up to four finalists for Hard and Very Hard, and six for Monster. Each finalist receives the same root replies as at depth one. Child search starts at width three or four, contracts to fit the remaining budget and can widen on boards up to 25 cells. A pair budget counts all authoritative simulations in one decision, including extra collisions. The scene worker also has a 450 ms elapsed safeguard between resolutions. The public parameterless engine used for benchmarking relies on deterministic pair budgets.
+Hard and Very Hard use up to four finalists at depth two. Monster’s matrix continuation compares all retained root rows at the same depth before adopting the new tier. Each compared row uses the same root replies as depth one. Child search starts at width three or four, contracts to fit the remaining budget and can widen on compact boards. A pair budget counts all authoritative simulations in one decision, including extra collisions. The scene worker also has a cooperative 450 ms elapsed safeguard. Search checks it between units of work, so ranking, a solver operation or an in-progress resolution can make a call run longer. The parameterless engine has no elapsed safeguard. Benchmarks can select an elapsed limit, and pair-only runs are preferred for seeded comparisons.
 
 Passes beyond depth two compare up to six configured finalists from the best completed tier. Each pass uses the same common root replies, ranks both players from each resolved child and charges every new pair to the same decision budget. A partial pass cannot replace the last completed comparison. [CpuSearchOptions](xref:CastrumTactics.AI.CpuSearchOptions) supports one through six turns and configurable continuation breadth. A legal same-square reply remains an adverse-only check when it is outside the common replies. An experimental check can test apparent immediate wins against omitted replies.
 
 A deeper win is proven only when one choice wins against every legal reply and, at each resulting public state, some continuation has the same property. Terminal outcomes remain separate from heuristic estimates. Production Monster enters the additional pass only on a root with at most six shortlisted own actions and six legal replies. It compares up to three finalists with continuation width up to six per side. If the pass cannot prove a win, it uses the established two-turn tier. The wider and fully heuristic deeper settings remain available for experiments. [8D.2 search experiments](CpuSearchOptimization.md)
 
-Monster uses the [advanced opening policy](CpuOpeningStrategy.md) for Knight Support. It scores a complete shared draft matrix on the current catalog, with a 256-pair cap independent of Main. The numerical equilibrium is for the modeled payoffs. It samples the supported policy without a diversity floor.
+Monster uses the [advanced opening policy](CpuOpeningStrategy.md) for Knight Support. It scores a complete shared draft matrix on the current catalog, with a 256-pair cap independent of Main. The numerical equilibrium is for the modeled payoffs. It samples the supported policy without a diversity floor. If no complete equilibrium is available, it falls back to the static opening ranking and its score-based diversity. The advanced path keeps its own pair cache and accepts a tier only after completing its matrix and policy.
 
 The following paragraphs describe the legacy draft policy used by Easy through Very Hard and by custom profiles without advanced opening search.
 
@@ -48,7 +51,7 @@ Each pair previews the next draft state or opening completion, including any for
 
 ## Strategic position value
 
-Monster uses the resilient evaluator and bounded outcome utility in Main. Its root and selected continuation matrices share the existing 850-pair budget. A completed matrix supplies the action probabilities and includes a common column for each affordable legal collision. When a comparable second tier does not fit, the engine retains the completed first tier. Compact roots can still enter the three-turn proof-only pass. An immediate win is checked against omitted replies before the engine reports it as proved. [Models and measured results](CpuStrategicEvaluation.md)
+Monster uses the resilient evaluator and bounded outcome utility in Main. Its root and selected continuation matrices share the existing 850-pair budget. A completed matrix supplies the action probabilities and includes a common column for each affordable legal collision. When a comparable second tier does not fit or its matrix solve fails, the engine can retain a completed first-tier matrix. When no eligible matrix policy is available, it uses the best comparable score-based tier, including proved-win choices, or static ranking if no root row finished. Compact roots can still enter the three-turn proof-only pass. An immediate win is checked against omitted replies before the engine reports it as proved. [Models and measured results](CpuStrategicEvaluation.md)
 
 Easy, Normal and Hard use the 8D.2 Main evaluator. Very Hard uses resilient evaluation with the same score scaling as Hard and with score-based sampling. Legacy draft previews use the existing draft evaluation. The nonterminal score for these profiles is clamped to ±1,000. Its Main terminal win or loss uses ±10,000 plus the signed final margin clamped to ±1,000. A terminal draw is zero. Monster’s bounded Main utility uses the same internal scale of 10,000 with no margin term. [Strategic evaluation](CpuStrategicEvaluation.md)
 
@@ -104,7 +107,7 @@ The five profiles use configurable static weights of 1.2 for Formation and 1.6 f
 | Very Hard | 8 | 3 | 0.55 | 0.12 | 2.0 | 1.9 | 1.9 | 1.6 | 1.1 | 1.1 | 1.3 | 1.15 |
 | Monster | 16 | 1 | 0.50 | 0 | 2.0 | 2.1 | 2.0 | 1.7 | 1.2 | 1.2 | 1.4 | 1.25 |
 
-The score-based opening sampler uses 0.20 ordinary and 0.70 urgent opening diversity for all five profiles, with both maximum score differences disabled. The Main sampling limits are separate from search breadth. Monster's zero Main temperature samples equivalent best candidates. Its opening limit covers the largest start list in the current catalog.
+The score-based opening sampler uses 0.20 ordinary and 0.70 urgent opening diversity for all five profiles, with both maximum score differences disabled. The Main sampling limits are separate from search breadth. Monster’s score-based Main fallback samples equivalent best candidates at zero temperature. A completed advanced draft or Main matrix supplies its own sampling probabilities. Monster’s advanced draft limit covers the largest start list in the current catalog.
 
 Custom profiles take positive limits, finite temperatures capped at 10, and finite diversity shares from 0 through 1. Opening temperature must be positive. Either phase can specify a finite, nonnegative maximum score difference from its best candidate. A null score gap disables the cutoff. A custom profile can opt into Knight Support search with its `Search` initializer.
 
@@ -150,6 +153,8 @@ Each new simulation creates a domain board and analyzes territory and legal sets
 If the worker faults, returns no valid proposal, or the command is rejected, the scene displays an error and lets the player start a New Match. The coordinator keeps its profile for the life of a match, including restarts. Confirming New Match cancels and invalidates outstanding work from the previous session and starts a new coordinator with the confirmed CPU profile and battlefield under the configured ruleset.
 
 ## Milestone 8C evaluation
+
+This section records the 8C policy context. See [strategic position value](#strategic-position-value) for the selected 8E evaluators and the [calibration report](CpuDifficultyCalibration.md) for their measured limitations.
 
 Evaluate pairs of opposing choices through the authoritative simultaneous resolver, using `MainPhaseState.Evaluate(snapshot.Board, snapshot.RuleSet)` and carrying that ruleset forward through each hypothetical turn. Reuse the static features for ranking and fallback. The current engine has fixed collision and exposure costs, a static opening appeal model, and local gate estimates that can miss longer paths. Include exact territory and board-wide support effects when comparing plausible opposing replies. Seeded legality and completion checks measure playability. Competitive strength needs separate playtesting.
 
