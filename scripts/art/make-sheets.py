@@ -74,19 +74,34 @@ def source_sheet(source):
 def terrain_sheet():
     files=sorted(f.stem for f in BANK.glob("*.png") if not f.stem.startswith(("wall-","knight","castle","grave"))
                  and not f.stem.endswith(("-1","-2","-3")))
-    image,d=sheet(900,68+((len(files)+7)//8)*107,"Terrain library · intact and blocked variants")
+    seam_y=68+((len(files)+7)//8)*107
+    image,d=sheet(900,seam_y+190,"Terrain library · intact and blocked variants")
     for i,name in enumerate(files):
         x,y=11+(i%8)*112,55+(i//8)*107
         place(image,asset(name),x+10,y,82)
         d.text((x,y+84),name,fill=TEXT,font=font(10))
+    for x, label, layout in [
+        (21, "River bend and end caps", (("grass-plain","river-s","grass-plain"),
+                                        ("grass-plain","river-ne","river-w"))),
+        (315, "Walkable bridge across the river", (("grass-plain","river-ns","grass-plain"),
+                                                  ("grass-plain","bridge-ew","grass-plain"))),
+        (609, "Continuous lakeshore", (("lake-wn","lake-n","lake-ne"),
+                                      ("lake-sw","lake-s","lake-es"))),
+    ]:
+        d.text((x,seam_y),label,fill=TEXT,font=font(14))
+        for row, tiles in enumerate(layout):
+            for column, tile in enumerate(tiles):
+                place(image,asset(tile),x+column*76,seam_y+24+row*76,76)
     image.convert("RGB").save(OUT/"terrain-bank.png",optimize=True)
 
 
 def damage_sheet():
-    image,d=sheet(870,505,"Damage-only cues · zero, one, two and three marks")
-    for i,kind in enumerate(("grass-plain","sand-plain","snow-plain","bridge-ew")):
+    image,d=sheet(870,608,"Damage-only cues · zero, one, two and three marks")
+    surfaces=(("Grass","grass-plain"),("Sand","sand-plain"),("Snow","snow-plain"),
+              ("Bridge E–W","bridge-ew"),("Bridge N–S","bridge-ns"))
+    for i,(label,kind) in enumerate(surfaces):
         y=66+i*103
-        d.text((12,y+31),kind.split("-")[0].capitalize(),fill=TEXT,font=font(17))
+        d.text((12,y+31),label,fill=TEXT,font=font(17))
         for damage in range(4):
             x=120+damage*177
             terrain=asset(kind+f"-{damage}" if damage else kind)

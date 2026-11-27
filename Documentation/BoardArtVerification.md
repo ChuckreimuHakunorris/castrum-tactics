@@ -38,9 +38,20 @@ The two comparison sheets use the same Classic local opening positions on each r
 
 The play sheet shows draft dots, a provisional Main target, a resolved Knight Support castle join, and a terrain preview. Demonstration shows the new mountain, forest, ruins and sand families. Great Divide uses existing crossings for the explicit east–west bridge motif within the illustrated north–south river. New Match reads the same terrain and accent assets. [Play and preview](assets/10b/play-and-preview.jpg)
 
+Two synthetic boards render isolated castles, pairs, corners, straight lines, T and cross joins, a 2 × 2 group, mixed factions, diagonal neighbors and dense castle clusters through the production renderer. Damaged ground beneath knights and graves appears in the bottom row. [Fortifications in-engine](assets/10b/fortifications-in-engine.jpg)
+
 ## Rendering observations
 
-All six map and orientation combinations preserved their grid bounds and piece sprite counts. The candidate added one damage-layer node and loaded 9–13 more resource objects in the capture process. Godot's static memory counter increased by about 65–85 KiB. This is an engine allocation counter. The 104 × 104 base/mask pair is about 84.5 KiB at RGBA8 per texture pair, and a 128 × 128 pair is 128 KiB at RGBA8. These are upper estimates for resident uncompressed texels if both members are uploaded as RGBA8. The assets use lossless import and no mipmaps. The engine shares textures and one faction material per owner and shape. It creates no per-cell materials.
+All six map and orientation combinations preserved their grid bounds and piece sprite counts. The candidate added one damage-layer node and loaded 9–13 more resource objects in the capture process. Godot's static memory counter increased by about 65–85 KiB. This is an engine allocation counter. A 104 × 104 base/mask pair takes at most 84.5 KiB for uncompressed texels at RGBA8. A 128 × 128 pair takes 128 KiB. The assets use lossless import and no mipmaps. The engine shares textures and uses one faction material per owner and shape.
+
+Each synthetic board ran at 900 × 690 on Mesa llvmpipe. Each cell in the timing columns shows the range of medians from two 72-frame windows. Active windows alternated between two provisional targets using mouse input. Timings measure frame intervals, including the software renderer and OS scheduling. The largest observed 95th percentile was 14.5 ms. Godot reported that the display driver could not change V-Sync.
+
+| 12 × 12 fixture | Settled baseline → candidate | Active baseline → candidate | Scene changes |
+| --- | --- | --- | --- |
+| 34 sprites with representative joins | 5.5–6.5 → 6.0–7.0 ms | 6.1–6.4 → 6.6–7.4 ms | +22 resources, +1 node, +130 KiB static, 27–28 → 63–64 draw calls |
+| 64 sprites with dense clusters | 5.8–6.8 → 7.9–9.0 ms | 6.0–6.2 → 7.7 ms | +28 resources, +1 node, +175 KiB static, 31–32 → 89–90 draw calls |
+
+Different wall textures and materials increase draw calls even with shared resources. The dense synthetic layout exposes that cost on this renderer. Android cost remains a device check.
 
 ## Verification and exports
 
