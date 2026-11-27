@@ -26,16 +26,16 @@ Completed. All seven native Windows and Android runs passed at scenario version 
 
 The owner tested 10B on Windows and accepted its rendering and asset architecture. The artwork needs substantial refinement. The owner and ChatGPT review individual source graphics, and the owner supplies approved originals to Codex. Codex performs the required isolation, alignment, import, faction masking and verification. Review each asset family in-game before proceeding. Ask the owner before redrawing or distorting approved art beyond necessary technical processing. The owner will supply the larger JRPG-inspired battlefield reference and the forest and mountain connection diagrams during the appropriate refinement tasks.
 
-1. 10C.1a covers knights.
-2. 10C.1b covers singleton castles.
-3. 10C.1c covers connected castle walls.
-4. 10C.1d covers gravestones.
+1. 10C.1a implements the knight with tintable red livery and gold lion heraldry.
+2. 10C.1b implements the singleton castle with a source-derived mask for the banner and foundation.
+3. 10C.1c implements full-tile connected castles assembled offline from two façades, a rampart block, pavement and a faction crystal.
+4. 10C.1d implements the neutral grave with surrounding dirt and no vegetation.
 5. 10C.1e covers playable ground and damage.
 6. 10C.1f covers forest and mountain autotiles.
 7. 10C.1g covers rivers, lakes and bridges.
 8. 10C.1h covers remaining terrain, vegetation, ruins and settlements.
 
-These are individual art reviews. Multiple reviewed families may share a PR. Start forests and mountains with the 16 cardinal masks. Neighbors should form continuous forests and ranges, with compatible edges, consistent scale, lighting and perspective, and artwork constrained to its assigned footprint. Keep deterministic variants seam-safe. Build reusable adjacency-driven rendering and review assembled boards. Consider diagonal-sensitive corners if assembled configurations need them. Future follow-up includes water connectivity validation, default terrain variation and an investigation of batching efficiency.
+10C.1a–10C.1d are implemented and await owner in-game acceptance. The remaining 10C.1 reviews cover terrain. Start forests and mountains with the 16 cardinal masks. Neighbors should form continuous forests and ranges, with compatible edges, consistent scale, lighting and perspective, and artwork constrained to its assigned footprint. Keep deterministic variants seam-safe. Build reusable adjacency-driven rendering and review assembled boards. Consider diagonal-sensitive corners if assembled configurations need them. Future follow-up includes water connectivity validation, default terrain variation and an investigation of batching efficiency. [Game piece verification](BoardArtVerification.md#10c1a10c1d--approved-game-piece-artwork)
 
 ## 10C.2 · Evidence-driven rendering optimization
 

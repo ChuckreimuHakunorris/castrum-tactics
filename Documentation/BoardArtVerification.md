@@ -1,4 +1,108 @@
-# 10B board art verification
+# Board art verification
+
+## 10C.1a–10C.1d · Approved game piece artwork
+
+The knight, singleton castle, connected castles and gravestone are implemented and await owner in-game acceptance. The integrated baseline is `0f0ca87`. The approved high-resolution originals remain in the owner’s external `D:\Game Projects\Files\Assets` directory. All ten files sit directly in that directory.
+
+| Source | Dimensions | SHA-256 |
+| --- | --- | --- |
+| `knight_original.png` | 1254 × 1254 | `bfdc428fa31b422f8b9c9ef0d8a19dd5b35dab58871b78db05c54944b69899bc` |
+| `knight_base.png` | 1254 × 1254 | `0cb86e1ad6b8f0ff40e783d455d68d24e51ffa1558ba0c7b5291ddaac2d1db46` |
+| `knight_mask.png` | 1254 × 1254 | `e114e180fa5cfa9a47600aed7071790cc53bf44effb3a237ae71b951e504d7b5` |
+| `castle_asset_sheet.png` | 1312 × 1199 | `2090ce173f0922dc9b52a4080ceac6170f42dbbad9050a5fb587805aeb090b14` |
+| `wall_ew_original.png` | 1254 × 1254 | `7613e39bff018f852115c96979efe77475e33d05a606c18fd19ba92718fa7b90` |
+| `wall_gate_original.png` | 1254 × 1254 | `f7cd5560c196fbcf284c08534d647d36d659d01277b48469daa2773904c37518` |
+| `wall_rampart_block.png` | 313 × 313 | `0f0293b360ec8e565285822c2a821665080054f1155c8470614aa8384c934500` |
+| `wall_floor.png` | 1254 × 1254 | `0cfd77a67687983ec8a975677d47c85acaedf08481c610d798ab3e223ef4fb43` |
+| `wall_crystal_original.png` | 1254 × 1254 | `22d1e42192af7e06d93d1a58509e2c847f8916e92c8b104341223e2a24fe23ec` |
+| `grave.png` | 1254 × 1254 | `9323113ec280cfbee2f374d8b559b85f093d5d8b74208200d1f60dc9d0a6f847` |
+
+### Isolation and faction tint
+
+At an alpha threshold of 32, the knight master, neutral reference and mask reference respectively have bounds `(190, 17, 1069, 1178)`, `(186, 16, 1070, 1180)` and `(188, 17, 1066, 1179)`. The silhouette and color variants differ, so the new knight pair comes from the full-color master. The singleton comes from sheet bounds `(380, 0, 925, 530)` around the full-color castle. Crop bounds exclude the right and bottom coordinates. The illustrated neutral and mask variants on the sheet serve as references.
+
+Isolation clears alpha below 8 and crops to the surviving silhouette before sizing. Lanczos resamples base and mask to the same size and offset. The knight, singleton and grave fit within 100, 98 and 96 px respectively on 104 × 104 canvases. The grave retains the entire headstone and dirt silhouette. Neutralization uses red dominance and hue with soft thresholds, plus region limits around the castle entrance. It lifts tintable midtones for the multiplicative shader and preserves source colors outside the mask. The shared façade mask covers fabric and the foundation strip. The gold lion, gold edging, armor, wood and masonry keep their original colors. All active imports remain lossless, linear-sampled and without mipmaps.
+
+### Connected castle assembly
+
+`CastleTopology` uses north, east, south and west bits 1, 2, 4 and 8. The output names use the mask of a representative base, with separate shared tint IDs. The following entries resolve to `wall-<base>_base.png` and `wall-<tint>_mask.png` under `Assets/Sprites/Board`. Mask zero uses the 104 × 104 `castle_base.png` and `castle_mask.png` pair.
+
+| Connectivity (mask) | Base | Tint | Exposed ramparts |
+| --- | --- | --- | --- |
+| N (1), E (2), NE (3), W (8), NW (9) | 1, gate | 10 | Façade row |
+| EW (10), NEW (11) | 10, uninterrupted | 10 | Façade row |
+| S (4) | 4 | 15 | N, E, W · 10 blocks |
+| NS (5) | 5 | 15 | E, W · 8 blocks |
+| ES (6) | 6 | 15 | N, W · 7 blocks |
+| NES (7) | 7 | 15 | W · 4 blocks |
+| SW (12) | 12 | 15 | N, E · 7 blocks |
+| NSW (13) | 13 | 15 | E · 4 blocks |
+| ESW (14) | 14 | 15 | N · 4 blocks |
+| NESW (15) | 15 | 15 | Open interior · 0 blocks |
+
+Both façades use the uninterrupted source for all four upper blocks, masonry, banner and foundation. Processing narrows the lower façade crop to columns `[3, 125)` at 128 px, refits it to the full width, and feathers the horizontal edges over three texels. A traced arch from the gate source at `(142, 266, 356, 435)` in the script’s 500 × 500 working image is resampled to 54 × 41 and overlaid at `(37, 70)`. The common ramparts, edges, banner and foundation align across both variants.
+
+Pavement’s raw mean absolute edge jumps were 20.25 RGB levels north–south and 13.77 east–west at 128 px, compared with 16.06 and 8.98 between average interior neighbors. The script feathers both sides toward the mean of their border pixels over five texels with a cosine taper. The opposite border rows and columns match exactly after correction. Interior cobblestones retain their pattern. The nonrotated 32 × 32 rampart block fills one cell of the 4 × 4 grid. Corners shared by two exposed edges receive a single block. The 32 × 32 crystal, including its gold frame, is isolated from source alpha, centered at `(48, 48)` and baked into all eight otherwise opaque compositions. Its shared mask affects the gemstone.
+
+### Regenerate and verify
+
+Use Python 3 with Pillow 10.3.0 and NumPy 1.26.4. The path argument is supplied locally. The PNGs under the production board directory are generated separately from the approved originals.
+
+```powershell
+python -m pip install Pillow==10.3.0 numpy==1.26.4
+$sources = 'D:\Game Projects\Files\Assets'
+python scripts/art/build-game-pieces.py $sources
+python scripts/art/build-game-pieces.py $sources --check --previews exports/10c1/previews
+```
+
+The check validates source checksums, output dimensions and alpha, mask coverage within the sprite silhouette, all 15 cardinal configurations, rampart counts, matching pavement borders, and façade differences confined to the doorway. It regenerates PNGs in a temporary directory and compares bytes with production. The generated previews cover both default faction colors and representative green and violet tints.
+
+### Review images
+
+| Evidence | Coverage |
+| --- | --- |
+| [Faction colors](assets/10c1/faction-colors.png) and [connectivity](assets/10c1/connectivity.png) | Base and mask alignment, four color samples, all 15 connected configurations and the singleton. |
+| [Horizontal façades](assets/10c1/assemblies-facades.png) | E–W, E–EW–W and E–EW–EW–EW–W at native texel size. |
+| [Vertical and rectangular fortresses](assets/10c1/assemblies-fortresses.png) | S–NS–N, 2 × 2, 3 × 3 and 5 × 4. The 3 × 3 upper, middle and lower rows are ES–ESW–SW, NES–NESW–NSW and NE–NEW–NW. |
+| [Irregular formations](assets/10c1/assemblies-irregular.png) | L, T, cross, irregular cluster and adjacent opposing factions, at native texel size. |
+| [Godot fortifications](assets/10c1/fortifications.png) and [alternate shader colors](assets/10c1/fortifications-alternate.png) | A temporary review fixture applied all 16 castle masks through the production board renderer and checked the bound base and tint resources. Both default shader colors and `#59ca87` / `#b48af5` were rendered. |
+| [Landscape live castle join](assets/10c1/connected-castles.png) and [portrait mixed pieces](assets/10c1/knight-support-mixed-portrait.png) | Real Knight Support submissions on Open Meadow. Includes both factions, a connected façade, singleton castles, knights, graves, territory and legal frames. |
+| [Classic shared targets](assets/10c1/10c-red-shared.png) and [collision and damage](assets/10c1/10c-after-grave.png) | Landscape Demonstration during Main. |
+| [Compact 12 × 12 Draft](assets/10c1/10c-large-portrait.png), [compact Main](assets/10c1/10c1-compact-main.png) and [Banner Plain opening result](assets/10c1/banner-plain-portrait-resolved.png) | Twelve Towers at 360 × 640, with 28 px tiles, and Banner Plain at 720 × 1000. |
+
+The pavement-to-façade junction and the two faction borders are visible in the assembly and Godot fixture images. Adjacent opposing castles join only to their own faction. At shared boundaries, the floor-edge correction trades exact edge color continuity for a small softening in the border cobblestones. Check the junctions and sprite readability on the owner’s phone.
+
+### Rendering workload
+
+Paired Windows development runs used Godot 4.7.2 .NET, OpenGL Compatibility on a GTX 1060 3 GB, a 900 × 650 window and a reported 1465 × 1057 render size with V-Sync at 59.973 Hz. Each case sampled four seconds following two seconds of warm-up. Quick covered Small, Turns and Monster. A second request used the same timing for Castles, Damage and Lifecycle. These are native desktop measurements. The [10C.0 native report](NativeRenderingBaseline.md) remains the broader Windows and physical Android baseline.
+
+Each cell reports baseline → candidate. Draws and objects are frame medians. Memory estimates and resource and node counts are the end samples. Frame columns use milliseconds.
+
+| Case | Draws | Objects | Nodes | Resources | Texture / video MiB | Frame median / p95 / p99 |
+| --- | --- | --- | --- | --- | --- | --- |
+| Small | 51 → 51 | 234 → 234 | 188 → 188 | 63 → 63 | 6.43 / 12.66 → 6.43 / 12.66 | 16.67 / 16.79 / 16.80 → 16.68 / 16.72 / 16.73 |
+| Turns | 67 → 67 | 260 → 260 | 204 → 204 | 70 → 68 | 6.75 / 12.99 → 6.64 / 12.89 | 16.68 / 16.78 / 16.85 → 16.68 / 16.72 / 16.74 |
+| Monster | 94 → 94 | 415 → 415 | 214 → 214 | 73 → 71 | 7.00 / 13.23 → 6.89 / 13.13 | 16.68 / 16.76 / 16.79 → 16.67 / 16.72 / 16.75 |
+| Castles | 176 → 175 | 570 → 570 | 247 → 247 | 73 → 62 | 6.56 / 12.80 → 6.21 / 12.44 | 16.68 / 16.78 / 16.80 → 16.67 / 17.31 / 18.46 |
+| Damage | 237 → 235 | 593 → 593 | 268 → 268 | 91 → 74 | 7.75 / 14.07 → 7.08 / 13.40 | 16.68 / 16.78 / 16.82 → 16.67 / 16.72 / 16.74 |
+| Lifecycle | 44 → 44 | 216 → 216 | 188 → 188 | 100 → 83 | 9.00 / 15.22 → 8.33 / 14.56 | 16.67 / 16.76 / 16.80 → 16.68 / 16.79 / 18.25 |
+
+Median sprite synchronization was 0.490 → 0.459 ms for Turns, 0.453 → 0.481 ms for Monster and 0.101 → 0.083 ms for Lifecycle. The Turns baseline recorded a 160 ms maximum sprite-sync event and two frames above 33.33 ms. The candidate maximum sprite-sync event was 3.63 ms and no candidate case had a frame above 33.33 ms. Castles and Lifecycle had higher p99 in the first candidate run. A repeat after the builds and tests finished recorded 16.82 ms and 16.79 ms respectively, close to the original baseline. The short sample, V-Sync and development-host scheduling limit attribution. The stable node and object counts agree with one sprite per occupied cell and the shared artwork reduced texture memory in the denser scenarios.
+
+### Engineering and export checks
+
+- The warnings-as-errors solution build, Windows `ExportRelease` managed build and Release Benchmarks build passed. All 448 xUnit tests passed, including the castle resource mapping test. The benchmark CLI help, schedule dry-run, fixture generation and a saved match replay also passed.
+- Both Godot regressions passed. The Classic CPU match again ended 11–12 after 30 Main turns. The local regression covered resizing, touch and mouse input, draft and match restarts, map replacement, territory and legal frames, and marker suppression under castles and graves.
+- Regenerated all 17 art PNGs byte for byte and checked lossless imports without mipmaps. The whitespace and DocFX checks passed. The archive verifier confirmed all 96 protected files.
+- The Windows x64 debug package launched on the development machine. The Android ARM64 debug APK passed v2 signature and 16 KiB alignment checks, with package ID `com.castrumtactics.prototype`, minimum API 24 and target API 36. Both packages contain all 17 production artwork imports. The Android APK was validated as a package and awaits physical-device testing.
+
+### Owner acceptance
+
+On Windows, check out `feat/m10c1-game-piece-artwork` and run the Godot .NET project. Use the [Classic walkthrough](PlatformVerification.md#windows-and-android-walkthrough), then run Knight Support and upgrade a knight adjacent to a friendly castle. Check both faction colors, the full-tile join, a portrait-oriented window and a compact 12 × 12 board. Restart and start a New Match on another battlefield.
+
+On Android, export a locally signed debug APK and deploy it with [the standard installer and package ID](PlatformVerification.md#android-export). Use the same signing key as the installed copy for an in-place update. Follow the [rotation checks](PlatformVerification.md#android-rotation-checks) and inspect the approved piece art in both orientations. Physical Android play, sustained timing and owner acceptance are pending.
+
+## 10B historical verification
 
 Milestone 10B starts from integrated 10A commit `3ef9383d9015d7d24c7ca7f9db16e9a631a7c542` (PR #27). The asset, renderer and test changes are in `ff470192dc86619bfae6772a973e9b79a7d614dd`. The later review commit records the evidence. [Art direction](ArtDirection.md) · [Visual architecture](VisualArchitecture.md) · [Roadmap](VisualDevelopmentRoadmap.md)
 
@@ -16,7 +120,7 @@ The base images preserve the reference silhouette, spear, armor, gold details, h
 
 The 15 connected castles retain the upright singleton front and add new stone and faction-tinted trim at the appropriate cardinal edges. The terrain bank and decorations were drawn for the game at 128 × 128. Optional waterfall and cattail studies from the reference remain open for 10F. Distribution and reuse rights outside the prototype remain unverified.
 
-To regenerate the artwork and comparison sheets, use Python with Pillow and the three original files in a local directory. Run from the repo root.
+To reproduce the 10B artwork and comparison sheets, use Python with Pillow and the three original files in a local directory. Run from the root of a 10B checkout.
 
 ```sh
 python3 scripts/art/extract-pieces.py "$REFERENCE_DIRECTORY/Crescent Quarry with Blocky Graves.png"
@@ -70,4 +174,4 @@ Use the commands in [Engineering verification](EngineeringVerification.md) and [
 4. In Knight Support, form adjacent friendly castles. Check that orthogonal joins line up and that opposing or diagonal castles stay separate.
 5. On a 12 × 12 match, make and revise a provisional selection, switch orientation with the selection active, then submit. Restart and replace the battlefield. Check the board bounds, previews, restored ground, fresh draft targets and consistent tap behavior.
 
-The damage sheets and captures in this article reflect 10B. The later [10C.0 review](RenderingBenchmarks.md#pr-30-review-follow-up-scenario-version-2) shows the updated marker visibility and matched rendering evidence.
+The damage sheets and captures in this historical section reflect 10B. The later [10C.0 review](RenderingBenchmarks.md#pr-30-review-follow-up-scenario-version-2) shows the updated marker visibility and matched rendering evidence.

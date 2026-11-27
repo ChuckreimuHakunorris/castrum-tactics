@@ -447,15 +447,25 @@ public partial class BoardRenderer : Control
 
     private FactionPieceArt GetWallArt(int mask)
     {
-        if (!_wallArt.TryGetValue(mask, out var art))
+        var (baseMask, tintMask) = GetWallArtworkMasks(mask);
+        if (!_wallArt.TryGetValue(baseMask, out var art))
         {
-            string name = TerrainCatalog.AssetDirectory + $"wall-{mask}";
-            art = new FactionPieceArt(BoardTerrainArt.GetTexture(name + "_base.png"),
-                BoardTerrainArt.GetTexture(name + "_mask.png"), 1f, linear: true);
-            _wallArt.Add(mask, art);
+            art = new FactionPieceArt(
+                BoardTerrainArt.GetTexture(TerrainCatalog.AssetDirectory + $"wall-{baseMask}_base.png"),
+                BoardTerrainArt.GetTexture(TerrainCatalog.AssetDirectory + $"wall-{tintMask}_mask.png"),
+                1f, linear: true);
+            _wallArt.Add(baseMask, art);
         }
         return art;
     }
+
+    // Group the two façades by doorway. All south-connected bases share the centered crystal mask.
+    internal static (int Base, int Tint) GetWallArtworkMasks(int mask) => mask switch
+    {
+        1 or 2 or 3 or 8 or 9 => (1, 10),
+        10 or 11 => (10, 10),
+        _ => (mask, 15),
+    };
 
     private void RefreshLayout()
     {
