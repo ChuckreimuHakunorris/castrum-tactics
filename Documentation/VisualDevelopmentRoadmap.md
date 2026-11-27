@@ -20,7 +20,7 @@ The secured-territory tube uses a dynamic denominator of secured plus contested 
 
 ## 10C.0 · Native rendering performance baseline
 
-Capture reproducible frame, renderer and memory evidence on native Windows and physical Android with the opt-in benchmark. Compare normal and reduced motion, opposing targets and the three decorative effects independently. Software-rendered runs verify instrumentation and can compare cloud revisions under matched conditions. The owner-device baseline remains open. [Rendering benchmarks](RenderingBenchmarks.md)
+Completed. All seven native Windows and Android runs passed at scenario version 2, including the 20-minute Xperia run. The current renderer performs satisfactorily on the tested hardware. Artwork refinement can proceed. Android turn-resolution efficiency is the principal optimization opportunity. [Native baseline and review](NativeRenderingBaseline.md) · [Benchmark procedures and historical results](RenderingBenchmarks.md)
 
 ## 10C.1 · Artwork refinement and terrain autotiling
 
@@ -39,7 +39,37 @@ These are individual art reviews. Multiple reviewed families may share a PR. Sta
 
 ## 10C.2 · Evidence-driven rendering optimization
 
-Use 10C.0 measurements and repeat them after 10C.1. Investigate texture atlases and memory, material batching, incremental sprite synchronization, background cost and frame-rate preferences. Investigate batching or replacing antialiased damage markers after comparing the reachable damage replay with the original extreme stress fixture. Consider fixed-action-sequence benchmarks and reflection-free fixture construction. Select changes after reviewing measured tradeoffs.
+Repeat the [native baseline](NativeRenderingBaseline.md) after 10C.1. Include uncapped throughput and isolated visual-effect comparisons where practical. Use the reachable damage replay for ordinary play and the extreme fixture for stress comparison. Confirm the actual framebuffer and render-target dimensions before estimating pixel workload.
+
+| Investigation | Priority |
+| --- | --- |
+| Incremental piece sprite synchronization | Highest |
+| Ground damage marker batching | Medium–high |
+| Actual framebuffer and render resolution verification | Medium–high |
+| Texture atlases and material batching | Medium |
+| Managed allocation reduction | Medium |
+| Fixed-action-sequence benchmarking | Medium |
+| Animated background optimization | Medium–low |
+| Frame-rate and battery-saving preferences | Medium–low |
+| Reflection-free synthetic fixture construction | Low |
+| Texture memory management | Low |
+| Mipmap evaluation | Low |
+
+These priorities guide investigation. Select changes according to measured costs and benefits. The frame tags and timing evidence make sprite synchronization a plausible improvement, with causality and savings to be established in isolated comparisons.
+
+### Provisional performance targets
+
+Use these engineering targets for future regression comparisons on the tested i5-7500 and GTX 1060 PC and Xperia 1 V. They guide investigation. Device-wide requirements and release acceptance criteria are outside this baseline.
+
+| Metric | Windows | Android |
+| --- | ---: | ---: |
+| Normal gameplay FPS | ≥59 | ≥59 |
+| Normal gameplay P95 | ≤18 ms | ≤22 ms |
+| Normal gameplay P99 | ≤22 ms | ≤30 ms |
+| Frame intervals exceeding 33.33 ms | <0.1% | <0.5% |
+| Turn-resolution sprite synchronization P95 | ≤2 ms | ≤3 ms |
+| Sustained frame-rate degradation | <5% | <5% |
+| Persistent unexplained memory growth | None | None |
 
 ## 10D · Android zoom and play comfort
 

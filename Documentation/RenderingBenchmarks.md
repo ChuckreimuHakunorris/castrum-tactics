@@ -1,18 +1,18 @@
 # Native rendering benchmarks
 
-Milestone 10C.0 starts from integrated 10C `3e0fbb66378101bbb7c95a7c5639df932a99e1e6` (PR #29). This milestone supplies the benchmark runner. A native baseline requires the owner’s Windows and physical Android results. Historical 10B and 10C software-rendered evidence remains available. [10B art verification](BoardArtVerification.md) · [10C interaction verification](InteractionVerification.md)
+Milestone 10C.0 started from integrated 10C `3e0fbb66378101bbb7c95a7c5639df932a99e1e6` (PR #29). PR #30 integrated the benchmark runner. All seven native baseline runs are complete. This guide describes how to repeat them and preserves the earlier software-rendered evidence. [Native baseline and review](NativeRenderingBaseline.md) · [10B art verification](BoardArtVerification.md) · [10C interaction verification](InteractionVerification.md)
 
 ## Start here
 
-Fetch and check out the reviewed work, then record the exact revision.
+Use the integrated code for new runs and record the exact revision.
 
 ```powershell
-git fetch origin
-git switch --track origin/feat/m10c0-performance-baseline
+git switch main
+git pull --ff-only origin main
 $revision = (git rev-parse HEAD).Trim()
 ```
 
-An existing local branch can be opened with `git switch feat/m10c0-performance-baseline` and updated with `git pull --ff-only`. Run each native comparison from the same window size or device orientation and keep the request JSON with the results.
+Use the tested revision in the [native baseline](NativeRenderingBaseline.md) when reproducing that build. Run each native comparison from the same window size or device orientation and keep the request JSON with the results.
 
 ### Windows x64
 
@@ -163,7 +163,7 @@ Two alternating uncapped runs per counter mode, with viewport timing off, produc
 
 These short cloud windows establish an overhead comparison procedure. Load varied across windows, so the results do not isolate total instrumentation cost or establish native pacing. The independent viewport-timing probe exercised opt-in CPU render timing and kept physical GPU time null on llvmpipe.
 
-Native Windows and physical Android runs remain to be collected. Use the same profile, seed, orientation and settings on later revisions. Compare repetitions and trends before attributing a change to an optimization.
+Native Windows and physical Android results were still outstanding at the end of this cloud verification. The later [native baseline](NativeRenderingBaseline.md) records those runs and their comparison settings.
 
 ## PR #30 review follow-up (scenario version 2)
 
@@ -180,4 +180,4 @@ Matched Compatibility runs compared the original PR head `62d6840` to the visibi
 
 Frame interval columns show the range of per-repetition statistics. The median and percentile ranges overlap, so the cloud runs establish a draw-call reduction and leave the frame-time benefit inconclusive. The undamaged castle control helps show software-host variation. The reachable damage replay rendered 10 visible marks and 237 median draw calls in a short smoke run. The remaining damage workload still warrants a 10C.2 investigation, with the reachable fixture as the first comparison and the synthetic extreme as an upper bound. Default Monster samples recorded worker time and allocations with null search counts. Opting in added resolved pair counts. [Before and after](assets/10c0/damage-visibility.jpg)
 
-The original 1,443-draw-call damage result remains above as historical evidence. 10C.2 should compare batching or replacing antialiased marker primitives, using both the representative and extreme cases to judge priority. Also consider fixed action-sequence workloads and a reflection-free constructor for the remaining synthetic fixtures. [Visual roadmap](VisualDevelopmentRoadmap.md)
+The original 1,443-draw-call damage result remains above as historical evidence. The native review retains both damage fixtures and puts Android turn-resolution work first on the 10C.2 investigation list. [Native baseline](NativeRenderingBaseline.md) · [Visual roadmap](VisualDevelopmentRoadmap.md#10c2--evidence-driven-rendering-optimization)
