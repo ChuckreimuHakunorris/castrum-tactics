@@ -31,6 +31,10 @@ The owner approved exploring optional initial ground health in a future map form
 
 Initial damage could support ancient battlefields and fragile chokepoints. A future editor could expose it alongside terrain. Competitive review could consider how the distribution affects both players, and CPU play should be evaluated on pre-damaged terrain before adoption. Preserve the renderer’s ability to show damage indicators on empty playable squares. [Map editor planning](GameDesign.md#72-map-authoring)
 
+### Deferred special terrain
+
+Future map-format and editor work can explore a composable set of mechanical terrain properties. An editor could let authors choose visual terrain separately, assign a shared property preset, and inspect the mechanics on each square. Evaluate structural validation for combinations such as ineligible draft starts separately from competitive eligibility. Existing maps and rulesets must keep their current behavior. Ordinary terrain remains the initial competitive standard, with experimental and casual maps available for early evaluation of special terrain. The concepts and open rules questions are recorded in the [game design](GameDesign.md#deferred-special-terrain-mechanics).
+
 ## Authoring and validation
 
 Use a distinct lowercase identifier with hyphens between words, a nonblank display name, dimensions from 3 through 12 on each axis, and at least two starts. Retain identifiers and layouts for existing maps. Archive retired definitions when recorded walkthroughs or tests depend on them.

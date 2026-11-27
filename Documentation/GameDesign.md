@@ -100,7 +100,45 @@ Playable terrain is normal gameplay ground. Rocks and rivers are visual represen
 - Do **not** block expansion to neighbouring squares beyond them.
 - Do not introduce pathfinding, line-of-sight, or connectivity blocking under the current rules.
 
-Additional terrain types may be introduced later if they have clear gameplay rules.
+Additional terrain mechanics may be introduced later if they have clear gameplay rules.
+
+#### Deferred special terrain mechanics
+
+All concepts below remain open for exploration during future map-format, terrain-mechanics and map-editor development. Ordinary terrain remains the initial competitive standard. Special terrain could first be evaluated on experimental and casual maps. Preserve compatibility with existing maps and rulesets.
+
+**Owner proposals**
+
+| Terrain | Proposed mechanics |
+| --- | --- |
+| Swamp | Knights may occupy the square. Castle construction is prohibited. |
+| Magma Field | Once occupied, the square accrues one point of ground damage per turn. |
+| Poison Swamp | Combines Swamp and Magma Field. Knights may occupy the square, castle construction is prohibited, and the square accrues one point of ground damage per turn once occupied. |
+
+**Additional exploratory ideas**
+
+| Terrain | Potential mechanics |
+| --- | --- |
+| Ice | Starts at reduced ground health, potentially 1. |
+| Fortified Ground | Starts at higher ground health than ordinary terrain. |
+| Sacred Ground | Immune to environmental ground degradation. |
+| Quicksand | Accrues environmental ground damage faster. |
+| Ancient Road | Increases placement reach. |
+| Cursed Ground | An occupying knight cannot provide support to adjacent friendly knights. |
+
+Investigate a composable terrain property model so the same rules can apply across several terrain names or combinations. Possible properties include knight placement eligibility, castle construction eligibility, initial and maximum ground health, environmental damage rate and activation conditions, immunity to environmental damage, starting-position eligibility, placement reach modifiers, and Knight Support participation. Keep visual terrain identity separate from mechanical behavior. Visually distinct terrains may share the same mechanical properties. [Future map and editor planning](MapFormat.md#deferred-special-terrain)
+
+**Questions for a future rules review**
+
+- When does recurring environmental damage first apply?
+- Once activated, does environmental degradation continue independently of later occupancy, including after the square is vacated?
+- Can players build castles on Magma Fields?
+- Can environmental damage destroy castles?
+- In what order should simultaneous actions, environmental damage, Knight Support and territory calculations resolve?
+- How should environmental destruction affect territory connectivity and match termination?
+- How should opening drafts interact with special terrain?
+- Which visual cues should communicate terrain properties to players?
+- How should the CPU evaluate special terrain and future environmental damage?
+- Which terrain properties should be eligible for competitive maps?
 
 ### 4.2 Pieces
 
@@ -290,6 +328,8 @@ A basic map editor is planned relatively early and should eventually allow a use
 The built-in maps use JSON with terrain and starting positions encoded as rows of characters. The domain loads them into immutable map definitions before starting a match. A format and versioning strategy for user-created maps remains an editor design decision.
 
 One deferred editor idea is to let authors set playable ground to initial health 1 or 2, keeping 3 as the default and 0 for inaccessible terrain. This could support ancient battlefields and fragile chokepoints. Preserve existing maps, consider the damage distribution in competitive review, and evaluate CPU play on damaged starts before adoption. Keep the renderer able to show damage on empty playable squares. This exploration is deferred beyond Milestone 10. [Future map-format proposal](MapFormat.md#deferred-initial-ground-health)
+
+A later editor design review can explore how authors would assign and inspect [special terrain mechanics](#deferred-special-terrain-mechanics) separately from terrain artwork. It should cover property combinations, starting-position validation and the player-facing preview before any authoring format is chosen. [Deferred map-format planning](MapFormat.md#deferred-special-terrain)
 
 Favor open battlefields at least 8 × 8 in square and rectangular formats. Use irregular rock formations and generous openings to leave routes for flanking, expansion, and mutually supported formations. Use narrow passages where they create a local decision and leave room elsewhere to develop and redirect a formation. Offer interior, central, peripheral, sheltered, and exposed castle sites. Castles and draft graves immediately affect territory connectivity, so evaluate the resulting routes across several drafts. Knight Support playtesting retired the smallest boards and layouts that funneled most play down a few narrow routes. This guides the built-in catalog and leaves structural map rules independent.
 

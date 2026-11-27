@@ -36,6 +36,7 @@
 - Compact tactical weaknesses, including Monster on retired Pocket Meadow, and broader candidate coverage and evaluation on large boards. Explicit multi-front planning is a hypothesis to investigate. The size study found stronger-policy separation on some intermediate maps and mixed results elsewhere.
 - Mobile latency, allocation, thermal and battery measurements. Catalog structural flags warrant competitive review before any proposed changes to maps or starts.
 - Explore optional initial ground health in a later map-format and editor design review. [Deferred map idea](MapFormat.md#deferred-initial-ground-health)
+- Explore the owner’s Swamp, Magma Field and Poison Swamp concepts and a composable terrain property model during future map-format, terrain-mechanics and map-editor work. Use ordinary terrain as the initial competitive standard and trial special terrain in experimental or casual maps first. [Terrain proposals and open questions](GameDesign.md#deferred-special-terrain-mechanics) · [Editor planning](MapFormat.md#deferred-special-terrain)
 
 [CPU calibration and limitations](CpuDifficultyCalibration.md) · [Battlefield study](BattlefieldBalance.md)
 
