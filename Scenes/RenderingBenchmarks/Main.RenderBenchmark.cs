@@ -126,7 +126,11 @@ public partial class Main
         if (_configuration.CpuPlayer.HasValue)
         {
             if (!_displayed.HasSubmitted(PlayerId.PlayerOne))
-                BenchmarkSubmit(PlayerId.PlayerOne, BenchmarkChoice(PlayerId.PlayerOne, step));
+            {
+                // Waiting for a slower CPU should change elapsed time, not the scripted choice for a resolved state.
+                int round = _displayed.ResolvedRounds + _displayed.ResolvedMainTurns;
+                BenchmarkSubmit(PlayerId.PlayerOne, BenchmarkChoice(PlayerId.PlayerOne, round));
+            }
             return;
         }
 
