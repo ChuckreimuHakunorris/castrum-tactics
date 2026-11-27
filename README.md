@@ -45,7 +45,7 @@ godot --path . -- --mode local --ruleset classic --map open-meadow
 
 Choose **Player One** (red) or **Player Two** (blue) and select a marked square. Click or tap it again or press **Submit selection**. The board updates once both players submit. While waiting, select your revised square and confirm it the same way or use **Revise selection**. Switching players clears the pale provisional outline and refreshes the legal targets.
 
-Gold dots mark shared draft targets. When only one start remains, it automatically becomes an unowned grave and loses one ground health. Main uses gold frames for the active player's legal targets. Secured cells have a red or blue tint and are unavailable to both players. At the end of a match, both scores and the winner or draw stay visible. **Restart Match** starts a fresh opening on the same map with the initial terrain, health, and starting positions.
+Gold shields mark shared draft targets. When only one start remains, it automatically becomes an unowned grave and loses one ground health. In Main, each faction’s legal targets have a matching frame. Shared targets use both colors, and a pale cyan frame marks the provisional selection. Secured cells have a red or blue tint and are unavailable to both players. At the end of a match, both scores and the winner or draw stay visible. **Restart Match** starts a fresh opening on the same map with the initial terrain, health, and starting positions.
 
 ### Windows and Android walkthrough
 

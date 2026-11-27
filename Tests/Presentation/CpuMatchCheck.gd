@@ -51,6 +51,7 @@ func run() -> void:
 		"CPU submission moved the battlefield.")
 	expect(piece_count(board) == 0, "A pending CPU coordinate appeared on the battlefield.")
 	choose(board, Vector2.ZERO, MEADOW_BOARD, true)
+	game.set_process(false)
 	if not await wait_until(func(): return phase.text == "Main · Turn 1"):
 		return
 	expect(submit.disabled and piece_count(board) == 3 and
@@ -68,9 +69,17 @@ func run() -> void:
 	var scores := [["1", "0"], ["1", "1"], ["2", "1"], ["2", "1"], ["3", "1"]]
 	root.size = Vector2i(1000, 690)
 	await settle()
+	choose(board, moves[0], MEADOW_BOARD)
+	expect(not submit.disabled, "Main did not accept the human provisional choice.")
+	game.set_process(true)
+	if not await wait_until(func(): return "Submitted" in two.text):
+		return
+	expect(phase.text == "Main · Turn 1" and not submit.disabled and piece_count(board) == 3,
+		"A pending CPU Main choice advanced the round, cleared the highlight or exposed its coordinates.")
 	for index in moves.size():
 		var previous_phase := phase.text
-		choose(board, moves[index], MEADOW_BOARD)
+		if index > 0:
+			choose(board, moves[index], MEADOW_BOARD)
 		expect(not submit.disabled, "Expected a legal human target in %s." % previous_phase)
 		if index % 2 == 0:
 			choose(board, moves[index], MEADOW_BOARD)

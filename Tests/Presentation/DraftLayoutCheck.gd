@@ -245,6 +245,7 @@ func check_map_selection() -> void:
 	game.set("Mode", 1)
 	game.set("Rules", 0)
 	game.set("MapIdOverride", "demonstration")
+	game.call("SetTemporaryPresentation", true, true, true)
 	root.add_child(game)
 	var active_map: Label = game.get_node("%ActiveMap")
 	var badge: Label = game.get_node("%RuleSetBadge")
@@ -327,6 +328,10 @@ func check_map_selection() -> void:
 	expect(active_map.text == "Granite Orchard — 12 × 10" and badge.text == "Classic",
 		"The explicit map did not replace the startup override or preserve Classic.")
 	check_banner(board, Vector2(12, 10), ["0", "0"])
+	var background: Control = game.get_node("AnimatedBackground")
+	expect(not background.get("MotionEnabled"), "Replacement lost the presentation preferences.")
+	game.call("SetTemporaryPresentation", true, false, true)
+	expect(background.get("MotionEnabled"), "The replacement did not receive a live preference change.")
 	await capture("battlefield-granite-orchard")
 	var one: Button = game.get_node("%PlayerOne")
 	var two: Button = game.get_node("%PlayerTwo")
@@ -538,12 +543,12 @@ func check_complete_match(game: Control) -> void:
 		var prior_area: int = banner.call("GetClaimableArea")
 		if index == 3:
 			await capture("10c-before-grave")
-			if not OS.get_environment("CASTRUM_M8B_SCREENSHOTS").is_empty():
-				game.call("SetTemporaryPresentation", true, false, true)
-				for sample in 3:
-					await capture("10c-motion-%d" % sample)
-					await create_timer(0.62).timeout
-				game.call("SetTemporaryPresentation", true, true, true)
+		if index == 6 and not OS.get_environment("CASTRUM_M8B_SCREENSHOTS").is_empty():
+			game.call("SetTemporaryPresentation", true, false, true)
+			for sample in 3:
+				await capture("10c-motion-%d" % sample)
+				await create_timer(0.62).timeout
+			game.call("SetTemporaryPresentation", true, true, true)
 		await play(board, one, submit, turn[0])
 		await play(board, two, submit, turn[1])
 		if index == 3:

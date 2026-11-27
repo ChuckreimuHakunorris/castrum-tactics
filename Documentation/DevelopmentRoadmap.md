@@ -18,10 +18,11 @@
 | 9C | Integrated compiler, formatting, documentation, archive and platform verification checks. [Engineering verification](EngineeringVerification.md) |
 
 | 10A | Integrated visual sidecars, board layers, fit geometry and resolved-turn records. [Visual foundation](VisualFoundationVerification.md) |
+| 10B | Integrated board art, terrain registry, damage cues and cardinal fortifications through PR #28. The owner accepted the architecture and requested a separate artwork refinement pass. [Board art verification](BoardArtVerification.md) |
 
 ## Current
 
-**10B** implements the reference-matching board art, terrain registry, damage cues and cardinal fortifications and is awaiting review. [Visual roadmap](VisualDevelopmentRoadmap.md)
+**10C** adds faction-specific targets, draft shields, a claimable-territory tube, a battlefield frame and persistent presentation preferences. The next planned stage is 10C.1 artwork refinement and terrain autotiling. [Visual roadmap](VisualDevelopmentRoadmap.md) · [Interaction verification](InteractionVerification.md)
 
 ## Planned
 

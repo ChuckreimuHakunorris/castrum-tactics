@@ -1,6 +1,6 @@
 # Castrum Tactics — Art Direction Reference
 
-10B uses smooth medieval fantasy board art with clean outlines, bright readable surfaces and a stylized front or three-quarter piece view. The gameplay grid stays square and non-isometric. The active board asset bank is `Assets/Sprites/Board`. [Visual roadmap](VisualDevelopmentRoadmap.md)
+10B uses smooth medieval fantasy board art with clean outlines, bright readable surfaces and a stylized front or three-quarter piece view. The gameplay grid stays square and non-isometric. The active board asset bank is `Assets/Sprites/Board`. The owner approved the 10B architecture after Windows testing and identified the need for substantial artwork refinement in 10C.1. [Visual roadmap](VisualDevelopmentRoadmap.md)
 
 ## 1. Visual reference
 
@@ -16,7 +16,7 @@ The older [pixel-art concept](assets/art-direction-concept-v0.1.png) remains a h
 
 ## 2. Art direction
 
-Keep bold silhouettes, cohesive edges, recognizable territory and strong faction contrast. Use the owner's original isolated pieces where clean separation is possible. Independently authored terrain carries the reference palette and shape language into composable tiles. [Art evidence and provenance](BoardArtVerification.md)
+Keep bold silhouettes, cohesive edges, recognizable territory and strong faction contrast. Use the review and integration workflow agreed for 10C.1 with each new source family. Use the owner's original isolated pieces where clean separation is possible. Independently authored terrain carries the reference palette and shape language into composable tiles. [Art evidence and provenance](BoardArtVerification.md)
 
 ## 3. Faction-color system
 
@@ -57,9 +57,9 @@ The interface pairs smooth, rounded controls with the smooth medieval board art.
 
 Assign `Themes/castrum_theme.tres` to the root `Control` of a screen so its descendants inherit the styles. Use the default `Button` for secondary actions and `PrimaryButton` for submit, revise, and restart. Use `PlayerButton` for faction cards. Explicit status text and position identify factions independently of the palette. The base buttons provide distinct hover, pressed, focused, disabled, and hover-while-pressed states. Use `Heading`, `SecondaryLabel`, and `RejectionLabel` to distinguish instructions, supporting text, and feedback.
 
-The **Secured Territory** banner uses the themed score surface and bold numerals. One undecorated shield silhouette is tinted with each faction's palette color. Player One always appears on the left and Player Two on the right. The banner sits above the tiles with the exact grid width. Tight layouts may omit the center label and scale the score groups. The banner stays visible on the final board while the selection panel shows the winner or draw.
+The **Secured Territory** banner uses the themed score surface and bold numerals. One undecorated shield silhouette is tinted with each faction's palette color. Player One always appears on the left and Player Two on the right. The banner sits above the tiles with the exact grid width. A pale-blue tube carries muted liquid tints from the two faction ends. A thin pale-blue battlefield frame and soft shadow sit outside the square tiles. Tight layouts may omit the center label and scale the score groups. The banner stays visible on the final board while the selection panel shows the winner or draw.
 
-The compact match panel places actions in one row beneath the board in portrait and stacks them in the landscape sidebar. The header shows the active battlefield, dimensions, ruleset, and phase. New Match keeps confirmation controls below the filterable map list and preview. Tall layouts stack those sections and use up to 660 canvas units of height within the safe area. Wide or short layouts place the preview and CPU difficulty beside the list so rows can extend down to the confirmation controls. The dialog uses the shared pale-blue surface, navy title bar and difficulty menu, and a blue scrollbar. The preview draws the shared intact terrain and gold draft markers at a uniform square tile size. Knight Support uses the same castle art for draft placements and the neutral grave art for unsupported knights. The banner and rendered pieces update from the same resolved snapshot.
+The compact match panel places actions in one row beneath the board in portrait and stacks them in the landscape sidebar. The header shows the active battlefield, dimensions, ruleset, and phase. New Match keeps confirmation controls below the filterable map list and preview. Tall layouts stack those sections and use up to 660 canvas units of height within the safe area. Wide or short layouts place the preview and CPU difficulty beside the list so rows can extend down to the confirmation controls. The dialog uses the shared pale-blue surface, navy title bar and difficulty menu, and a blue scrollbar. The preview draws the shared intact terrain and gold draft shields at a uniform square tile size. Knight Support uses the same castle art for draft placements and the neutral grave art for unsupported knights. The banner and rendered pieces update from the same resolved snapshot.
 
 The theme uses the regular variable face of Nunito at weights 600 and 800. The font is bundled for offline use under the SIL Open Font License 1.1. The binary and license come from the same [Nunito upstream revision](https://github.com/googlefonts/nunito/tree/8c6a9bb9732545b9ed53f29ec5e1ab0ff53c4e6f). The license is stored at `Assets/Fonts/Nunito/OFL.txt` and included by the Windows and Android export presets.
 
@@ -76,7 +76,7 @@ Instance `Scenes/UI/AnimatedBackground.tscn` as the first child of a viewport-fi
 
 Each light has a separate phase and a lifetime of roughly 8–15 seconds at the default speed. It fades in over about the first quarter of the cycle and fades out in the final third. It gets a new origin, drift, and size while transparent. Four lights start near different edges, where their fades remain visible around the board, and the fifth can start anywhere. Whole cycle counts and wrapped seeds join the animation across Godot's default 3,600-second shader clock rollover. The higher-contrast base glow sweeps horizontally and vertically on slower cycles of about 45 and 58 seconds.
 
-Turn off **Motion Enabled** on a background instance in the Inspector or set `MotionEnabled` to `false` in C#. The background then uses a static gradient shader with no clock or shape pass. It still fills the viewport and can serve a future reduced-motion or battery-saving preference.
+Turn off **Motion Enabled** on a background instance in the Inspector or set `MotionEnabled` to `false` in C#. The background then uses a static gradient shader with no clock or shape pass. It still fills the viewport and is selected by the Reduce motion preference. Main-phase frames and the territory tube also use time-independent shaders under this preference.
 
 ---
 
