@@ -17,6 +17,7 @@ public sealed class RenderingBenchmarkTests
         Assert.Equal(measure, options.MeasureSeconds);
         Assert.Equal(repeats, options.Repetitions);
         Assert.Equal(cases, options.Cases!.Length);
+        Assert.False(options.ViewportTiming);
     }
 
     [Theory]

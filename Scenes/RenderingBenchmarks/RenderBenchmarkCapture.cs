@@ -92,17 +92,17 @@ internal sealed record RenderCounters(double ElapsedMs, long ManagedHeapBytes, l
     int Gen0, int Gen1, int Gen2, long? Nodes, long? Resources, long? GodotStaticBytes,
     long? TextureBytes, long? VideoBytes, double? LastProcessMs, double? ViewportRenderCpuMs, double? ViewportRenderGpuMs)
 {
-    internal static RenderCounters Take(Viewport viewport, long start, bool detailed, bool software) => new(
+    internal static RenderCounters Take(Viewport viewport, long start, RenderBenchmarkOptions options, bool software) => new(
         Stopwatch.GetElapsedTime(start).TotalMilliseconds, GC.GetTotalMemory(false), GC.GetTotalAllocatedBytes(false),
         GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2),
-        detailed ? Positive(Performance.GetMonitor(Performance.Monitor.ObjectNodeCount)) : null,
-        detailed ? Positive(Performance.GetMonitor(Performance.Monitor.ObjectResourceCount)) : null,
-        detailed ? Positive(Performance.GetMonitor(Performance.Monitor.MemoryStatic)) : null,
-        detailed ? Positive(RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TextureMemUsed)) : null,
-        detailed ? Positive(RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.VideoMemUsed)) : null,
-        detailed ? PositiveMs(1000 * Performance.GetMonitor(Performance.Monitor.TimeProcess)) : null,
-        detailed ? PositiveMs(RenderingServer.ViewportGetMeasuredRenderTimeCpu(viewport.GetViewportRid())) : null,
-        detailed && !software ? PositiveMs(RenderingServer.ViewportGetMeasuredRenderTimeGpu(viewport.GetViewportRid())) : null);
+        options.DetailedCounters ? Positive(Performance.GetMonitor(Performance.Monitor.ObjectNodeCount)) : null,
+        options.DetailedCounters ? Positive(Performance.GetMonitor(Performance.Monitor.ObjectResourceCount)) : null,
+        options.DetailedCounters ? Positive(Performance.GetMonitor(Performance.Monitor.MemoryStatic)) : null,
+        options.DetailedCounters ? Positive(RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.TextureMemUsed)) : null,
+        options.DetailedCounters ? Positive(RenderingServer.GetRenderingInfo(RenderingServer.RenderingInfo.VideoMemUsed)) : null,
+        options.DetailedCounters ? PositiveMs(1000 * Performance.GetMonitor(Performance.Monitor.TimeProcess)) : null,
+        options.ViewportTiming ? PositiveMs(RenderingServer.ViewportGetMeasuredRenderTimeCpu(viewport.GetViewportRid())) : null,
+        options.ViewportTiming && !software ? PositiveMs(RenderingServer.ViewportGetMeasuredRenderTimeGpu(viewport.GetViewportRid())) : null);
 
     internal static long? Positive(double value) => value > 0 ? (long)value : null;
     private static double? PositiveMs(double value) => value > 0 && double.IsFinite(value) ? value : null;

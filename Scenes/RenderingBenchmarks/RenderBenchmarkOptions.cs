@@ -37,6 +37,7 @@ internal sealed record RenderBenchmarkOptions
     public bool? LegalMotion { get; init; }
     public bool? TubeMotion { get; init; }
     public bool DetailedCounters { get; init; } = true;
+    public bool ViewportTiming { get; init; }
     public bool CpuDiagnostics { get; init; } = true;
 
     internal bool AnimateAmbient => AmbientMotion ?? !ReduceMotion;

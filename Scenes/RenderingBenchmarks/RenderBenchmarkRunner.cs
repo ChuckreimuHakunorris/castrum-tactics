@@ -65,7 +65,7 @@ internal sealed partial class RenderBenchmarkRunner(Main game, RenderBenchmarkRe
             }
             _attached = true;
             RenderingServer.FramePostDraw += SampleFrame;
-            if (Options.DetailedCounters)
+            if (Options.ViewportTiming)
                 RenderingServer.ViewportSetMeasureRenderTime(GetViewport().GetViewportRid(), true);
             WriteIndex("running");
             GD.Print($"Rendering benchmark output: {request.DirectoryPath}");
@@ -91,7 +91,7 @@ internal sealed partial class RenderBenchmarkRunner(Main game, RenderBenchmarkRe
                 _size = DisplayServer.WindowGetSize();
                 _display = DisplayMetadata();
                 capture.Start = Stopwatch.GetTimestamp();
-                capture.Trends.Add(RenderCounters.Take(GetViewport(), capture.Start, Options.DetailedCounters, _software));
+                capture.Trends.Add(RenderCounters.Take(GetViewport(), capture.Start, Options, _software));
                 _lastFrame = 0;
                 _nextTrend = TrendSeconds;
             }
@@ -110,7 +110,7 @@ internal sealed partial class RenderBenchmarkRunner(Main game, RenderBenchmarkRe
                 }
                 if (measured >= _nextTrend)
                 {
-                    capture.Trends.Add(RenderCounters.Take(GetViewport(), capture.Start, Options.DetailedCounters, _software));
+                    capture.Trends.Add(RenderCounters.Take(GetViewport(), capture.Start, Options, _software));
                     _nextTrend += TrendSeconds;
                 }
             }
@@ -137,7 +137,7 @@ internal sealed partial class RenderBenchmarkRunner(Main game, RenderBenchmarkRe
     {
         if (!_attached) return;
         RenderingServer.FramePostDraw -= SampleFrame;
-        if (Options.DetailedCounters)
+        if (Options.ViewportTiming)
             RenderingServer.ViewportSetMeasureRenderTime(GetViewport().GetViewportRid(), false);
         Engine.MaxFps = _initialFps;
         DisplayServer.WindowSetVsyncMode(_initialVsync);
@@ -193,7 +193,7 @@ internal sealed partial class RenderBenchmarkRunner(Main game, RenderBenchmarkRe
         // Sampling has ended. Keep post-processing and serialization outside the measured allocation window.
         _needsCase = true;
         long end = Stopwatch.GetTimestamp();
-        capture.Trends.Add(RenderCounters.Take(GetViewport(), capture.Start, Options.DetailedCounters, _software));
+        capture.Trends.Add(RenderCounters.Take(GetViewport(), capture.Start, Options, _software));
         var frames = FrameSummary.Calculate(capture.Frames);
         if (frames is null) throw new InvalidOperationException("No rendered frame intervals were captured.");
 
