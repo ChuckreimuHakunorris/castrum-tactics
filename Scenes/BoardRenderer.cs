@@ -46,6 +46,7 @@ public partial class BoardRenderer : Control
     private Shader _staticLegalShader = null!;
     private StyleBoxFlat _frameStyle = null!;
     private TerritoryScoreBanner? _scoreBanner;
+    internal Action<long>? BenchmarkSpriteSync { get; set; }
 
     /// <summary>Gets the provisional selection for the current view, if any.</summary>
     public BoardPosition? SelectedPosition { get; private set; }
@@ -93,7 +94,9 @@ public partial class BoardRenderer : Control
         if (piecesMayHaveChanged)
         {
             LayoutBanner(board);
+            long syncStart = BenchmarkSpriteSync is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
             UpdatePieceSprites(board);
+            BenchmarkSpriteSync?.Invoke(syncStart);
             _gridOverlay?.QueueRedraw();
             _damageOverlay?.QueueRedraw();
         }

@@ -14,14 +14,15 @@ internal sealed class MatchLifetime
     internal CpuMatchCoordinator? Cpu { get; private set; }
 
     // The caller must detach the previous session and CPU worker before creating a replacement.
-    internal IGameSession Create(MapDefinition map, MatchConfiguration configuration, int? seed)
+    internal IGameSession Create(MapDefinition map, MatchConfiguration configuration, int? seed,
+        CpuMatchCoordinator.DecisionSource? decisionSource = null)
     {
         var session = new LocalGameSession(map, configuration.RuleSet);
         Session = session;
         if (configuration.CpuPlayer is { } player)
         {
             var seeds = seed is int value ? new Random(value) : new Random();
-            Cpu = new CpuMatchCoordinator(session, player, CpuDifficultyProfiles.Get(configuration.Difficulty), seeds);
+            Cpu = new CpuMatchCoordinator(session, player, CpuDifficultyProfiles.Get(configuration.Difficulty), seeds, decisionSource);
         }
         return session;
     }
