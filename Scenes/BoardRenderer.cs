@@ -268,7 +268,7 @@ public partial class BoardRenderer : Control
             for (int x = 0; x < board.Width; x++)
             {
                 var position = new BoardPosition(x, y);
-                int count = TerrainCatalog.Damage(board.GetCell(position));
+                int count = TerrainCatalog.DamageMarkerCount(board.GetCell(position));
                 if (count == 0) continue;
 
                 // Marks stay above pieces and tint, inside the legal frame, in the same corner on every surface.
@@ -289,6 +289,9 @@ public partial class BoardRenderer : Control
         return visual.Terrain is { } terrain ? $"{terrain}/{visual.ArtVariant}"
             : $"{visual.Variant}/{visual.NorthRockEdge}/{visual.StoneAccent}";
     }
+
+    private int ReadDamageMarkerCount(int x, int y) =>
+        _board is { } board ? TerrainCatalog.DamageMarkerCount(board.GetCell(new BoardPosition(x, y))) : 0;
 
     private int ReadGroundDamage(int x, int y) =>
         _board is { } board ? TerrainCatalog.Damage(board.GetCell(new BoardPosition(x, y))) : 0;

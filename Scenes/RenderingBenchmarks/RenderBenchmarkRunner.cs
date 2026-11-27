@@ -151,7 +151,7 @@ internal sealed partial class RenderBenchmarkRunner(Main game, RenderBenchmarkRe
         _needsCase = false;
         _step = 0;
         _nextAction = 0.20;
-        _synthetic = Scenario is "castles" or "damage" or "targets";
+        _synthetic = RenderBenchmarkFixtures.IsSynthetic(Scenario);
         int nominalRate = Options.Pacing == "uncapped" ? 360 : 90;
         _capture = new RenderBenchmarkCapture(Math.Min(MaximumSamples, (int)(Options.MeasureSeconds!.Value * nominalRate) + 1));
         long started = Stopwatch.GetTimestamp();

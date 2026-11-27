@@ -8,7 +8,7 @@ public sealed class RenderingBenchmarkTests
 {
     [Theory]
     [InlineData("quick", 2, 4, 1, 3)]
-    [InlineData("standard", 8, 20, 3, 8)]
+    [InlineData("standard", 8, 20, 3, 9)]
     [InlineData("sustained", 30, 1200, 1, 1)]
     public void ProfilesSupplyVersionedDefaults(string profile, double warmup, double measure, int repeats, int cases)
     {
@@ -18,6 +18,9 @@ public sealed class RenderingBenchmarkTests
         Assert.Equal(repeats, options.Repetitions);
         Assert.Equal(cases, options.Cases!.Length);
         Assert.False(options.ViewportTiming);
+        Assert.False(options.CpuDiagnostics);
+        Assert.Equal(2, RenderBenchmarkOptions.ScenarioVersion);
+        if (profile == "standard") Assert.Contains("damage", options.Cases);
     }
 
     [Theory]
@@ -62,7 +65,7 @@ public sealed class RenderingBenchmarkTests
 
     [Theory]
     [InlineData("castles")]
-    [InlineData("damage")]
+    [InlineData("damage-extreme")]
     [InlineData("targets")]
     public void SyntheticFixturesAreRepeatableAndProvideBothLegalSets(string id)
     {
@@ -78,6 +81,43 @@ public sealed class RenderingBenchmarkTests
         Assert.True(own.SetEquals(second.GetLegalSelections(PlayerId.PlayerOne)));
         if (id == "targets") Assert.True(own.Count(other.Contains) > 40);
         if (id == "castles") Assert.Equal(80, own.Union(other).Count());
-        if (id == "damage") Assert.True(first.Board.GetCell(new BoardPosition(0, 0)).GroundHealth < 3);
+        if (id == "damage-extreme") Assert.True(first.Board.GetCell(new BoardPosition(0, 0)).GroundHealth < 3);
+    }
+
+    [Fact]
+    public void DetailedCpuDiagnosticsCanBeEnabledExplicitly() =>
+        Assert.True(RenderBenchmarkOptions.Parse("""{"cpuDiagnostics":true}""").CpuDiagnostics);
+
+    [Fact]
+    public void HeavyDamageReplayPreservesLiveGroundAndShowsDamageAcrossFactions()
+    {
+        var state = RenderBenchmarkFixtures.ReplayHeavyDamage();
+        Assert.False(state.IsFinished);
+        var cells = from y in Enumerable.Range(0, state.Board.Height)
+                    from x in Enumerable.Range(0, state.Board.Width)
+                    select state.Board.GetCell(new BoardPosition(x, y));
+        Assert.All(cells.Where(cell => cell.IsPlayable), cell => Assert.True(cell.GroundHealth > 0));
+        Assert.Contains(cells, cell => cell.Piece == PieceType.Grave);
+        Assert.Contains(cells, cell => cell.Piece == PieceType.Castle && TerrainCatalog.Damage(cell) > 0);
+        foreach (var owner in new[] { PlayerId.PlayerOne, PlayerId.PlayerTwo })
+            Assert.Contains(cells, cell => cell.Piece == PieceType.Knight && cell.Owner == owner &&
+                TerrainCatalog.DamageMarkerCount(cell) > 0);
+    }
+
+    [Theory]
+    [InlineData(PieceType.None, null, 1, 2)]
+    [InlineData(PieceType.Knight, PlayerId.PlayerOne, 1, 2)]
+    [InlineData(PieceType.Knight, PlayerId.PlayerTwo, 2, 1)]
+    [InlineData(PieceType.Knight, PlayerId.PlayerOne, 3, 0)]
+    [InlineData(PieceType.Castle, PlayerId.PlayerOne, 1, 0)]
+    [InlineData(PieceType.Castle, PlayerId.PlayerTwo, 2, 0)]
+    [InlineData(PieceType.Grave, null, 2, 0)]
+    [InlineData(PieceType.Grave, null, 0, 0)]
+    public void MarkerVisibilityIsIndependentOfTerrainWear(PieceType piece, PlayerId? owner, int health, int markers)
+    {
+        var cell = new CellState(TerrainType.Playable, piece, owner, health);
+        Assert.Equal(3 - health, TerrainCatalog.Damage(cell));
+        Assert.Equal(markers, TerrainCatalog.DamageMarkerCount(cell));
+        Assert.Equal(0, TerrainCatalog.DamageMarkerCount(default));
     }
 }

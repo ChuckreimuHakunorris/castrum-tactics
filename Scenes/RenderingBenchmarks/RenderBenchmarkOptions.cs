@@ -11,9 +11,9 @@ namespace CastrumTactics.RenderingBenchmarks;
 internal sealed record RenderBenchmarkOptions
 {
     internal const int Schema = 1;
-    internal const int ScenarioVersion = 1;
+    internal const int ScenarioVersion = 2;
     internal static readonly string[] Scenarios =
-        ["small", "large", "castles", "damage", "targets", "turns", "lifecycle", "monster", "extended"];
+        ["small", "large", "castles", "damage", "damage-extreme", "targets", "turns", "lifecycle", "monster", "extended"];
 
     internal static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
@@ -38,7 +38,7 @@ internal sealed record RenderBenchmarkOptions
     public bool? TubeMotion { get; init; }
     public bool DetailedCounters { get; init; } = true;
     public bool ViewportTiming { get; init; }
-    public bool CpuDiagnostics { get; init; } = true;
+    public bool CpuDiagnostics { get; init; }
 
     internal bool AnimateAmbient => AmbientMotion ?? !ReduceMotion;
     internal bool AnimateLegal => LegalMotion ?? !ReduceMotion;
@@ -65,7 +65,7 @@ internal sealed record RenderBenchmarkOptions
         if (!double.IsFinite(warmup) || warmup is < 0 or > 300 ||
             !double.IsFinite(measure) || measure is < 1 or > 1800 || repetitions is < 1 or > 10)
             throw new InvalidDataException("Warm-up must be 0–300 s, measurement 1–1800 s and repetitions 1–10.");
-        if (cases.Length is < 1 or > 9 || cases.Distinct().Count() != cases.Length ||
+        if (cases.Length < 1 || cases.Length > Scenarios.Length || cases.Distinct().Count() != cases.Length ||
             Array.Exists(cases, scenario => !Scenarios.Contains(scenario)))
             throw new InvalidDataException("Provide distinct, known scenario IDs.");
         return options with { Cases = cases, WarmupSeconds = warmup, MeasureSeconds = measure, Repetitions = repetitions };

@@ -19,6 +19,7 @@ public partial class Main
     private CpuMatchCoordinator.DecisionSource? _benchmarkCpu;
     private int? _benchmarkSeed;
     private MainPhaseState? _benchmarkFixture;
+    private bool _benchmarkSynthetic;
     private bool _replaceAfterRestart;
 
     private bool TryStartRenderingBenchmark()
@@ -48,6 +49,7 @@ public partial class Main
         _benchmarkSeed = options.Seed;
         _benchmarkCpu = cpu ? capture.CpuSource(options.CpuDiagnostics) : null;
         _benchmarkFixture = null;
+        _benchmarkSynthetic = RenderBenchmarkFixtures.IsSynthetic(scenario);
         _replaceAfterRestart = false;
         _background.MotionEnabled = options.AnimateAmbient;
         _board.ApplyPreferences(new PresentationPreferences(options.ShowOpponent, !options.AnimateLegal));
@@ -79,14 +81,14 @@ public partial class Main
         _mapChoice = PredefinedMapCatalog.BuiltIn.Get(mapId);
         StartMatch(_configuration);
 
-        if (scenario is "castles" or "damage" or "targets")
+        if (scenario == "damage" || _benchmarkSynthetic)
         {
-            var state = _benchmarkFixture = RenderBenchmarkFixtures.Create(scenario);
-            _board.SetVisuals(null);
+            var state = _benchmarkFixture = _benchmarkSynthetic ? RenderBenchmarkFixtures.Create(scenario) : RenderBenchmarkFixtures.ReplayHeavyDamage();
+            if (_benchmarkSynthetic) _board.SetVisuals(null);
             _board.SetMatchBoard(state.Board, state.GetLegalSelections(PlayerId.PlayerOne), state.GetLegalSelections(PlayerId.PlayerTwo),
                 state.Territory, PlayerId.PlayerOne);
             _banner.ShowTerritory(state.Board, state.Territory);
-            _activeMap.Text = "Synthetic benchmark — 12 × 12";
+            if (_benchmarkSynthetic) _activeMap.Text = "Synthetic benchmark — 12 × 12";
             _phase.Text = "Main · Benchmark";
             return;
         }
@@ -163,7 +165,7 @@ public partial class Main
         var one = _benchmarkFixture?.GetLegalSelections(PlayerId.PlayerOne) ?? _displayed.GetMainPhaseLegalSelections(PlayerId.PlayerOne);
         var two = _benchmarkFixture?.GetLegalSelections(PlayerId.PlayerTwo) ?? _displayed.GetMainPhaseLegalSelections(PlayerId.PlayerTwo);
         var cells = new byte[board.Width * board.Height * 4];
-        int offset = 0, pieces = 0;
+        int offset = 0, pieces = 0, damageMarkers = 0;
         for (int y = 0; y < board.Height; y++)
             for (int x = 0; x < board.Width; x++)
             {
@@ -173,14 +175,16 @@ public partial class Main
                 cells[offset++] = (byte)(cell.Owner ?? 0);
                 cells[offset++] = (byte)cell.GroundHealth;
                 if (cell.Piece != PieceType.None) pieces++;
+                damageMarkers += TerrainCatalog.DamageMarkerCount(cell);
             }
 
         return new
         {
-            map = _benchmarkFixture is null ? _mapChoice?.Id : "synthetic",
+            map = _benchmarkSynthetic ? "synthetic" : _mapChoice?.Id,
             board.Width,
             board.Height,
             pieces,
+            damageMarkers,
             phase = _benchmarkFixture is null ? _displayed.Phase.ToString() : "Main",
             rules = _configuration.RuleSet.ToString(),
             mode = _configuration.Mode.ToString(),

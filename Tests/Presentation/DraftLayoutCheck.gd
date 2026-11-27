@@ -214,6 +214,7 @@ func check_knight_support_local() -> void:
 	expect(piece_art_at(board, Vector2(2, 0), dimensions) == "grave.png", "Unsupported placement did not render a grave.")
 	expect(board.call("ReadGroundDamage", 2, 0) == 1 and board.call("ReadGroundDamage", 1, 2) == 0,
 		"Ground damage was not independent of piece status.")
+	expect(board.call("ReadDamageMarkerCount", 2, 0) == 0, "A Knight Support grave drew damage markers.")
 	expect(piece_art_at(board, Vector2(1, 0), dimensions) == "knight_base.png", "Supported capture did not survive.")
 	check_banner(board, dimensions, ["1", "1"])
 
@@ -555,6 +556,8 @@ func check_complete_match(game: Control) -> void:
 			print("10C collision changed claimable area from %d to %d." % [prior_area, banner.call("GetClaimableArea")])
 			expect(banner.call("GetClaimableArea") < prior_area and piece_art_at(board, turn[0], Vector2(7, 5)) == "grave.png",
 				"The authoritative area did not shrink when a collision created a grave.")
+			expect(board.call("ReadGroundDamage", 2, 2) > 0 and board.call("ReadDamageMarkerCount", 2, 2) == 0,
+				"A Classic grave lost its terrain wear or drew damage markers.")
 			await capture("10c-after-grave")
 	var heading: Label = game.get_node("%Status")
 	expect(phase.text == "Match complete" and heading.text == "Player Two wins", "Missing final outcome.")
