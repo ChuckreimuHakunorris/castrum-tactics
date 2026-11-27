@@ -34,7 +34,7 @@ Each fixed cell gives W–D–L, raw points per scored match and canonical disti
 | 80–109 | 24–0–0 · 100.0% · 12 | 12–4–8 · 58.3% · 12 | 18–0–6 · 75.0% · 12 | 24–0–0 · 100.0% · 12 |
 | 110+ | 18–2–4 · 79.2% · 12 | 14–6–4 · 70.8% · 12 | 14–0–10 · 58.3% · 12 | 20–0–4 · 83.3% · 12 |
 
-![Fixed-start match points by playable area, with map/seed block intervals and scored counts](assets/size-study-8e.png)
+![Fixed-start match points by playable area, with map/seed block intervals and scored counts](assets/8e/size-study-8e.png)
 
 In the fixed study, Monster's advantage over Hard increased between the compact stratum and several intermediate strata. The aggregate fell again at 110+ playable cells. The matched open family rose from 75% at 4 × 4 to 100% on 6 × 6 and larger. The corresponding obstructed family rose from 75% to 100% at intermediate sizes and returned to 75% at 12 × 12. The fixed same-policy comparison also swung substantially with its small sample. On the generated 8, 10 and 12 boards, the higher caps reproduced the aggregate Monster–Hard point rates of 100%, 100% and 87.5%. This sensitivity considers two families and 16 scored matches per size. On natural drafts, the newer and older Monster configurations had more draws and restarts than Monster against Hard. Those exclusions matter most on compact and equal-policy schedules.
 

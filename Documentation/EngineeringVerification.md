@@ -37,6 +37,8 @@ The link tool uses a Markdown parser with GitHub heading identifiers and reads a
 
 The verifier flags changed, deleted and unexpected protected paths. CI checks that all entries already in the base still exist with their reviewed hashes. When introducing a new protected file or collection with owner approval, add its scope and digest from the reviewed source and review the manifest diff explicitly. Existing entries must retain their digests. Repository review remains necessary because the manifest and verifier are themselves repository files.
 
+For the 8E study figure, the verifier recognizes its move into the Godot-ignored `Documentation/assets/8e/` directory when comparing with older revisions and still requires the original digest.
+
 ## Verification record
 
 Local baseline and feature checks used Debian 13.7 x86-64, .NET SDK 10.0.404, .NET runtimes 10.0.15 and 8.0.28, Godot 4.7.2 .NET and DocFX 2.81.0.

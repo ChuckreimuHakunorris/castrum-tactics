@@ -8,6 +8,10 @@ import subprocess
 from tempfile import TemporaryDirectory
 
 MANIFEST = "Benchmarks/ReferenceIntegrity.json"
+# Preserve the reviewed digest when comparing against revisions before the chart moved.
+RELOCATED_EVIDENCE = {
+    "Documentation/assets/size-study-8e.png": "Documentation/assets/8e/size-study-8e.png",
+}
 FROZEN = {
     "Frozen", "Frozen8C", "Frozen8D2", "Frozen8D3", "Frozen8D4", "Frozen8E",
 }
@@ -18,7 +22,7 @@ def git(root, *args, check=True):
 
 
 def protected(path):
-    if path == "Documentation/assets/size-study-8e.png":
+    if path in RELOCATED_EVIDENCE or path in RELOCATED_EVIDENCE.values():
         return True
     parts = PurePosixPath(path).parts
     if len(parts) < 3 or parts[0] != "Benchmarks" or ".." in parts:
@@ -60,7 +64,8 @@ def verify(root, manifest, previous=None):
         if manifest["baseline"] != previous["baseline"]:
             errors.append("The reviewed archive baseline changed.")
         for path, digest in sorted(previous["sha256"].items()):
-            if expected.get(path) != digest:
+            current_path = path if path in expected else RELOCATED_EVIDENCE.get(path, path)
+            if expected.get(current_path) != digest:
                 errors.append(f"{path}: existing manifest digest removed or changed")
     return errors
 
