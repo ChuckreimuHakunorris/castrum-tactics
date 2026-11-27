@@ -27,7 +27,7 @@ Isolation clears alpha below 8 and crops to the surviving silhouette before sizi
 
 `CastleTopology` uses north, east, south and west bits 1, 2, 4 and 8. The output names use the mask of a representative base, with separate shared tint IDs. The following entries resolve to `wall-<base>_base.png` and `wall-<tint>_mask.png` under `Assets/Sprites/Board`. Mask zero uses the 104 × 104 `castle_base.png` and `castle_mask.png` pair.
 
-| Connectivity (mask) | Base | Tint | Exposed ramparts |
+| Artwork mask | Base | Tint | Ramparts |
 | --- | --- | --- | --- |
 | N (1), E (2), NE (3), W (8), NW (9) | 1, gate | 10 | Façade row |
 | EW (10), NEW (11) | 10, uninterrupted | 10 | Façade row |
@@ -39,6 +39,8 @@ Isolation clears alpha below 8 and crops to the surviving silhouette before sizi
 | NSW (13) | 13 | 15 | E · 4 blocks |
 | ESW (14) | 14 | 15 | N · 4 blocks |
 | NESW (15) | 15 | 15 | Open interior · 0 blocks |
+
+Roofs evaluate their east and west edges independently. A side gets a rampart if there is no friendly castle on that side or the friendly neighbor has no southward castle connection and therefore displays a façade. For artwork lookup, clear that side bit on the roof. The north edge still uses the roof’s northward connection. The existing pre-composed bases already cover every resulting combination, including two side ramparts. They reuse the same crystal mask, so the cache needs no extra textures, layers or draw calls. The renderer re-evaluates the layout on each new board snapshot, including when a diagonal castle changes a neighboring façade into a roof.
 
 Both façades use the uninterrupted source for all four upper blocks, masonry, banner and foundation. Processing narrows the lower façade crop to columns `[3, 125)` at 128 px, refits it to the full width, and feathers the horizontal edges over three texels. A traced arch from the gate source at `(142, 266, 356, 435)` in the script’s 500 × 500 working image is resampled to 54 × 41 and overlaid at `(37, 70)`. The common ramparts, edges, banner and foundation align across both variants.
 
@@ -64,7 +66,7 @@ The check validates source checksums, output dimensions and alpha, mask coverage
 | [Faction colors](assets/10c1/faction-colors.png) and [connectivity](assets/10c1/connectivity.png) | Base and mask alignment, four color samples, all 15 connected configurations and the singleton. |
 | [Horizontal façades](assets/10c1/assemblies-facades.png) | E–W, E–EW–W and E–EW–EW–EW–W at native texel size. |
 | [Vertical and rectangular fortresses](assets/10c1/assemblies-fortresses.png) | S–NS–N, 2 × 2, 3 × 3 and 5 × 4. The 3 × 3 upper, middle and lower rows are ES–ESW–SW, NES–NESW–NSW and NE–NEW–NW. |
-| [Irregular formations](assets/10c1/assemblies-irregular.png) | L, T, cross, irregular cluster and adjacent opposing factions, at native texel size. |
+| [Irregular formations](assets/10c1/assemblies-irregular.png) and [façade transitions](assets/10c1/assemblies-facade-transitions.png) | L, T, cross, irregular cluster and adjacent opposing factions. The focused sheet shows left, right and bilateral ramparts in red and blue at native texel size. |
 | [Godot fortifications](assets/10c1/fortifications.png) and [alternate shader colors](assets/10c1/fortifications-alternate.png) | A temporary review fixture applied all 16 castle masks through the production board renderer and checked the bound base and tint resources. Both default shader colors and `#59ca87` / `#b48af5` were rendered. |
 | [Landscape live castle join](assets/10c1/connected-castles.png) and [portrait mixed pieces](assets/10c1/knight-support-mixed-portrait.png) | Real Knight Support submissions on Open Meadow. Includes both factions, a connected façade, singleton castles, knights, graves, territory and legal frames. |
 | [Classic shared targets](assets/10c1/10c-red-shared.png) and [collision and damage](assets/10c1/10c-after-grave.png) | Landscape Demonstration during Main. |

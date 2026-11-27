@@ -405,9 +405,9 @@ public partial class BoardRenderer : Control
             {
                 var position = new BoardPosition(x, y);
                 CellState cell = cellAt(position);
-                int mask = cell is { Piece: PieceType.Castle, Owner: { } owner }
-                    ? CastleTopology.Mask(position, owner, board.Width, board.Height, cellAt) : 0;
-                if (CreatePieceSprite(cell, mask) is { } piece)
+                int artworkMask = cell is { Piece: PieceType.Castle, Owner: { } owner }
+                    ? CastleTopology.ArtworkMask(position, owner, board.Width, board.Height, cellAt) : 0;
+                if (CreatePieceSprite(cell, artworkMask) is { } piece)
                 {
                     piece.Sprite.ZIndex = PieceLayer;
                     AddChild(piece.Sprite);

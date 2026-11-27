@@ -236,6 +236,26 @@ def preview_tint(layers, color):
     return Image.fromarray(np.rint(base).astype(np.uint8))
 
 
+def preview_assembly(pairs, label, layout):
+    cells = {(x, y): owner for y, row in enumerate(layout) for x, owner in enumerate(row) if owner != "."}
+    topologies = {
+        (x, y): sum(bit for bit, dx, dy in DIRECTIONS if cells.get((x + dx, y + dy)) == owner)
+        for (x, y), owner in cells.items()
+    }
+    sheet = Image.new("RGBA", (len(layout[0]) * TILE, len(layout) * TILE + 24), "#657f5a")
+    ImageDraw.Draw(sheet).text((8, 5), label, fill="white")
+    for (x, y), owner in cells.items():
+        artwork = topologies[x, y]
+        if artwork & SOUTH:
+            # Remove only the roof-to-façade side joins from the artwork lookup.
+            for side, dx in ((EAST, 1), (WEST, -1)):
+                if artwork & side and not topologies[x + dx, y] & SOUTH:
+                    artwork &= ~side
+        pair = pairs[wall_key(artwork)]
+        sheet.alpha_composite(preview_tint(pair, COLORS[owner == "B"]), (x * TILE, y * TILE + 24))
+    return sheet, set(topologies.values())
+
+
 def review_sheets(pairs, directory):
     directory.mkdir(parents=True, exist_ok=True)
     sheet = Image.new("RGBA", (6 * 142, 3 * 160), "#657f5a")
@@ -272,18 +292,35 @@ def review_sheets(pairs, directory):
         ("Opposing factions", ("RRBB", "RRBB")),
     )
     seen = set()
+    assemblies = {}
     for number, (label, layout) in enumerate(layouts, 1):
-        cells = {(x, y): owner for y, row in enumerate(layout) for x, owner in enumerate(row) if owner != "."}
-        sheet = Image.new("RGBA", (len(layout[0]) * TILE, len(layout) * TILE + 24), "#657f5a")
-        ImageDraw.Draw(sheet).text((8, 5), label, fill="white")
-        for (x, y), owner in cells.items():
-            topology = sum(bit for bit, dx, dy in DIRECTIONS if cells.get((x + dx, y + dy)) == owner)
-            seen.add(topology)
-            pair = pairs[wall_key(topology)]
-            sheet.alpha_composite(preview_tint(pair, COLORS[owner == "B"]), (x * TILE, y * TILE + 24))
+        sheet, topologies = preview_assembly(pairs, label, layout)
+        assemblies[label] = sheet
+        seen.update(topologies)
         sheet.convert("RGB").save(directory / f"assembly-{number:02}.png")
     if seen != set(range(1, 16)):
         raise ValueError(f"Assembly fixtures missed {set(range(1, 16)) - seen}")
+
+    margin = 12
+    width = 9 * TILE + 4 * margin
+    top_height = 3 * TILE + 24
+    irregular = Image.new("RGB", (width, top_height + 4 * TILE + 24 + 3 * margin), "#304138")
+    for column, label in enumerate(("L", "T", "Cross")):
+        irregular.paste(assemblies[label], (margin + column * (3 * TILE + margin), margin))
+    irregular.paste(assemblies["Irregular"], (margin, top_height + 2 * margin))
+    irregular.paste(assemblies["Opposing factions"], (5 * TILE + 2 * margin, top_height + 2 * margin))
+    irregular.save(directory / "assemblies-irregular.png")
+
+    row_height = 2 * TILE + 24
+    transitions = Image.new("RGB", (width, 2 * row_height + 3 * margin), "#304138")
+    for row, (faction, owner) in enumerate((("Red", "R"), ("Blue", "B"))):
+        for column, (label, lower_row) in enumerate((
+            ("Left facade", ".RR"), ("Right facade", "RR."), ("Both facades", ".R."),
+        )):
+            layout = (owner * 3, lower_row.replace("R", owner))
+            sheet, _ = preview_assembly(pairs, f"{faction}: {label}", layout)
+            transitions.paste(sheet, (margin + column * (3 * TILE + margin), margin + row * (row_height + margin)))
+    transitions.save(directory / "assemblies-facade-transitions.png")
 
 
 def main():

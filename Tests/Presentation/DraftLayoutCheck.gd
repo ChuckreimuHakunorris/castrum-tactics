@@ -181,6 +181,20 @@ func check_connected_castles() -> void:
 		"Resolved friendly castles did not join along their shared edge.")
 	expect(piece_art_at(board, Vector2(2, 2), dimensions) == "castle_base.png", "An isolated castle acquired a wall.")
 	await capture("connected-castles")
+	await play(board, one, submit, Vector2(0, 1), dimensions)
+	await play(board, two, submit, Vector2(2, 1), dimensions)
+	await play(board, one, submit, Vector2(0, 1), dimensions)
+	await play(board, two, submit, Vector2(3, 2), dimensions)
+	expect(piece_art_at(board, Vector2.ZERO, dimensions) == "wall-4_base.png" and
+		piece_art_at(board, Vector2(1, 0), dimensions) == "wall-1_base.png",
+		"The roof did not add a rampart beside the eastern facade.")
+	await play(board, one, submit, Vector2(1, 1), dimensions)
+	await play(board, two, submit, Vector2(2, 3), dimensions)
+	await play(board, one, submit, Vector2(1, 1), dimensions)
+	await play(board, two, submit, Vector2(2, 3), dimensions)
+	expect(piece_art_at(board, Vector2.ZERO, dimensions) == "wall-6_base.png" and
+		piece_art_at(board, Vector2(1, 0), dimensions) == "wall-12_base.png",
+		"The roof retained its eastern rampart after the neighboring facade became a roof.")
 	game.queue_free()
 	await process_frame
 

@@ -20,6 +20,56 @@ public sealed class CastleTopologyTests
         }
     }
 
+    [Theory]
+    [InlineData(PlayerId.PlayerOne)]
+    [InlineData(PlayerId.PlayerTwo)]
+    public void RoofArtworkUpdatesIndependentlyAtEachFacadeTransition(PlayerId owner)
+    {
+        var center = new BoardPosition(1, 1);
+        var southWest = new BoardPosition(0, 2);
+        var southEast = new BoardPosition(2, 2);
+        var opponent = owner == PlayerId.PlayerOne ? PlayerId.PlayerTwo : PlayerId.PlayerOne;
+        var castle = new CellState(TerrainType.Playable, PieceType.Castle, owner, 3);
+        var cells = new Dictionary<BoardPosition, CellState>
+        {
+            [center] = castle,
+            [new(1, 0)] = castle,
+            [new(1, 2)] = castle,
+            [new(0, 1)] = castle,
+            [new(2, 1)] = castle,
+            [southWest] = new(TerrainType.Playable, PieceType.Castle, opponent, 3),
+            [southEast] = new(TerrainType.Playable, PieceType.Knight, owner, 3),
+        };
+
+        AssertArtwork(5); // Both façades: west and east ramparts.
+        cells[southEast] = castle;
+        AssertArtwork(7); // Left façade only.
+        cells[southWest] = castle;
+        AssertArtwork(15); // Both neighbors are roofs.
+        cells.Remove(southEast);
+        AssertArtwork(13); // Right façade only.
+
+        void AssertArtwork(int expectedBase)
+        {
+            Assert.Equal(15, CastleTopology.Mask(center, owner, 3, 3, At));
+            int artwork = CastleTopology.ArtworkMask(center, owner, 3, 3, At);
+            Assert.Equal((expectedBase, 15), BoardRenderer.GetWallArtworkMasks(artwork));
+        }
+
+        CellState At(BoardPosition position) => cells.GetValueOrDefault(position);
+    }
+
+    [Fact]
+    public void FacadeTransitionsLeaveTheNorthRampartIntact()
+    {
+        var castle = new CellState(TerrainType.Playable, PieceType.Castle, PlayerId.PlayerOne, 3);
+        CellState At(BoardPosition position) => position.Y == 0 || position.X == 1 ? castle : default;
+
+        Assert.Equal(14, CastleTopology.Mask(new(1, 0), PlayerId.PlayerOne, 3, 2, At));
+        Assert.Equal(4, CastleTopology.ArtworkMask(new(1, 0), PlayerId.PlayerOne, 3, 2, At));
+        Assert.Equal(2, CastleTopology.ArtworkMask(new(0, 0), PlayerId.PlayerOne, 3, 2, At));
+    }
+
     [Fact]
     public void AllMasksUseOnlyFriendlyCardinalCastles()
     {
