@@ -73,3 +73,5 @@ items:
         href: VisualFoundationVerification.md
       - name: 10B board art verification
         href: BoardArtVerification.md
+      - name: 10C interaction verification
+        href: InteractionVerification.md

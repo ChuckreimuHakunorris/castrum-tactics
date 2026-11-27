@@ -8,19 +8,34 @@ Integrated through PR #27. Introduced optional visual sidecars with stable varia
 
 ## 10B · Board art and tile rendering
 
-Implemented and awaiting review. The owner supplied the three native PNGs in a cloud file archive. The [art verification](BoardArtVerification.md) distinguishes reference pixels, alpha isolation, livery normalization and newly authored terrain and walls.
+Integrated through PR #28. The owner supplied the three native PNGs in a cloud file archive. The [art verification](BoardArtVerification.md) distinguishes reference pixels, alpha isolation, livery normalization and newly authored terrain and walls.
 
 Fixed terrain roles validate against existing gameplay. Playable grass, sand, snow and bridges have damage art and damage-only marks. Rocks, forest, shrubs, mountains, water, settlements and ruins are inaccessible. Same-faction castles join only in four cardinal directions. All maps receive the new default art and two compatible sidecars demonstrate authored geography. The full composition pass remains 10F.
 
 ## 10C · Interaction indicators and UI polish
 
-Depends on the visual vocabulary established in 10B. Add opaque, clearly readable faction-colored legal frames with a subtle pulse and a distinct provisional highlight. Show opposing legal targets from authoritative public sets in both modes. Render shared targets with a half-and-half frame and decide how shared draft starts should appear. Pending coordinates stay private.
+Uses the integrated 10B rendering and art as the review baseline. Both authoritative Main target sets are visible by default. Shared frames use the active faction on top and left and the opposing faction on bottom and right. Opening starts use gold shields. The static pale cyan frame identifies the provisional square. Pending choices stay private.
 
-Add a border and subtle shadow outside logical cells. Add restrained liquid-like fills to the existing score bars using authoritative secured counts. Propose initial playable area as the denominator and confirm it with the owner. Inaccessible squares contribute no territory. Verify clipping, waves, zero/full states and readable numbers, with reduced-motion support. Preserve hit testing, controls, score alignment and legibility in both orientations and input modes.
+The secured-territory tube uses a dynamic denominator of secured plus contested cells. The board has a pale-blue frame outside its logical cells. Persistent preferences control opposing targets, reduced motion and future turn-resolution animations independently. [10C verification](InteractionVerification.md)
+
+## 10C.1 · Artwork refinement and terrain autotiling
+
+The owner tested 10B on Windows and accepted its rendering and asset architecture. The artwork needs substantial refinement. The owner and ChatGPT review individual source graphics, and the owner supplies approved originals to Codex. Codex performs the required isolation, alignment, import, faction masking and verification. Review each asset family in-game before proceeding. Ask the owner before redrawing or distorting approved art beyond necessary technical processing. The owner will supply the larger JRPG-inspired battlefield reference and the forest and mountain connection diagrams during the appropriate refinement tasks.
+
+1. 10C.1a covers knights.
+2. 10C.1b covers singleton castles.
+3. 10C.1c covers connected castle walls.
+4. 10C.1d covers gravestones.
+5. 10C.1e covers playable ground and damage.
+6. 10C.1f covers forest and mountain autotiles.
+7. 10C.1g covers rivers, lakes and bridges.
+8. 10C.1h covers remaining terrain, vegetation, ruins and settlements.
+
+These are individual art reviews. Multiple reviewed families may share a PR. Start forests and mountains with the 16 cardinal masks. Neighbors should form continuous forests and ranges, with compatible edges, consistent scale, lighting and perspective, and artwork constrained to its assigned footprint. Keep deterministic variants seam-safe. Build reusable adjacency-driven rendering and review assembled boards. Consider diagonal-sensitive corners if assembled configurations need them. Future follow-up includes water connectivity validation, default terrain variation and an investigation of batching efficiency.
 
 ## 10D · Android zoom and play comfort
 
-Depends on the shared geometry from 10A and the readable controls and indicators from 10C. Add pinch-to-zoom and pan on Android only. Keep the minimum at fit, select a useful maximum in playtests, keep cells square and clamp pan so all cells remain reachable. Apply one transform to board content, effects and input mapping. Keep chrome and controls usable and unzoomed.
+Depends on the shared geometry from 10A and the readable controls and indicators from 10C, with the art refinement stage before device zoom. Add pinch-to-zoom and pan on Android only. Keep the minimum at fit, select a useful maximum in playtests, keep cells square and clamp pan so all cells remain reachable. Apply one transform to board content, effects and input mapping. Keep chrome and controls usable and unzoomed.
 
 A pinch or drag must never select or submit. Verify emulated events, multitouch, cancellation, deliberate tap and tap-to-confirm, button submission and rotation. Reset on New Match, retaining relative focus on rotation and providing a return-to-fit action are proposals. Check small and large boards, portrait and landscape, and desktop input regressions. Record physical Android and simulated input evidence separately.
 
@@ -28,7 +43,7 @@ A pinch or drag must never select or submit. Verify emulated events, multitouch,
 
 Depends on the 10A turn record, 10B art, 10C indicators and 10D board transform. Add subtle knight idle motion and feedback for placements, captures, upgrades, collisions, graves and support eliminations. Present the authoritative simultaneous result. Keep the final board and scores correct when effects are skipped, interrupted, reduced or overlap with rapid turns. Gameplay continues independently of decorative effects.
 
-Highlight the opponent's latest resolved action. Decide perspective in local two-human play and how to show upgraded, eliminated, collided or automatically selected squares without implying a surviving piece. Use a restrained reveal and retain the useful marker until superseded or dismissed. Identify events by session and round, and cancel obsolete effects on replacement and restart. Check readable timing, reduced motion and large-board performance on both platforms.
+Highlight the opponent's latest resolved action. Decide perspective in local two-human play and how to show upgraded, eliminated, collided or automatically selected squares without implying a surviving piece. Use a restrained reveal and retain the useful marker until superseded or dismissed. Identify events by session and round, and cancel obsolete effects on replacement and restart. Respect the independent turn-resolution animation preference. Use restrained feedback when reduced motion is on and show the authoritative result immediately when resolution animations are off. Check timing and large-board performance on both platforms.
 
 ## 10F · Curated battlefield beautification
 

@@ -36,6 +36,7 @@ func run() -> void:
 	game.set("Mode", 1)
 	game.set("Rules", 0)
 	game.set("MapIdOverride", "demonstration")
+	game.call("SetTemporaryPresentation", true, true, true)
 	root.size = Vector2i(720, 1080)
 	root.add_child(game)
 	await check_complete_match(game)
@@ -52,8 +53,79 @@ func run() -> void:
 	if not failed:
 		await check_connected_castles()
 	if not failed:
+		await check_interaction_indicators()
+	if not failed:
 		print("Verified the Classic walkthrough, Knight Support eliminations and scores, draft revision, restarts, map selection and previews.")
 		quit()
+
+func check_interaction_indicators() -> void:
+	var game := MATCH_SCENE.instantiate()
+	game.set("Mode", 1)
+	game.set("Rules", 0)
+	game.set("MapIdOverride", "demonstration")
+	game.call("SetTemporaryPresentation", true, false, true)
+	root.size = Vector2i(1080, 720)
+	root.add_child(game)
+	await settle()
+	var board: Control = game.get_node("%BoardRenderer")
+	var banner: Control = board.get_node("TerritoryScoreBanner")
+	var targets: Node2D = board.get_node("LegalTargets")
+	var one: Button = game.get_node("%PlayerOne")
+	var two: Button = game.get_node("%PlayerTwo")
+	var submit: Button = game.get_node("%Submit")
+	var background: Control = game.get_node("AnimatedBackground")
+	var liquid: ColorRect = banner.get_node("Liquid")
+	expect(targets.material == null and not liquid.visible and banner.call("GetClaimableArea") == 0,
+		"Draft should show neutral shields and an empty banner.")
+	await capture("10c-draft")
+	await play(board, one, submit, Vector2(1, 1))
+	await play(board, two, submit, Vector2(3, 2))
+	await play(board, one, submit, Vector2(4, 0))
+	await play(board, two, submit, Vector2(5, 3))
+	click(one.get_global_rect().get_center())
+	await settle()
+	var examples := {}
+	for y in 5:
+		for x in 7:
+			examples[board.call("ReadLegalTargetKind", x, y)] = Vector2i(x, y)
+	expect(examples.size() == 4 and banner.call("GetClaimableArea") > 0,
+		"All four target classifications and the Main denominator should be available.")
+	if examples.size() != 4:
+		game.queue_free()
+		return
+	var active_only: Vector2i = examples[1]
+	var opponent_only: Vector2i = examples[2]
+	var shared: Vector2i = examples[3]
+	expect(targets.material.get_shader_parameter("active_color").is_equal_approx(Color("#f06c68")) and
+		targets.material.get_shader_parameter("opposing_color").is_equal_approx(Color("#69a4ff")),
+		"Player One did not set the shared shader palette.")
+	choose(board, opponent_only, Vector2(7, 5), true)
+	expect(submit.disabled, "An opponent-only frame accepted a touch.")
+	choose(board, shared)
+	expect(not submit.disabled, "A shared frame did not accept an active player's choice.")
+	await capture("10c-red-shared")
+	click(two.get_global_rect().get_center())
+	expect(submit.disabled and board.call("ReadLegalTargetKind", active_only.x, active_only.y) == 2 and
+		board.call("ReadLegalTargetKind", shared.x, shared.y) == 3 and
+		targets.material.get_shader_parameter("active_color").is_equal_approx(Color("#69a4ff")),
+		"Changing the active player did not reverse the territory targets and palette.")
+	choose(board, shared, Vector2(7, 5), true)
+	await capture("10c-blue-shared")
+	game.call("SetTemporaryPresentation", false, true, true)
+	expect(board.call("ReadLegalTargetKind", active_only.x, active_only.y) == 0 and
+		board.call("ReadLegalTargetKind", shared.x, shared.y) == 1 and not submit.disabled,
+		"Changing opponent visibility altered selection or left opposing colors visible.")
+	expect(targets.material.shader.resource_path.ends_with("legal_frame_static.gdshader") and
+		liquid.material.shader.resource_path.ends_with("territory_tube_static.gdshader") and
+		not background.get("MotionEnabled"), "Reduce motion did not switch all three effects immediately.")
+	await capture("10c-static-no-opponent")
+	game.call("SetTemporaryPresentation", true, false, false)
+	expect(targets.material.shader.resource_path.ends_with("legal_frame.gdshader") and background.get("MotionEnabled"),
+		"Disabling future resolution effects also disabled ambient motion.")
+	expect(board.call("ReadLegalTargetKind", active_only.x, active_only.y) == 2 and not submit.disabled,
+		"Restoring display preferences changed the active input state.")
+	game.queue_free()
+	await process_frame
 
 func check_visual_sidecar() -> void:
 	root.size = Vector2i(900, 650)
@@ -173,6 +245,7 @@ func check_map_selection() -> void:
 	game.set("Mode", 1)
 	game.set("Rules", 0)
 	game.set("MapIdOverride", "demonstration")
+	game.call("SetTemporaryPresentation", true, true, true)
 	root.add_child(game)
 	var active_map: Label = game.get_node("%ActiveMap")
 	var badge: Label = game.get_node("%RuleSetBadge")
@@ -255,6 +328,10 @@ func check_map_selection() -> void:
 	expect(active_map.text == "Granite Orchard — 12 × 10" and badge.text == "Classic",
 		"The explicit map did not replace the startup override or preserve Classic.")
 	check_banner(board, Vector2(12, 10), ["0", "0"])
+	var background: Control = game.get_node("AnimatedBackground")
+	expect(not background.get("MotionEnabled"), "Replacement lost the presentation preferences.")
+	game.call("SetTemporaryPresentation", true, false, true)
+	expect(background.get("MotionEnabled"), "The replacement did not receive a live preference change.")
 	await capture("battlefield-granite-orchard")
 	var one: Button = game.get_node("%PlayerOne")
 	var two: Button = game.get_node("%PlayerTwo")
@@ -364,6 +441,8 @@ func check_board_extremes() -> void:
 		var two: Button = game.get_node("%PlayerTwo")
 		expect(phase.tooltip_text.ends_with("(%d × %d)" % [dimensions.x, dimensions.y]), "Wrong map size loaded.")
 		if large:
+			await capture("10c-large-portrait")
+		if large:
 			choose(board, Vector2(2, 2), dimensions)
 			await settle()
 			expect(submit.disabled, "An inaccessible tile was selectable.")
@@ -397,6 +476,7 @@ func check_board_extremes() -> void:
 			expect(submit.text == "Revise selection", "Large-board main submission did not enter the waiting state.")
 			await play(board, two, submit, sample[2], dimensions)
 			expect(phase.text in ["Main · Turn 2", "Match complete"], "Large-board main turn did not resolve.")
+			await capture("10c-large-landscape")
 		game.queue_free()
 		await process_frame
 
@@ -414,6 +494,7 @@ func check_complete_match(game: Control) -> void:
 	var detail: Label = game.get_node("%Detail")
 	var phase: Label = game.get_node("%Phase")
 	var board: Control = game.get_node("%BoardRenderer")
+	var banner: Control = board.get_node("TerritoryScoreBanner")
 	await settle()
 	check_banner(board, Vector2(7, 5), ["0", "0"])
 	choose(board, Vector2(4, 0))
@@ -457,18 +538,39 @@ func check_complete_match(game: Control) -> void:
 		[Vector2(1, 2), Vector2(3, 3)],
 		[Vector2(2, 3), Vector2(2, 3)],
 	]
-	for turn in remaining_turns:
+	for index in remaining_turns.size():
+		var turn: Array = remaining_turns[index]
+		var prior_area: int = banner.call("GetClaimableArea")
+		if index == 3:
+			await capture("10c-before-grave")
+		if index == 6 and not OS.get_environment("CASTRUM_M8B_SCREENSHOTS").is_empty():
+			game.call("SetTemporaryPresentation", true, false, true)
+			for sample in 3:
+				await capture("10c-motion-%d" % sample)
+				await create_timer(0.62).timeout
+			game.call("SetTemporaryPresentation", true, true, true)
 		await play(board, one, submit, turn[0])
 		await play(board, two, submit, turn[1])
+		if index == 3:
+			print("10C collision changed claimable area from %d to %d." % [prior_area, banner.call("GetClaimableArea")])
+			expect(banner.call("GetClaimableArea") < prior_area and piece_art_at(board, turn[0], Vector2(7, 5)) == "grave.png",
+				"The authoritative area did not shrink when a collision created a grave.")
+			await capture("10c-after-grave")
 	var heading: Label = game.get_node("%Status")
 	expect(phase.text == "Match complete" and heading.text == "Player Two wins", "Missing final outcome.")
 	check_banner(board, Vector2(7, 5), ["8", "18"])
+	var finished_levels: Vector2 = banner.call("GetDisplayedFill")
+	expect(finished_levels.x > 0 and finished_levels.y > finished_levels.x and finished_levels.x + finished_levels.y <= 1.001,
+		"The finished banner did not preserve authoritative proportions.")
+	await capture("10c-finished")
 	expect(restart.text == "Restart Match" and not submit.visible and board.visible, "Incorrect finished controls.")
 	check_controls_fit([restart], [heading, phase])
 	click(restart.get_global_rect().get_center())
 	await settle()
 	expect(one.button_pressed and phase.text == "Draft · Round 1" and submit.disabled, "Restart did not restore the opening.")
 	check_banner(board, Vector2(7, 5), ["0", "0"])
+	expect(banner.call("GetClaimableArea") == 0 and banner.call("GetDisplayedFill") == Vector2.ZERO,
+		"Restart left liquid or claimable area from the completed match.")
 
 func check_banner(board: Control, dimensions: Vector2, scores: Array) -> void:
 	var banner: Control = board.get_node("TerritoryScoreBanner")

@@ -21,7 +21,7 @@
     ],
     "resource": [
       {
-        "files": ["assets/**/*.png", "assets/10b/*.jpg"]
+        "files": ["assets/**/*.png", "assets/10b/*.jpg", "assets/10c/*.jpg"]
       }
     ],
     "output": ".docfx/site",

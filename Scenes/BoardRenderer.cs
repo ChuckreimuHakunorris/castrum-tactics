@@ -19,8 +19,8 @@ public partial class BoardRenderer : Control
     private const int LegalTargetLayer = 4;
     private const int SelectionLayer = 5;
     private const float GraveFootprint = 1f;
+    private const float FrameReserve = 6f;
     private static readonly Color GridColor = new("#18200d55");
-    private static readonly Color LegalTargetColor = new("#f8d47b");
     private static readonly Color SelectionColor = new("#defaff");
 
     private BoardState? _board;
@@ -28,7 +28,9 @@ public partial class BoardRenderer : Control
     private TerritoryAnalysis? _territory;
     private HashSet<BoardPosition> _eligiblePositions = [];
     private readonly List<(BoardPosition Position, Sprite2D Sprite, float Footprint)> _pieceSprites = [];
-    internal IEnumerable<BoardPosition> OpposingTargets { get; private set; } = [];
+    private HashSet<BoardPosition> _opposingPositions = [];
+    private PlayerId _activePlayer = PlayerId.PlayerOne;
+    private PresentationPreferences _preferences = new();
     private FactionPieceArt? _knightArt;
     private FactionPieceArt? _castleArt;
     private readonly Dictionary<int, FactionPieceArt> _wallArt = [];
@@ -40,6 +42,9 @@ public partial class BoardRenderer : Control
     private Texture2D _tileQuad = null!;
     private ShaderMaterial _gridMaterial = null!;
     private ShaderMaterial _legalMaterial = null!;
+    private Shader _animatedLegalShader = null!;
+    private Shader _staticLegalShader = null!;
+    private StyleBoxFlat _frameStyle = null!;
     private TerritoryScoreBanner? _scoreBanner;
 
     /// <summary>Gets the provisional selection for the current view, if any.</summary>
@@ -64,7 +69,7 @@ public partial class BoardRenderer : Control
     /// <param name="territory">The territory analysis for the same snapshot, or null during the opening draft.</param>
     /// <exception cref="ArgumentNullException"><paramref name="board"/> is null.</exception>
     public void SetBoard(BoardState board, IEnumerable<BoardPosition>? eligiblePositions = null, TerritoryAnalysis? territory = null)
-        => SetMatchBoard(board, eligiblePositions, [], territory);
+        => SetMatchBoard(board, eligiblePositions, [], territory, PlayerId.PlayerOne);
 
     internal void SetVisuals(BoardVisuals? visuals)
     {
@@ -73,19 +78,17 @@ public partial class BoardRenderer : Control
     }
 
     internal void SetMatchBoard(BoardState board, IEnumerable<BoardPosition>? eligiblePositions,
-        IEnumerable<BoardPosition> opposing, TerritoryAnalysis? territory)
+        IEnumerable<BoardPosition> opposing, TerritoryAnalysis? territory, PlayerId activePlayer)
     {
         ArgumentNullException.ThrowIfNull(board);
 
-        OpposingTargets = opposing;
+        _opposingPositions = new HashSet<BoardPosition>(opposing);
         _eligiblePositions = eligiblePositions is null ? [] : new HashSet<BoardPosition>(eligiblePositions);
+        _activePlayer = activePlayer;
         bool piecesMayHaveChanged = !ReferenceEquals(_board, board);
         _board = board;
         _territory = territory;
-        if (_legalOverlay is not null)
-        {
-            _legalOverlay.Material = territory is null ? null : _legalMaterial;
-        }
+        ApplyLegalMaterial();
 
         if (piecesMayHaveChanged)
         {
@@ -99,7 +102,33 @@ public partial class BoardRenderer : Control
         ClearSelection();
     }
 
-    /// <summary>Removes the provisional highlight and restores any legal indicator it replaced.</summary>
+    internal void ApplyPreferences(PresentationPreferences preferences)
+    {
+        bool changed = _preferences.ShowOpponentLegalTargets != preferences.ShowOpponentLegalTargets ||
+            _preferences.ReduceMotion != preferences.ReduceMotion;
+        _preferences = preferences;
+        if (!changed) return;
+        ApplyLegalMaterial();
+        RedrawIndicators();
+    }
+
+    private void ApplyLegalMaterial()
+    {
+        if (_legalOverlay is null) return;
+
+        bool showFrames = _territory is not null && (_eligiblePositions.Count > 0 ||
+            (_preferences.ShowOpponentLegalTargets && _opposingPositions.Count > 0));
+        _legalOverlay.Material = showFrames ? _legalMaterial : null;
+        if (!showFrames) return;
+
+        var shader = _preferences.ReduceMotion ? _staticLegalShader : _animatedLegalShader;
+        if (_legalMaterial.Shader != shader) _legalMaterial.Shader = shader;
+        PlayerId opposing = _activePlayer == PlayerId.PlayerOne ? PlayerId.PlayerTwo : PlayerId.PlayerOne;
+        _legalMaterial.SetShaderParameter("active_color", FactionPalette.GetColor(_activePlayer));
+        _legalMaterial.SetShaderParameter("opposing_color", FactionPalette.GetColor(opposing));
+    }
+
+    /// <summary>Removes the provisional highlight and restores the usual legal frame.</summary>
     public void ClearSelection()
     {
         SelectedPosition = null;
@@ -124,18 +153,27 @@ public partial class BoardRenderer : Control
             ZIndex = GridLayer,
             Material = _gridMaterial,
         };
-        _legalMaterial = CreateIndicatorMaterial(shader, LegalTargetColor, 0.045f);
+        _animatedLegalShader = GD.Load<Shader>("res://Shaders/legal_frame.gdshader");
+        _staticLegalShader = GD.Load<Shader>("res://Shaders/legal_frame_static.gdshader");
+        _legalMaterial = new ShaderMaterial();
+        _frameStyle = new StyleBoxFlat
+        {
+            BgColor = new Color("#cbdff5"),
+            ShadowColor = new Color("#0f264d52"),
+            ShadowSize = 3,
+            ShadowOffset = new Vector2(0, 1),
+        };
+        _frameStyle.SetCornerRadiusAll(4);
         _legalOverlay = new Node2D
         {
             Name = "LegalTargets",
             ZIndex = LegalTargetLayer,
-            Material = _territory is null ? null : _legalMaterial,
         };
         _selectionOverlay = new Node2D
         {
             Name = "ProvisionalSelection",
             ZIndex = SelectionLayer,
-            Material = CreateIndicatorMaterial(shader, SelectionColor, 0.065f),
+            Material = CreateIndicatorMaterial(shader, SelectionColor, 0.10f),
         };
         _damageOverlay = new Node2D { Name = "GroundDamage", ZIndex = DamageLayer };
         _damageOverlay.Draw += DrawGroundDamage;
@@ -146,6 +184,7 @@ public partial class BoardRenderer : Control
         AddChild(_damageOverlay);
         AddChild(_legalOverlay);
         AddChild(_selectionOverlay);
+        ApplyLegalMaterial();
         Resized += RefreshLayout;
         RefreshLayout();
     }
@@ -189,7 +228,7 @@ public partial class BoardRenderer : Control
         SelectionChanged?.Invoke();
     }
 
-    /// <summary>Draws terrain and secured-territory overlays beneath the piece and indicator layers.</summary>
+    /// <summary>Draws the frame, terrain and secured territory beneath pieces and indicators.</summary>
     public override void _Draw()
     {
         if (_board is not { } board || Size.X <= 0 || Size.Y <= 0)
@@ -198,6 +237,8 @@ public partial class BoardRenderer : Control
         }
 
         var geometry = GetGeometry(board);
+        if (geometry.CellPitch <= 0 || _frameStyle is null) return;
+        DrawStyleBox(_frameStyle, geometry.Bounds.Grow(2));
         for (int y = 0; y < board.Height; y++)
         {
             for (int x = 0; x < board.Width; x++)
@@ -255,11 +296,22 @@ public partial class BoardRenderer : Control
                 .Select(damage => BoardTerrainArt.PathFor(pair.Key, variant, damage))))
         .ToArray();
 
+    private int ReadLegalTargetKind(int x, int y)
+    {
+        var position = new BoardPosition(x, y);
+        return _territory is null ? 0 : (int)TargetKind(position);
+    }
+
+    private LegalTargetKind TargetKind(BoardPosition position) => MatchPresentation.Classify(
+        _eligiblePositions.Contains(position), _opposingPositions.Contains(position), _preferences.ShowOpponentLegalTargets);
+
     private static ShaderMaterial CreateIndicatorMaterial(Shader shader, Color color, float borderWidth)
     {
         var material = new ShaderMaterial { Shader = shader };
         material.SetShaderParameter("indicator_color", color);
         material.SetShaderParameter("border_width", borderWidth);
+        material.SetShaderParameter("fade_depth", 0.06f);
+        material.SetShaderParameter("fade_opacity", 0.22f);
         return material;
     }
 
@@ -285,21 +337,31 @@ public partial class BoardRenderer : Control
         var geometry = GetGeometry(board);
         foreach (BoardPosition position in _eligiblePositions)
         {
-            if (!board.IsWithinBounds(position))
-            {
-                continue;
-            }
+            if (!board.IsWithinBounds(position)) continue;
 
             Rect2 tile = geometry.GetCellRect(position);
             if (_territory is null)
             {
-                overlay.DrawCircle(tile.GetCenter(), geometry.CellPitch * 0.16f, LegalTargetColor, antialiased: true);
+                DraftShield.Draw(overlay, tile);
+                continue;
             }
-            else if (position != SelectedPosition)
+
+            var kind = TargetKind(position);
+            if (position != SelectedPosition || kind == LegalTargetKind.Shared)
             {
-                overlay.DrawTextureRect(_tileQuad, tile, tile: false);
+                DrawFrame(tile, kind);
             }
         }
+
+        if (_territory is null || !_preferences.ShowOpponentLegalTargets) return;
+        foreach (BoardPosition position in _opposingPositions)
+        {
+            if (!_eligiblePositions.Contains(position) && board.IsWithinBounds(position))
+                DrawFrame(geometry.GetCellRect(position), LegalTargetKind.Opposing);
+        }
+
+        void DrawFrame(Rect2 tile, LegalTargetKind kind) =>
+            overlay.DrawTextureRect(_tileQuad, tile, tile: false, new Color((int)kind / 4f, 0, 0));
     }
 
     private void DrawProvisionalSelection()
@@ -308,7 +370,10 @@ public partial class BoardRenderer : Control
             SelectedPosition is { } position && Size.X > 0 && Size.Y > 0)
         {
             var geometry = GetGeometry(board);
-            overlay.DrawTextureRect(_tileQuad, geometry.GetCellRect(position), tile: false);
+            var tile = geometry.GetCellRect(position);
+            if (_territory is not null && TargetKind(position) == LegalTargetKind.Shared)
+                tile = tile.Grow(-geometry.CellPitch * 0.115f);
+            overlay.DrawTextureRect(_tileQuad, tile, tile: false);
         }
     }
 
@@ -411,7 +476,7 @@ public partial class BoardRenderer : Control
 
     private float BannerReserve => _scoreBanner is null ? 0 : TerritoryScoreBanner.ReservedHeight(Size.Y);
 
-    private BoardGeometry GetGeometry(BoardState board) => new(Size, board.Width, board.Height, BannerReserve);
+    private BoardGeometry GetGeometry(BoardState board) => new(Size, board.Width, board.Height, BannerReserve, FrameReserve);
 
     private void LayoutBanner(BoardState board) => _scoreBanner?.AlignWith(GetGeometry(board).Bounds, BannerReserve);
 
