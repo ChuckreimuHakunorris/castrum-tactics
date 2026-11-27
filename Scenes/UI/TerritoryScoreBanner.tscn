@@ -8,6 +8,10 @@ texture_filter = 2
 mouse_filter = 2
 script = ExtResource("1")
 
+[node name="Liquid" type="ColorRect" parent="."]
+visible = false
+mouse_filter = 2
+
 [node name="Content" type="Control" parent="."]
 mouse_filter = 2
 

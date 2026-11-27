@@ -206,6 +206,7 @@ func spawn(map_id: String, rules: int = -1, difficulty: int = 1) -> Control:
 	if rules >= 0:
 		game.set("Rules", rules)
 	game.set("Difficulty", difficulty)
+	game.call("SetTemporaryPresentation", true, false, true)
 	root.add_child(game)
 	return game
 

@@ -25,10 +25,16 @@ internal sealed class MatchPresentation(IGameSession session)
     internal static (IEnumerable<BoardPosition> Active, IEnumerable<BoardPosition> Opposing)
         Targets(GameSessionSnapshot snapshot, PlayerId active)
     {
-        if (snapshot.Phase != MatchPhase.Main)
+        if (snapshot.Phase == MatchPhase.Opening)
             return (snapshot.EligiblePositions, snapshot.EligiblePositions);
 
         var other = active == PlayerId.PlayerOne ? PlayerId.PlayerTwo : PlayerId.PlayerOne;
         return (snapshot.GetMainPhaseLegalSelections(active), snapshot.GetMainPhaseLegalSelections(other));
     }
+
+    internal static LegalTargetKind Classify(bool active, bool opposing, bool showOpponent) =>
+        (active ? LegalTargetKind.Active : LegalTargetKind.None) |
+        (opposing && showOpponent ? LegalTargetKind.Opposing : LegalTargetKind.None);
 }
+
+internal enum LegalTargetKind { None = 0, Active = 1, Opposing = 2, Shared = 3 }

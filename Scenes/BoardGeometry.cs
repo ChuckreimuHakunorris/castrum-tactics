@@ -7,11 +7,13 @@ internal readonly struct BoardGeometry
     private readonly int _columns;
     private readonly int _rows;
 
-    internal BoardGeometry(Vector2 controlSize, int columns, int rows, float topReserve = 0)
+    internal BoardGeometry(Vector2 controlSize, int columns, int rows, float topReserve = 0, float edgeReserve = 0)
     {
         // Fit both axes with one pitch and leave a narrow margin around the centered board.
         controlSize.Y -= topReserve;
-        CellPitch = 0.96f * Mathf.Min(controlSize.X / columns, controlSize.Y / rows);
+        var available = (controlSize - Vector2.One * (2 * edgeReserve)).Max(Vector2.Zero);
+        CellPitch = Mathf.Min(0.96f * Mathf.Min(controlSize.X / columns, controlSize.Y / rows),
+            Mathf.Min(available.X / columns, available.Y / rows));
         Vector2 boardSize = new Vector2(columns, rows) * CellPitch;
         _bounds = new Rect2((controlSize - boardSize) / 2 + new Vector2(0, topReserve), boardSize);
         _columns = columns;

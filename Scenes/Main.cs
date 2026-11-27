@@ -44,6 +44,9 @@ public partial class Main : Control
     private bool _initialized;
     private GameSessionSnapshot _displayed = null!;
     private PlayerId _activePlayer;
+    private PresentationSettings? _presentationSettings;
+    private AnimatedBackground _background = null!;
+    private bool _ambientMotionAvailable;
 
     private VBoxContainer _frame = null!;
     private BoxContainer _layout = null!;
@@ -125,6 +128,9 @@ public partial class Main : Control
         }
 
         BindControls();
+        _presentationSettings ??= PresentationSettings.Application;
+        _presentationSettings.Changed += ApplyPresentationPreferences;
+        ApplyPresentationPreferences(_presentationSettings.Current);
         StartMatch(_configuration);
     }
 
@@ -145,6 +151,7 @@ public partial class Main : Control
     /// <summary>Detaches the session and invalidates worker requests before the scene exits.</summary>
     public override void _ExitTree()
     {
+        if (_presentationSettings is { } preferences) preferences.Changed -= ApplyPresentationPreferences;
         if (_match.Session is null) return;
         _match.Detach(DisplayState);
         _presentation = null;
@@ -158,6 +165,8 @@ public partial class Main : Control
         _layout = GetNode<BoxContainer>("Frame/Layout");
         _controls = GetNode<PanelContainer>("Frame/Layout/Controls");
         _board = GetNode<BoardRenderer>("%BoardRenderer");
+        _background = GetNode<AnimatedBackground>("AnimatedBackground");
+        _ambientMotionAvailable = _background.MotionEnabled;
         _banner = GetNode<TerritoryScoreBanner>("Frame/Layout/BoardRenderer/TerritoryScoreBanner");
         _phase = GetNode<Label>("%Phase");
         _activeMap = GetNode<Label>("%ActiveMap");
@@ -236,6 +245,22 @@ public partial class Main : Control
     {
         if (_initialized) throw new InvalidOperationException("Supply visual descriptors before the scene is ready.");
         _visualOverrides[mapId] = json;
+    }
+
+    internal void SetTemporaryPresentation(bool showOpponent, bool reduceMotion, bool animateResolution)
+    {
+        // Regression and capture scenes opt into an isolated store, even if a user file exists.
+        if (_presentationSettings?.IsPersistent == true)
+            throw new InvalidOperationException("Use a temporary store before starting the scene.");
+        _presentationSettings ??= new PresentationSettings();
+        _presentationSettings.Update(new PresentationPreferences(showOpponent, reduceMotion, animateResolution));
+    }
+
+    private void ApplyPresentationPreferences(PresentationPreferences preferences)
+    {
+        _board.ApplyPreferences(preferences);
+        _banner.SetReducedMotion(preferences.ReduceMotion);
+        _background.MotionEnabled = _ambientMotionAvailable && !preferences.ReduceMotion;
     }
 
     private BoardVisuals? LoadVisuals(PredefinedMap map)
@@ -364,15 +389,18 @@ public partial class Main : Control
         _presentation?.Observe(snapshot);
         _match.Cpu?.Observe(snapshot);
         // A submission flag can change without changing either target set or the provisional highlight.
-        if (changedRound) UpdateBoardView();
-        _banner.ShowScores(snapshot.PlayerOneScore, snapshot.PlayerTwoScore);
+        if (changedRound)
+        {
+            UpdateBoardView();
+            _banner.ShowTerritory(snapshot.Board, snapshot.Territory);
+        }
         UpdateControls();
     }
 
     private void UpdateBoardView()
     {
         var (active, opposing) = MatchPresentation.Targets(_displayed, _activePlayer);
-        _board.SetMatchBoard(_displayed.Board, active, opposing, _displayed.Territory);
+        _board.SetMatchBoard(_displayed.Board, active, opposing, _displayed.Territory, _activePlayer);
     }
 
     private void UpdateControls()

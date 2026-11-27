@@ -6,7 +6,6 @@ using Godot;
 
 internal partial class MapPreview : Control
 {
-    private static readonly Color Start = new("#ffda83");
     private static readonly Color Grid = new("#293b2a");
     private readonly HashSet<BoardPosition> _starts = [];
     private MapDefinition? _map;
@@ -43,8 +42,7 @@ internal partial class MapPreview : Control
                 BoardTerrainArt.Draw(this, tile.Grow(-geometry.CellPitch * 0.035f), cell, _visuals?.At(position) ?? default);
                 if (kind == TileKind.Start)
                 {
-                    DrawCircle(tile.GetCenter(), geometry.CellPitch * 0.26f, Grid, antialiased: true);
-                    DrawCircle(tile.GetCenter(), geometry.CellPitch * 0.19f, Start, antialiased: true);
+                    DraftShield.Draw(this, tile);
                 }
             }
     }
