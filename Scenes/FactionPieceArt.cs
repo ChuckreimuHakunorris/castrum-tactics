@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using CastrumTactics.Domain;
 using Godot;
 
-internal sealed class FactionPieceArt(Texture2D texture, Texture2D mask, float cellFootprint)
+internal sealed class FactionPieceArt(Texture2D texture, Texture2D mask, float cellFootprint, bool linear = false)
 {
     private readonly Shader _shader = GD.Load<Shader>("res://Shaders/faction_recolor.gdshader");
     private readonly Dictionary<PlayerId, ShaderMaterial> _materials = [];
@@ -15,6 +15,8 @@ internal sealed class FactionPieceArt(Texture2D texture, Texture2D mask, float c
         {
             material = new ShaderMaterial { Shader = _shader };
             material.SetShaderParameter("recolor_mask", mask);
+            material.SetShaderParameter("recolor_mask_linear", mask);
+            material.SetShaderParameter("linear_mask", linear);
             material.SetShaderParameter("faction_color", FactionPalette.GetColor(owner));
             _materials.Add(owner, material);
         }
@@ -23,7 +25,7 @@ internal sealed class FactionPieceArt(Texture2D texture, Texture2D mask, float c
         {
             Texture = texture,
             Material = material,
-            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+            TextureFilter = linear ? CanvasItem.TextureFilterEnum.Linear : CanvasItem.TextureFilterEnum.Nearest,
             Centered = true,
         };
     }

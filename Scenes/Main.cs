@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using CastrumTactics.AI;
 using CastrumTactics.Domain;
@@ -178,7 +177,7 @@ public partial class Main : Control
         _newMatch = GetNode<Button>("%NewMatch");
         _newMatchDialog = GetNode<NewMatchDialog>("ConfirmNewMatch");
         bool versusCpu = _configuration.CpuPlayer.HasValue;
-        _newMatchDialog.Initialize(versusCpu);
+        _newMatchDialog.Initialize(versusCpu, LoadVisuals);
 
         var panel = (StyleBoxFlat)_controls.GetThemeStylebox("panel").Duplicate();
         foreach (Side side in new[] { Side.Left, Side.Top, Side.Right, Side.Bottom })
@@ -217,7 +216,7 @@ public partial class Main : Control
 
         var session = _match.Create(map.Definition, configuration, _launch.Seed);
         _presentation = new MatchPresentation(session);
-        _board.SetVisuals(BoardVisuals.Load(map, ReadVisualDescriptor(map.Id), message => GD.PushWarning(message)));
+        _board.SetVisuals(LoadVisuals(map));
 
         string mapDescription = NewMatchDialog.Describe(map);
         _activeMap.Text = mapDescription;
@@ -239,13 +238,10 @@ public partial class Main : Control
         _visualOverrides[mapId] = json;
     }
 
-    private string? ReadVisualDescriptor(string mapId)
+    private BoardVisuals? LoadVisuals(PredefinedMap map)
     {
-        if (_visualOverrides.TryGetValue(mapId, out string? json)) return json;
-        using var stream = typeof(Main).Assembly.GetManifestResourceStream($"CastrumTactics.VisualMaps.{mapId}.json");
-        if (stream is null) return null;
-        using var reader = new StreamReader(stream);
-        return reader.ReadToEnd();
+        string? source = _visualOverrides.GetValueOrDefault(map.Id) ?? BoardVisuals.ReadEmbedded(map.Id);
+        return BoardVisuals.Load(map, source, message => GD.PushWarning(message));
     }
 
     private void UpdateLayout()

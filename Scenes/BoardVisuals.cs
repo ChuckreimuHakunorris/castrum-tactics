@@ -10,7 +10,8 @@ using CastrumTactics.Domain;
 
 internal enum TileVariant { Original, Weathered }
 
-internal readonly record struct TileVisual(TileVariant Variant, bool NorthRockEdge, bool StoneAccent);
+internal readonly record struct TileVisual(TileVariant Variant, bool NorthRockEdge, bool StoneAccent,
+    string? Terrain = null, string? ArtVariant = null, string? Prop = null);
 
 internal sealed class BoardVisuals
 {
@@ -35,8 +36,8 @@ internal sealed class BoardVisuals
             using var document = JsonDocument.Parse(source);
             RejectDuplicateFields(document.RootElement);
             var descriptor = document.RootElement.Deserialize<Descriptor>(JsonOptions);
-            if (descriptor is null || descriptor.Version != 1)
-                throw new InvalidDataException("Expected visual descriptor version 1.");
+            if (descriptor is null || descriptor.Version is not (1 or 2))
+                throw new InvalidDataException("Expected visual descriptor version 1 or 2.");
             if (descriptor.Width != map.Definition.Width || descriptor.Height != map.Definition.Height)
                 throw new InvalidDataException("Descriptor dimensions differ from the battlefield.");
 
@@ -48,39 +49,73 @@ internal sealed class BoardVisuals
                 if (!map.Definition.IsWithinBounds(position))
                     throw new InvalidDataException($"Tile {position} is outside the battlefield.");
 
-                string surface = map.Definition.GetTerrain(position) == TerrainType.Playable ? "grass" : "rock";
-                if (tile.Surface is not null && tile.Surface != surface)
-                    throw new InvalidDataException($"Surface '{tile.Surface}' is unsupported for {position} ({surface} terrain).");
-
-                var variant = tile.Variant switch
-                {
-                    "original" => TileVariant.Original,
-                    "weathered" => TileVariant.Weathered,
-                    null => DeriveVariant(map.Id, descriptor.Seed, position),
-                    _ => throw new InvalidDataException($"Unknown variant '{tile.Variant}' at {position}."),
-                };
-                bool edge = tile.Transition switch
-                {
-                    null => false,
-                    "north-rock-edge" => true,
-                    _ => throw new InvalidDataException($"Unknown transition '{tile.Transition}' at {position}."),
-                };
-                bool accent = tile.Prop switch
-                {
-                    null => false,
-                    "stone-accent" => true,
-                    _ => throw new InvalidDataException($"Unknown prop '{tile.Prop}' at {position}."),
-                };
-                if (!tiles.TryAdd(position, new TileVisual(variant, edge, accent)))
+                var terrain = map.Definition.GetTerrain(position);
+                TileVisual visual = descriptor.Version == 1
+                    ? ReadLegacy(tile, terrain, map.Id, descriptor.Seed, position)
+                    : ReadTerrain(tile, terrain, map.Id, descriptor.Seed, position);
+                if (!tiles.TryAdd(position, visual))
                     throw new InvalidDataException($"Duplicate tile at {position}.");
             }
             return new BoardVisuals(tiles);
         }
         catch (Exception error) when (error is JsonException or InvalidDataException)
         {
-            report($"Visual sidecar for '{map.Id}': {error.Message} Using legacy art.");
+            report($"Visual sidecar for '{map.Id}': {error.Message} Using map defaults.");
             return null;
         }
+    }
+
+    private static TileVisual ReadLegacy(Tile tile, TerrainType terrain, string mapId, int seed, BoardPosition position)
+    {
+        string surface = TerrainCatalog.DefaultType(terrain);
+        if (tile.Terrain is not null || (tile.Surface is not null && tile.Surface != surface))
+            throw new InvalidDataException($"Surface '{tile.Surface}' is unsupported for {position} ({surface} terrain).");
+
+        var variant = tile.Variant switch
+        {
+            "original" => TileVariant.Original,
+            "weathered" => TileVariant.Weathered,
+            null => (Hash(mapId, seed, position) >> 31) == 0 ? TileVariant.Original : TileVariant.Weathered,
+            _ => throw new InvalidDataException($"Unknown variant '{tile.Variant}' at {position}."),
+        };
+        bool edge = tile.Transition switch
+        {
+            null => false,
+            "north-rock-edge" => true,
+            _ => throw new InvalidDataException($"Unknown transition '{tile.Transition}' at {position}."),
+        };
+        bool accent = tile.Prop switch
+        {
+            null => false,
+            "stone-accent" => true,
+            _ => throw new InvalidDataException($"Unknown prop '{tile.Prop}' at {position}."),
+        };
+        return new TileVisual(variant, edge, accent);
+    }
+
+    private static TileVisual ReadTerrain(Tile tile, TerrainType terrain, string mapId, int seed, BoardPosition position)
+    {
+        if (tile.Surface is not null || tile.Transition is not null)
+            throw new InvalidDataException($"Use terrain and a named orientation variant in version 2 at {position}.");
+        string type = tile.Terrain ?? TerrainCatalog.DefaultType(terrain);
+        if (!TerrainCatalog.Types.TryGetValue(type, out var entry) || entry.Playable != (terrain == TerrainType.Playable))
+            throw new InvalidDataException($"Terrain '{type}' is incompatible with {terrain} at {position}.");
+        if (tile.Variant is null && entry.Directional)
+            throw new InvalidDataException($"Terrain '{type}' requires an explicit orientation variant at {position}.");
+        string variant = tile.Variant ?? entry.Variants[Hash(mapId, seed, position) % entry.Variants.Length];
+        if (Array.IndexOf(entry.Variants, variant) < 0)
+            throw new InvalidDataException($"Unknown variant '{variant}' for '{type}' at {position}.");
+        if (tile.Prop is { } prop && !TerrainCatalog.AllowsProp(type, prop))
+            throw new InvalidDataException($"Prop '{prop}' is incompatible with '{type}' at {position}.");
+        return new TileVisual(TileVariant.Original, false, false, type, variant, tile.Prop);
+    }
+
+    internal static string? ReadEmbedded(string mapId)
+    {
+        using var stream = typeof(BoardVisuals).Assembly.GetManifestResourceStream($"CastrumTactics.VisualMaps.{mapId}.json");
+        if (stream is null) return null;
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 
     private static void RejectDuplicateFields(JsonElement element)
@@ -101,7 +136,7 @@ internal sealed class BoardVisuals
         }
     }
 
-    private static TileVariant DeriveVariant(string mapId, int seed, BoardPosition position)
+    private static uint Hash(string mapId, int seed, BoardPosition position)
     {
         // FNV-1a over the UTF-8 ID and little-endian 32-bit values. Use the high bit to avoid a parity pattern.
         uint hash = 2166136261;
@@ -110,7 +145,7 @@ internal sealed class BoardVisuals
         foreach (int value in new[] { seed, position.X, position.Y })
             for (int shift = 0; shift < 32; shift += 8)
                 hash = unchecked((hash ^ (byte)(value >>> shift)) * 16777619);
-        return (hash >> 31) == 0 ? TileVariant.Original : TileVariant.Weathered;
+        return hash;
     }
 
     private sealed class Descriptor
@@ -127,6 +162,7 @@ internal sealed class BoardVisuals
         public required int X { get; init; }
         public required int Y { get; init; }
         public string? Surface { get; init; }
+        public string? Terrain { get; init; }
         public string? Variant { get; init; }
         public string? Transition { get; init; }
         public string? Prop { get; init; }

@@ -17,9 +17,11 @@
 
 | 9C | Integrated compiler, formatting, documentation, archive and platform verification checks. [Engineering verification](EngineeringVerification.md) |
 
+| 10A | Integrated visual sidecars, board layers, fit geometry and resolved-turn records. [Visual foundation](VisualFoundationVerification.md) |
+
 ## Current
 
-**10A** implements the visual architecture foundation and is awaiting review. The complete [visual development roadmap](VisualDevelopmentRoadmap.md) covers 10A–10F.
+**10B** implements the reference-matching board art, terrain registry, damage cues and cardinal fortifications and is awaiting review. [Visual roadmap](VisualDevelopmentRoadmap.md)
 
 ## Planned
 

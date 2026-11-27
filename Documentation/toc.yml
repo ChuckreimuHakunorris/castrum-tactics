@@ -71,3 +71,5 @@ items:
         href: EngineeringVerification.md
       - name: 10A visual verification
         href: VisualFoundationVerification.md
+      - name: 10B board art verification
+        href: BoardArtVerification.md

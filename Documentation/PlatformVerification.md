@@ -47,6 +47,8 @@ The template pins NDK `29.0.14206865` for native tooling. The verified debug exp
 
 See the [game design](GameDesign.md) and [art direction](ArtDirection.md) for gameplay rules and visual direction.
 
+See the [10B board art checklist and export results](BoardArtVerification.md#owner-device-checklist) for art, ground damage and connected castles.
+
 ## Windows x64 debug export
 
 Install the matching Godot .NET export templates and the [pinned SDK](EngineeringVerification.md#toolchain-and-policy). Run from the repository root in PowerShell.

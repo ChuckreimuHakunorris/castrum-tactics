@@ -27,16 +27,27 @@ internal partial class NewMatchDialog : ConfirmationDialog
 
     internal static string Describe(PredefinedMap map) => $"{map.Name} — {map.Definition.Width} × {map.Definition.Height}";
 
-    internal void Initialize(bool versusCpu)
+    private Func<PredefinedMap, BoardVisuals?> _loadVisuals = null!;
+
+    internal void Initialize(bool versusCpu, Func<PredefinedMap, BoardVisuals?> loadVisuals)
     {
+        _loadVisuals = loadVisuals;
         GetOkButton().ThemeTypeVariation = "PrimaryButton";
 
         // Bound the content independently of the window footer, including while wrapped text is remeasured.
-        var content = new ScrollContainer { Name = "Content", HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            FollowFocus = true };
+        var content = new ScrollContainer
+        {
+            Name = "Content",
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            FollowFocus = true
+        };
         AddChild(content);
-        var settings = new VBoxContainer { Name = "Settings", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+        var settings = new VBoxContainer
+        {
+            Name = "Settings",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
         settings.AddThemeConstantOverride("separation", 6);
         content.AddChild(settings);
         _prompt = new Label { Name = "Prompt", AutowrapMode = TextServer.AutowrapMode.WordSmart };
@@ -51,18 +62,32 @@ internal partial class NewMatchDialog : ConfirmationDialog
 
     private void BuildMapList()
     {
-        var picker = new VBoxContainer { Name = "Picker", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+        var picker = new VBoxContainer
+        {
+            Name = "Picker",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
         picker.AddThemeConstantOverride("separation", 4);
         _body.AddChild(picker);
         _filter = new LineEdit { Name = "Filter", PlaceholderText = "Filter maps", AccessibilityName = "Filter maps" };
         picker.AddChild(_filter);
-        _scroll = new ScrollContainer { Name = "Scroll", SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+        _scroll = new ScrollContainer
+        {
+            Name = "Scroll",
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
             HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
-            VerticalScrollMode = ScrollContainer.ScrollMode.ShowAlways, FollowFocus = true, ScrollDeadzone = 8 };
+            VerticalScrollMode = ScrollContainer.ScrollMode.ShowAlways,
+            FollowFocus = true,
+            ScrollDeadzone = 8
+        };
         picker.AddChild(_scroll);
-        var entries = new VBoxContainer { Name = "Entries", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            MouseFilter = Control.MouseFilterEnum.Pass };
+        var entries = new VBoxContainer
+        {
+            Name = "Entries",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Pass
+        };
         entries.AddThemeConstantOverride("separation", 3);
         _scroll.AddChild(entries);
         var group = new ButtonGroup();
@@ -74,9 +99,16 @@ internal partial class NewMatchDialog : ConfirmationDialog
         void AddEntry(PredefinedMap? map)
         {
             // The list needs the row's press and drag events to start scrolling and cancel the pending button tap.
-            var button = new Button { Name = map?.Id ?? "random", Text = map is null ? "Random Map" : Describe(map),
-                Alignment = HorizontalAlignment.Left, ToggleMode = true, ButtonGroup = group,
-                AutowrapMode = TextServer.AutowrapMode.WordSmart, MouseFilter = Control.MouseFilterEnum.Pass };
+            var button = new Button
+            {
+                Name = map?.Id ?? "random",
+                Text = map is null ? "Random Map" : Describe(map),
+                Alignment = HorizontalAlignment.Left,
+                ToggleMode = true,
+                ButtonGroup = group,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                MouseFilter = Control.MouseFilterEnum.Pass
+            };
             button.AddThemeFontSizeOverride("font_size", 14);
             entries.AddChild(button);
             _entries.Add((map, button));
@@ -86,24 +118,46 @@ internal partial class NewMatchDialog : ConfirmationDialog
 
     private void BuildPreview(bool versusCpu)
     {
-        var details = new VBoxContainer { Name = "Preview", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+        var details = new VBoxContainer
+        {
+            Name = "Preview",
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill
+        };
         details.AddThemeConstantOverride("separation", 3);
         _body.AddChild(details);
-        _caption = new Label { Name = "Caption", AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            HorizontalAlignment = HorizontalAlignment.Center, ThemeTypeVariation = "Heading" };
+        _caption = new Label
+        {
+            Name = "Caption",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            ThemeTypeVariation = "Heading"
+        };
         _caption.AddThemeFontSizeOverride("font_size", 16);
         details.AddChild(_caption);
-        _preview = new MapPreview { Name = "Board", SizeFlagsVertical = Control.SizeFlags.ExpandFill,
-            MouseFilter = Control.MouseFilterEnum.Ignore };
+        _preview = new MapPreview
+        {
+            Name = "Board",
+            SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
         _preview.Resized += _preview.QueueRedraw;
         details.AddChild(_preview);
-        _previewDetail = new Label { Name = "Detail", AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            HorizontalAlignment = HorizontalAlignment.Center, ThemeTypeVariation = "MatchInstruction" };
+        _previewDetail = new Label
+        {
+            Name = "Detail",
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            ThemeTypeVariation = "MatchInstruction"
+        };
         details.AddChild(_previewDetail);
 
-        _difficulty = new OptionButton { Name = "DifficultyChoice", Visible = versusCpu,
-            AccessibilityName = "Difficulty for the next match" };
+        _difficulty = new OptionButton
+        {
+            Name = "DifficultyChoice",
+            Visible = versusCpu,
+            AccessibilityName = "Difficulty for the next match"
+        };
         // Keep the CPU controls in the preview column so the landscape list can use the full height.
         details.AddChild(_difficulty);
         foreach (CpuDifficulty difficulty in Enum.GetValues<CpuDifficulty>())
@@ -152,7 +206,7 @@ internal partial class NewMatchDialog : ConfirmationDialog
         MapChoice = map;
         _entries.First(entry => entry.Map == map).Button.SetPressedNoSignal(true);
         _caption.Text = map is null ? "Random Map" : Describe(map);
-        _preview.ShowMap(map?.Definition);
+        _preview.ShowMap(map?.Definition, map is null ? null : _loadVisuals(map));
         _preview.Visible = map is not null;
         _previewDetail.SizeFlagsVertical = map is null ? Control.SizeFlags.ExpandFill : Control.SizeFlags.Fill;
         _previewDetail.Text = map is null ? "The battlefield is chosen when the match begins."
