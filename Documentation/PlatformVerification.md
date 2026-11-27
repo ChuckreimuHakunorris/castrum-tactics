@@ -86,4 +86,4 @@ Confirm signature, 16 KiB alignment, package ID `com.castrumtactics.prototype` a
 
 For optional device measurement, use the [instrumentation procedure](CpuDifficultyCalibration.md#physical-android-follow-up) with `CastrumDeviceTiming=true` and a separate local output. Record the revision, device and Android version. Discard warm-up samples before summarizing worker timing and thread allocation, and record process GC counts, Android frame timing and thermal observations separately. See the [verification record](EngineeringVerification.md#verification-record) for currently completed checks.
 
-For the 10C.0 rendering profiles, package activation and device evidence collection, see [Native rendering benchmarks](RenderingBenchmarks.md).
+For the 10C.0 rendering profiles, package activation and device evidence collection, see [Native rendering benchmarks](RenderingBenchmarks.md). The [completed native baseline](NativeRenderingBaseline.md) records the Windows and physical Android settings and observations.

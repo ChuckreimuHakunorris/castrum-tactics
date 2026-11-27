@@ -25,6 +25,12 @@ Use one row per declared height, with exactly the declared width in characters. 
 
 Optional [visual sidecars](VisualArchitecture.md#sidecar-format) live in the application. The 10B registry validates each visual type against the underlying gameplay cell. Map identity, accessibility and draft order still come from the gameplay file.
 
+### Deferred initial ground health
+
+The owner approved exploring optional initial ground health in a future map format. Intact playable squares would still default to health 3, and authors could optionally start individual playable squares at health 1 or 2. Inaccessible terrain would stay at health 0. Omitting the field would preserve existing map behavior. The existing format and Milestone 10 gameplay stay as specified above.
+
+Initial damage could support ancient battlefields and fragile chokepoints. A future editor could expose it alongside terrain. Competitive review could consider how the distribution affects both players, and CPU play should be evaluated on pre-damaged terrain before adoption. Preserve the renderer’s ability to show damage indicators on empty playable squares. [Map editor planning](GameDesign.md#72-map-authoring)
+
 ## Authoring and validation
 
 Use a distinct lowercase identifier with hyphens between words, a nonblank display name, dimensions from 3 through 12 on each axis, and at least two starts. Retain identifiers and layouts for existing maps. Archive retired definitions when recorded walkthroughs or tests depend on them.

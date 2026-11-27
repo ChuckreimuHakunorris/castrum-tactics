@@ -77,3 +77,5 @@ items:
         href: InteractionVerification.md
       - name: Native rendering benchmarks
         href: RenderingBenchmarks.md
+      - name: 10C.0 native rendering baseline
+        href: NativeRenderingBaseline.md

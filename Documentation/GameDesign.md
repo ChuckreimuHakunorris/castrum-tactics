@@ -289,6 +289,8 @@ A basic map editor is planned relatively early and should eventually allow a use
 
 The built-in maps use JSON with terrain and starting positions encoded as rows of characters. The domain loads them into immutable map definitions before starting a match. A format and versioning strategy for user-created maps remains an editor design decision.
 
+One deferred editor idea is to let authors set playable ground to initial health 1 or 2, keeping 3 as the default and 0 for inaccessible terrain. This could support ancient battlefields and fragile chokepoints. Preserve existing maps, consider the damage distribution in competitive review, and evaluate CPU play on damaged starts before adoption. Keep the renderer able to show damage on empty playable squares. This exploration is deferred beyond Milestone 10. [Future map-format proposal](MapFormat.md#deferred-initial-ground-health)
+
 Favor open battlefields at least 8 × 8 in square and rectangular formats. Use irregular rock formations and generous openings to leave routes for flanking, expansion, and mutually supported formations. Use narrow passages where they create a local decision and leave room elsewhere to develop and redirect a formation. Offer interior, central, peripheral, sheltered, and exposed castle sites. Castles and draft graves immediately affect territory connectivity, so evaluate the resulting routes across several drafts. Knight Support playtesting retired the smallest boards and layouts that funneled most play down a few narrow routes. This guides the built-in catalog and leaves structural map rules independent.
 
 Online map sharing is a later feature.
