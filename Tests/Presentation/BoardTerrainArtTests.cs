@@ -11,14 +11,16 @@ public sealed class BoardTerrainArtTests
     [InlineData(2, "grass-plain-1.png")]
     [InlineData(3, "grass-plain.png")]
     [InlineData(4, "grass-plain.png")]
-    public void PlayableTerrainUsesHealthIndependentlyOfTheGrave(int health, string filename)
+    public void PlayableTerrainUsesHealthIndependentlyOfItsOccupant(int health, string filename)
     {
         var empty = new CellState(TerrainType.Playable, PieceType.None, null, health);
         var grave = new CellState(TerrainType.Playable, PieceType.Grave, null, health);
+        var castle = new CellState(TerrainType.Playable, PieceType.Castle, PlayerId.PlayerTwo, health);
         string expected = $"res://Assets/Sprites/Board/{filename}";
 
         Assert.Equal(expected, BoardTerrainArt.GetTexturePath(empty));
         Assert.Equal(expected, BoardTerrainArt.GetTexturePath(grave));
+        Assert.Equal(expected, BoardTerrainArt.GetTexturePath(castle));
     }
 
     [Theory]
@@ -27,7 +29,7 @@ public sealed class BoardTerrainArtTests
     [InlineData(2, 1)]
     [InlineData(3, 0)]
     [InlineData(6, 0)]
-    public void SameDamageCueForEveryPlayableFamilyAndPositiveHealthGraves(int health, int damage)
+    public void TerrainWearAppliesToEveryPlayableFamilyUnderGraves(int health, int damage)
     {
         foreach (var (type, descriptor) in TerrainCatalog.Types.Where(entry => entry.Value.Playable))
         {

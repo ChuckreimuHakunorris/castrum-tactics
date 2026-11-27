@@ -75,3 +75,5 @@ items:
         href: BoardArtVerification.md
       - name: 10C interaction verification
         href: InteractionVerification.md
+      - name: Native rendering benchmarks
+        href: RenderingBenchmarks.md

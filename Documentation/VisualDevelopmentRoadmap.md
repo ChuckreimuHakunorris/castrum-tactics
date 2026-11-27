@@ -18,6 +18,10 @@ Uses the integrated 10B rendering and art as the review baseline. Both authorita
 
 The secured-territory tube uses a dynamic denominator of secured plus contested cells. The board has a pale-blue frame outside its logical cells. Persistent preferences control opposing targets, reduced motion and future turn-resolution animations independently. [10C verification](InteractionVerification.md)
 
+## 10C.0 · Native rendering performance baseline
+
+Capture reproducible frame, renderer and memory evidence on native Windows and physical Android with the opt-in benchmark. Compare normal and reduced motion, opposing targets and the three decorative effects independently. Software-rendered runs verify instrumentation and can compare cloud revisions under matched conditions. The owner-device baseline remains open. [Rendering benchmarks](RenderingBenchmarks.md)
+
 ## 10C.1 · Artwork refinement and terrain autotiling
 
 The owner tested 10B on Windows and accepted its rendering and asset architecture. The artwork needs substantial refinement. The owner and ChatGPT review individual source graphics, and the owner supplies approved originals to Codex. Codex performs the required isolation, alignment, import, faction masking and verification. Review each asset family in-game before proceeding. Ask the owner before redrawing or distorting approved art beyond necessary technical processing. The owner will supply the larger JRPG-inspired battlefield reference and the forest and mountain connection diagrams during the appropriate refinement tasks.
@@ -32,6 +36,10 @@ The owner tested 10B on Windows and accepted its rendering and asset architectur
 8. 10C.1h covers remaining terrain, vegetation, ruins and settlements.
 
 These are individual art reviews. Multiple reviewed families may share a PR. Start forests and mountains with the 16 cardinal masks. Neighbors should form continuous forests and ranges, with compatible edges, consistent scale, lighting and perspective, and artwork constrained to its assigned footprint. Keep deterministic variants seam-safe. Build reusable adjacency-driven rendering and review assembled boards. Consider diagonal-sensitive corners if assembled configurations need them. Future follow-up includes water connectivity validation, default terrain variation and an investigation of batching efficiency.
+
+## 10C.2 · Evidence-driven rendering optimization
+
+Use 10C.0 measurements and repeat them after 10C.1. Investigate texture atlases and memory, material batching, incremental sprite synchronization, background cost and frame-rate preferences. Investigate batching or replacing antialiased damage markers after comparing the reachable damage replay with the original extreme stress fixture. Consider fixed-action-sequence benchmarks and reflection-free fixture construction. Select changes after reviewing measured tradeoffs.
 
 ## 10D · Android zoom and play comfort
 

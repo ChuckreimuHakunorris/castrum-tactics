@@ -47,7 +47,7 @@ Connected castles compose the same singleton crop over new masonry joins. The sa
 
 ## 8. Ground art and earlier placeholders
 
-Grass, sand, snow and bridges each have four display tiers. The artwork progresses through exposed soil, scuffs, slush or plank wear. One, two or three outlined pale marks indicate damage. Intact and inaccessible cells appear without markers. A grave can sit on partly damaged ground.
+Grass, sand, snow and bridges each have four display tiers. The artwork progresses through exposed soil, scuffs, slush or plank wear. One, two or three outlined pale marks indicate damage on empty playable cells or beneath knights. Intact and inaccessible cells, castles and graves have no marks. Terrain wear still shows beneath castles and graves.
 
 The earlier ImageGen artwork under `Assets/Sprites/Terrain`, `Assets/Sprites/Units` and `Assets/Sprites/Objects` remains available as historical material. The old 32 × 32 and nearest-neighbor targets describe that era.
 

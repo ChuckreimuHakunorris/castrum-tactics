@@ -128,6 +128,7 @@ public partial class Main : Control
         }
 
         BindControls();
+        if (TryStartRenderingBenchmark()) return;
         _presentationSettings ??= PresentationSettings.Application;
         _presentationSettings.Changed += ApplyPresentationPreferences;
         ApplyPresentationPreferences(_presentationSettings.Current);
@@ -140,7 +141,10 @@ public partial class Main : Control
     {
         if (_match.Session is not { } session || _match.Cpu is not { } cpu) return;
         Exception? previousFailure = cpu.Failure;
+        long pumpStart = _benchmark is not null && cpu.PendingWork?.IsCompleted == true
+            ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         cpu.Pump(session);
+        if (pumpStart != 0) _benchmark?.Mark("cpu-submit", pumpStart);
         if (cpu.Failure is { } failure && !ReferenceEquals(previousFailure, failure))
         {
             GD.PushError(failure.ToString());
@@ -223,7 +227,7 @@ public partial class Main : Control
         if (configuration.Mode == GameMode.LocalMultiplayer) _activePlayer = PlayerId.PlayerOne;
         _displayed = null!;
 
-        var session = _match.Create(map.Definition, configuration, _launch.Seed);
+        var session = _match.Create(map.Definition, configuration, _benchmarkSeed ?? _launch.Seed, _benchmarkCpu);
         _presentation = new MatchPresentation(session);
         _board.SetVisuals(LoadVisuals(map));
 
@@ -231,7 +235,7 @@ public partial class Main : Control
         _activeMap.Text = mapDescription;
         _phase.TooltipText = $"{map.Name} ({map.Definition.Width} × {map.Definition.Height})";
         GetWindow().Title = $"Castrum Tactics — {mapDescription}";
-        GD.Print($"Selected map '{map.Id}' ({map.Definition.Width} × {map.Definition.Height}).");
+        if (_benchmark is null) GD.Print($"Selected map '{map.Id}' ({map.Definition.Width} × {map.Definition.Height}).");
 
         // Publish the battlefield captions before attaching the observer and rendering the first snapshot.
         session.StateChanged += DisplayState;
@@ -379,6 +383,9 @@ public partial class Main : Control
     {
         bool versusCpu = _configuration.CpuPlayer.HasValue;
         bool changedRound = _displayed is null || _displayed.RoundId != snapshot.RoundId || _displayed.Phase != snapshot.Phase;
+        long published = _benchmark is not null && changedRound && _displayed is { } previous &&
+            (previous.ResolvedRounds < snapshot.ResolvedRounds || previous.ResolvedMainTurns < snapshot.ResolvedMainTurns)
+            ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         if (!versusCpu && snapshot.Phase == MatchPhase.Opening &&
             _displayed?.Phase is MatchPhase.OpeningRestartRequired or MatchPhase.Finished)
         {
@@ -395,6 +402,7 @@ public partial class Main : Control
             _banner.ShowTerritory(snapshot.Board, snapshot.Territory);
         }
         UpdateControls();
+        if (published != 0) _benchmark?.Mark("resolved-publication", published, snapshot.RoundId.ToString());
     }
 
     private void UpdateBoardView()

@@ -41,6 +41,9 @@ internal static class TerrainCatalog
     internal static int Damage(CellState cell) => cell.Terrain == TerrainType.Inaccessible
         ? 0
         : FullHealth - Math.Min(cell.GroundHealth, FullHealth);
+
+    internal static int DamageMarkerCount(CellState cell) =>
+        cell.Piece is PieceType.None or PieceType.Knight ? Damage(cell) : 0;
 }
 
 internal sealed record TerrainArtType(bool Playable, string[] Variants, bool Directional = false);

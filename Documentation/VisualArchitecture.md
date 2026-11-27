@@ -39,7 +39,7 @@ Unknown fields, duplicate entries, invalid dimensions, out-of-range cells, and i
 | Backing and chrome | The scene background, pale-blue battlefield frame and fit-space score banner. The board reserves space outside its logical cells for the frame and shadow. |
 | Base, transition, prop, then territory tint | BoardRenderer's tile pass and BoardTerrainArt's cached terrain lookups. Optional decorations stay within the tile. Territory and damage remain visible. |
 | Grid and pieces | Existing TileGrid overlay and piece sprites. FactionPieceArt caches materials by owner and fits artwork into the shared cell geometry. |
-| Damage cues | A shared layer above pieces and tint and below legal indicators. Authoritative health selects the surface wear and the number of corner marks. |
+| Damage cues | A shared layer above pieces and tint and below legal indicators. Authoritative health selects terrain wear beneath every occupant. The damage layer shows corner marks only on damaged empty playable cells and knight cells. |
 | Legal and provisional overlays | LegalTargets draws shared gold shield art in Draft and faction-colored frames in Main. ProvisionalSelection draws a static pale cyan frame above both. |
 | Resolved effects | Future render layer. The current observer maintains the latest record without animation or a visible marker. |
 
@@ -62,3 +62,5 @@ One-sided updates retain the previous record without exposing new coordinates. R
 `PresentationSettings.Application` owns the local `user://presentation.json` file. Defaults show opponent targets, animate ambient presentation, and enable future turn-resolution effects. The scene listens while attached and unsubscribes on exit. A future settings control can pass a new immutable value to `Update` on the scene thread. File writes replace the existing configuration after serialization. Tests can inject a pathless store.
 
 The banner uses the already classified territory on a new authoritative round. It adds the two secured counts and every contested cell to determine claimable area. Neutral components have no piece of either faction and no adjacent castle. Main's legal selection generation uses contested control, so neutral components, graves and inaccessible ground are excluded. A contested tile beyond either player's current legal reach still counts. Draft and an empty denominator show no fill. Main and Finished use the same calculation. Numeric scores update before a fill tween begins. A newer result retargets from the current display, and reducing motion snaps to the latest target.
+
+The opt-in [rendering benchmark](RenderingBenchmarks.md) drives the same board and match scene, with temporary presentation settings and versioned synthetic snapshots. The normal scene creates no frame collector.
