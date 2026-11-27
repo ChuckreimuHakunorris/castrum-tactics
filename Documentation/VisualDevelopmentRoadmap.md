@@ -39,7 +39,7 @@ These are individual art reviews. Multiple reviewed families may share a PR. Sta
 
 ## 10C.2 · Evidence-driven rendering optimization
 
-Use 10C.0 measurements and repeat them after 10C.1. Investigate texture atlases and memory, material batching, incremental sprite synchronization, background cost and frame-rate preferences. Select changes after reviewing measured tradeoffs.
+Use 10C.0 measurements and repeat them after 10C.1. Investigate texture atlases and memory, material batching, incremental sprite synchronization, background cost and frame-rate preferences. Investigate batching or replacing antialiased damage markers after comparing the reachable damage replay with the original extreme stress fixture. Consider fixed-action-sequence benchmarks and reflection-free fixture construction. Select changes after reviewing measured tradeoffs.
 
 ## 10D · Android zoom and play comfort
 

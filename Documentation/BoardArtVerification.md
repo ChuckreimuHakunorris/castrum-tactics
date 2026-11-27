@@ -69,3 +69,5 @@ Use the commands in [Engineering verification](EngineeringVerification.md) and [
 3. In the [Classic walkthrough](PlatformVerification.md#windows-and-android-walkthrough), check the ground beneath the captured piece at E1 and the collision grave at C3. Look for marks on damaged land and empty corners on intact ground.
 4. In Knight Support, form adjacent friendly castles. Check that orthogonal joins line up and that opposing or diagonal castles stay separate.
 5. On a 12 × 12 match, make and revise a provisional selection, switch orientation with the selection active, then submit. Restart and replace the battlefield. Check the board bounds, previews, restored ground, fresh draft targets and consistent tap behavior.
+
+The damage sheets and captures in this article reflect 10B. The later [10C.0 review](RenderingBenchmarks.md#pr-30-review-follow-up-scenario-version-2) shows the updated marker visibility and matched rendering evidence.
