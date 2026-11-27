@@ -85,3 +85,5 @@ $tools = Join-Path $env:ANDROID_HOME 'build-tools/36.1.0'
 Confirm signature, 16 KiB alignment, package ID `com.castrumtactics.prototype` and ARM64 libraries. On Linux, use the equivalent tools without file extensions. After installing on an authorized phone, launch the app. Follow the rotation and hit-testing walkthrough, then use the normal Knight Support CPU build to exercise New Match, restart and interruption while the CPU is thinking.
 
 For optional device measurement, use the [instrumentation procedure](CpuDifficultyCalibration.md#physical-android-follow-up) with `CastrumDeviceTiming=true` and a separate local output. Record the revision, device and Android version. Discard warm-up samples before summarizing worker timing and thread allocation, and record process GC counts, Android frame timing and thermal observations separately. See the [verification record](EngineeringVerification.md#verification-record) for currently completed checks.
+
+For the 10C.0 rendering profiles, package activation and device evidence collection, see [Native rendering benchmarks](RenderingBenchmarks.md).

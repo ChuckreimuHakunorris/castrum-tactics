@@ -22,7 +22,7 @@
 
 ## Current
 
-**10C** adds faction-specific targets, draft shields, a claimable-territory tube, a battlefield frame and persistent presentation preferences. The next planned stage is 10C.1 artwork refinement and terrain autotiling. [Visual roadmap](VisualDevelopmentRoadmap.md) · [Interaction verification](InteractionVerification.md)
+**10C** integrated through PR #29. **10C.0** delivers the opt-in rendering benchmark. Native Windows and physical Android baseline collection remains open before the 10C.1 art reviews and evidence-driven 10C.2 optimization. [Visual roadmap](VisualDevelopmentRoadmap.md) · [Rendering benchmarks](RenderingBenchmarks.md)
 
 ## Planned
 
