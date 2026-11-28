@@ -282,7 +282,7 @@ public partial class BoardRenderer : Control
                 Rect2 tile = geometry.GetCellRect(position);
                 for (int mark = 0; mark < count; mark++)
                 {
-                    Vector2 center = tile.Position + tile.Size * new Vector2(0.87f - mark * 0.10f, 0.88f);
+                    Vector2 center = tile.Position + tile.Size * new Vector2(0.84f - mark * 0.16f, 0.84f);
                     float radius = geometry.CellPitch * 0.042f;
                     overlay.DrawCircle(center, radius * 1.28f, new Color("#362624"), antialiased: true);
                     overlay.DrawCircle(center, radius * 0.72f, new Color("#ffe3a2"), antialiased: true);

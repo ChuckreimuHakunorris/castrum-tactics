@@ -9,8 +9,8 @@ void vertex() {
 
 vec4 legal_frame(vec2 uv, float pulse) {
     float near_edge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
-    // Adjacent squares share one outline visually. The gap preserves the grid and territory edge.
-    float shape = smoothstep(0.012, 0.027, near_edge) * (1.0 - smoothstep(0.091, 0.109, near_edge));
+    // Keep the grid-side inset and halve the stroke width measured at half opacity.
+    float shape = smoothstep(0.012, 0.027, near_edge) * (1.0 - smoothstep(0.05075, 0.06875, near_edge));
     // The nearest pair of edges meets on the corner bisectors, with no overlapping alpha.
     float far_edge = min(1.0 - uv.x, 1.0 - uv.y);
     float top_left_edge = min(uv.x, uv.y);
