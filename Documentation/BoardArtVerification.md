@@ -1,5 +1,67 @@
 # Board art verification
 
+## 10C.1e.1 · Approved grass artwork
+
+Grass variation is implemented and awaits owner in-game acceptance. Sand, snow and the final ground damage art remain future work. The generator verifies the approved source bytes before reading the artwork.
+
+| Approved source | Source pixels | SHA-256 | Production texture |
+| --- | --- | --- | --- |
+| `grass_base_01.png` | 1254 × 1254 | `b39ccb4246f771151ecd89641c35af4c790b092b6138dd8593047cd848d97a1b` | `grass_base_01.png`, 128 × 128 |
+| `grass_base_02.png` | 1254 × 1254 | `351ae89a1c441fab04c5f301fa724446bf558a815912eb6ffaf11e834d94972a` | `grass_base_02.png`, 128 × 128 |
+| `grass_base_03.png` | 1254 × 1254 | `df4e16a2fc2e33813562d7cffa01023194786f5408b5f5340bf4ffbc9064f1f3` | `grass_base_03.png`, 128 × 128 |
+| `grass_base_04.png` | 1254 × 1254 | `b033b628606cc8279d1588ce17ce4ee1b271cfbc37795e6d43dcc5510dc7f0b3` | `grass_base_04.png`, 128 × 128 |
+| `accent_flowers.png` | 447 × 329 | `cabf9b7133e8de75d360a19294b22a619f30b57cfdc0c7af243ac6f3347c9b65` | `grass-accent-flowers.png`, 128 × 91 |
+| `accent_pebbles.png` | 358 × 271 | `a6884dcb7d74468aacca99acafc27a61d49e621e31063b76de755211dcbd20c0` | `grass-accent-pebbles.png`, 128 × 94 |
+
+The bases use Lanczos downsampling. The generator averages opposite borders across the four variants and reconciles the corner pixels. It fades each edge’s color correction into its own texture over six texels with a cosine taper. It compares every ordered pair in both axes and confirms that each resized interior remains pixel-identical. For the isolated accents, it crops fully transparent margins, preserves the aspect ratio up to pixel rounding and retains soft alpha. Production imports use lossless compression, linear filtering and no mipmaps.
+
+```powershell
+python -m pip install Pillow==10.3.0 numpy==1.26.4
+$sources = 'D:\Game Projects\Files\Assets'
+python scripts/art/build-grass.py $sources --previews Documentation/assets/10c1e1
+# Import in Godot before checking new texture import settings.
+python scripts/art/build-grass.py $sources --check
+```
+
+The [mixed-seam sheet](assets/10c1e1/grass-assets.png) shows all four bases and both accents at their scale limits with different offsets and mirroring. The [seed comparison](assets/10c1e1/grass-seeds.png) shows a 12 × 10 field at two seeds. The two renders at seed 0 match pixel for pixel. They contain 89 bare, 20 flower and 11 pebble tiles. Seed 29 contains 96 bare, 17 flower and 7 pebble tiles. [Selection and map compatibility](VisualArchitecture.md#deterministic-terrain-variation)
+
+| Native Windows capture | Review coverage |
+| --- | --- |
+| [Demonstration draft](assets/10c1e1/mixed-draft.png) | Mixed grass, sand and inaccessible terrain. Check the authored flower at A1, tuft at B1 and contrast with the gold draft shields. |
+| [Demonstration Main](assets/10c1e1/mixed-main.png) | Landscape play with knights, standalone castles, graves and tinted damage beneath collision sites. |
+| [Open Meadow portrait](assets/10c1e1/small-portrait.png) and [Open Meadow landscape](assets/10c1e1/connected-castles.png) | A 6 × 5 grass-heavy map with Knight Support pieces. Full-tile castles cover their underlying terrain. |
+| [Twelve Towers portrait draft](assets/10c1e1/large-portrait.png) | A 12 × 12 board at 360 × 640. The decorative pebbles are visibly smaller than the inaccessible rock tiles. |
+
+For Windows playtesting, choose Open Meadow and Twelve Towers in New Match. Use Demonstration for mixed terrain and the [Classic walkthrough](PlatformVerification.md#windows-and-android-walkthrough) for damage. On Android export the standard signed APK and update with the [repository installer](PlatformVerification.md#android-export). Review both orientations, restart the same map, and check that accents and base choices stay put when pieces and damage change.
+
+### Grass rendering measurements
+
+Windows x64 debug exports of baseline `c0452d28042c606448f160c31d0dcd0c360e5902` and candidate `56f5de4c4ef354bfc343022ffe9dcf1be723e8e9` both completed the version 2 Quick cases and three additional grass-heavy cases. Both ran on the native GTX 1060 3 GB with Godot 4.7.2 .NET, OpenGL Compatibility, a 900 × 650 window, a reported render texture of 1465 × 1057 and V-Sync at 59.973 Hz. Each case warmed up for two seconds and measured four seconds once at seed 42. Detailed CPU search and viewport timings were off. All start and end board digests matched between builds.
+
+Cells show baseline → candidate. Scene nodes and texture memory are medians of the sampled counters. Objects and draw calls are frame medians. Allocated MB is cumulative process-managed allocation over the measured interval, including benchmark overhead.
+
+| Case | Nodes | Objects | Draw calls | Texture MiB | Allocated MB | Sprite sync median ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Small | 188 → 188 | 234 → 241 | 51 → 69 | 6.43 → 6.46 | 0.21 → 0.20 | — |
+| Scripted turns | 199 → 199 | 260 → 267 | 67 → 83 | 6.60 → 6.64 | 0.29 → 0.30 | 0.341 → 0.300 |
+| Monster | 204 → 204 | 415 → 455 | 94 → 209 | 7.00 → 7.03 | 11.74 → 11.75 | 0.363 → 0.293 |
+| Large | 189 → 189 | 364 → 404 | 71 → 197 | 7.00 → 7.03 | 0.16 → 0.17 | — |
+| Castle clusters | 247 → 247 | 570 → 602 | 176 → 282 | 7.89 → 7.93 | 0.17 → 0.18 | — |
+| Extreme damage | 267 → 267 | 1191 → 1223 | 907 → 917 | 8.06 → 7.93 | 0.17 → 0.35 | — |
+
+| Case | Average FPS | Median ms | P95 ms | P99 ms | Intervals >33.33 ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Small | 59.97 → 60.31 | 16.67 → 16.67 | 16.87 → 16.83 | 16.98 → 16.93 | 0 → 0 |
+| Scripted turns | 59.97 → 59.97 | 16.68 → 16.66 | 17.22 → 17.01 | 18.95 → 18.27 | 0 → 1 |
+| Monster | 59.97 → 59.97 | 16.67 → 16.69 | 17.30 → 17.32 | 17.80 → 17.56 | 0 → 0 |
+| Large | 59.97 → 59.97 | 16.68 → 16.67 | 16.95 → 16.85 | 17.36 → 16.97 | 0 → 0 |
+| Castle clusters | 59.97 → 59.97 | 16.68 → 16.68 | 16.90 → 16.88 | 17.14 → 16.95 | 0 → 0 |
+| Extreme damage | 59.97 → 59.97 | 16.69 → 16.67 | 16.95 → 16.90 | 17.10 → 16.97 | 0 → 0 |
+
+The large case added 126 median draw calls. The scene node counts stayed level, and engine texture estimates moved by at most 0.13 MiB. Frame pacing stayed near 60 FPS in these short samples, with one candidate interval above 33.33 ms. The tests did not isolate the costs of extra accent draws from the effect of changing base textures. Uncapped headroom and physical Android performance remain unmeasured. Raw results and package logs are in the local ignored `exports/10c1e1/` directory. Follow the [benchmark procedure](RenderingBenchmarks.md) to repeat with the same settings.
+
+The warnings-as-errors solution build, ExportRelease and Release Benchmarks builds, all 458 automated tests and both Godot presentation regressions passed. The Windows export launched on the native renderer. The Android ARM64 debug export passed signature, 16 KiB alignment and `com.castrumtactics.prototype` package checks. Physical Android play and owner in-game acceptance remain pending.
+
 ## 10C.1a–10C.1d · Approved game piece artwork
 
 The knight, singleton castle, connected castles and gravestone are implemented and await owner in-game acceptance. The integrated baseline is `0f0ca87`. The approved high-resolution originals remain in the owner’s external `D:\Game Projects\Files\Assets` directory. All ten files sit directly in that directory.

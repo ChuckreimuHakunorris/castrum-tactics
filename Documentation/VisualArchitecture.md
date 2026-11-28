@@ -32,6 +32,18 @@ An explicit variant takes precedence. Otherwise the 32-bit FNV-1a hash over the 
 
 Unknown fields, duplicate entries, invalid dimensions, out-of-range cells, and incompatible types or variants produce a warning and whole-map fallback. Tests validate the embedded descriptors across the catalog. The picker uses the same intact assets and metadata for terrain and starts.
 
+## Deterministic terrain variation
+
+`BoardVisuals` assembles the authored sidecar and automatic variations once when configuring a battlefield. Match and picker draw the same resolved grass textures and normalized accent rectangles through `BoardTerrainArt`. A board with no map identity uses a deterministic size-based fallback. Domain state, occupancy, ownership and health never enter selection. Grass wear temporarily warms and darkens the selected base according to health. This replaces the old baked grass damage textures while ground-health markers keep their existing visibility rules. Accent selection and transforms persist through damage and restarts. Other terrain still uses its existing texture and damage paths.
+
+Pool 1 is the permanent default for sidecars without `visualPool`. Additional artwork can register a new version with independent weights and compatibility. A map adopts it only through a deliberate `visualPool` change. An unknown pool logs a sidecar warning and falls back to default map visuals. `seed` is an optional signed integer salt that defaults to zero and continues to drive existing sidecar variants. The map ID and salt together form the visual seed. No gameplay random stream is involved.
+
+Hash the UTF-8 map ID with FNV-1a 32-bit and append the salt, X, Y, and the FNV-1a hash of the terrain ID as little-endian 32-bit values. Append one channel ID per sample and apply MurmurHash3 `fmix32`. Channels 1–6 respectively choose accent, base, scale, X, Y and horizontal mirror. Weighted choices multiply the 32-bit sample by total weight and take the high 32 bits. Transforms use the high 24 bits divided by 2²⁴. Fixed test vectors pin the calculation across platforms and traversal order.
+
+Grass pool 1 gives none, flowers and pebbles weights 75, 15 and 10. All four bases have weight 1. Select the accent first, then restrict the base candidates by the accent’s compatible IDs and the bases’ accent flag. Both accents use `grass_base_01`, the tuft-free base. The nominal widths are 48% for flowers and 38% for pebbles. Uniform scale ranges from 65% to 100% of nominal size. Independent centered offsets range up to 20% on each axis and clamp against the trimmed texture’s actual aspect ratio. Eligible textures mirror horizontally 50% of the time. The draw pass uses shared texture references without adding accent nodes.
+
+Existing authored grass `plain` and `tufts` select bases 01 and 02. `flowers` and `pebbles` select the corresponding accent on base 01. An explicit prop takes precedence over an implied accent. The older explicit `grass-tuft` prop still uses its existing art with base 01. Legacy weathering and transition marks still render. Authored variant or legacy mark entries suppress extra automatic accents. Automatic choices apply to other grass tiles even when a sidecar supplies mixed terrain. Future editor choices can use the same presentation boundary for seed, pool, density and per-tile overrides. [Grass artwork and verification](BoardArtVerification.md#10c1e1--approved-grass-artwork)
+
 ## Layers and transforms
 
 | Order | Owner |

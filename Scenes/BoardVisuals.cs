@@ -11,7 +11,8 @@ using CastrumTactics.Domain;
 internal enum TileVariant { Original, Weathered }
 
 internal readonly record struct TileVisual(TileVariant Variant, bool NorthRockEdge, bool StoneAccent,
-    string? Terrain = null, string? ArtVariant = null, string? Prop = null);
+    string? Terrain = null, string? ArtVariant = null, string? Prop = null, bool AuthoredVariant = false,
+    TerrainAppearance? Appearance = null);
 
 internal sealed class BoardVisuals
 {
@@ -23,9 +24,68 @@ internal sealed class BoardVisuals
 
     private readonly Dictionary<BoardPosition, TileVisual> _tiles;
 
-    private BoardVisuals(Dictionary<BoardPosition, TileVisual> tiles) => _tiles = tiles;
+    private readonly int _seed;
+    private readonly int _pool;
+
+    private BoardVisuals(Dictionary<BoardPosition, TileVisual> tiles, int seed = 0, int pool = TerrainCatalog.DefaultPoolVersion)
+    {
+        _tiles = tiles;
+        _seed = seed;
+        _pool = pool;
+    }
 
     internal TileVisual At(BoardPosition position) => _tiles.GetValueOrDefault(position);
+
+    internal static BoardVisuals Resolve(PredefinedMap map, string? source, Action<string> report)
+    {
+        var visuals = Load(map, source, report) ?? new BoardVisuals([]);
+        visuals.ResolveVariation(map.Id, map.Definition.Width, map.Definition.Height, map.Definition.GetTerrain);
+        return visuals;
+    }
+
+    internal static BoardVisuals Anonymous(int width, int height)
+    {
+        var visuals = new BoardVisuals([]);
+        visuals.ResolveVariation(FormattableString.Invariant($"board:{width}x{height}"), width, height, _ => TerrainType.Playable);
+        return visuals;
+    }
+
+    private void ResolveVariation(string mapId, int width, int height, Func<BoardPosition, TerrainType> terrainAt)
+    {
+        uint seed = TerrainVisualRandom.MapSeed(mapId, _seed);
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                var position = new BoardPosition(x, y);
+                TileVisual visual = At(position);
+                string type = visual.Terrain ?? TerrainCatalog.DefaultType(terrainAt(position));
+                if (TerrainCatalog.VariationPool(type, _pool) is not { } pool) continue;
+
+                var appearance = type == "grass"
+                    ? ResolveGrass(pool, seed, position, visual)
+                    : pool.Select(seed, position);
+                _tiles[position] = visual with { Appearance = appearance };
+            }
+        }
+    }
+
+    private static TerrainAppearance ResolveGrass(TerrainVisualPool pool, uint seed, BoardPosition position, TileVisual visual)
+    {
+        // Translate legacy authored names at the presentation boundary.
+        string? variant = visual.AuthoredVariant ? visual.ArtVariant : null;
+        string? requested = visual.Prop ?? variant;
+        string? accent = requested is "flowers" or "pebbles" ? requested : null;
+        bool legacyProp = visual.Prop is not null && accent is null;
+        string? baseId = legacyProp ? "grass_base_01" : variant switch
+        {
+            "tufts" => "grass_base_02",
+            "plain" or "flowers" or "pebbles" => "grass_base_01",
+            _ => null,
+        };
+        return pool.Select(seed, position, baseId, accent,
+            suppressAutomaticAccent: variant is not null || legacyProp || visual.NorthRockEdge || visual.StoneAccent);
+    }
 
     internal static BoardVisuals? Load(PredefinedMap map, string? source, Action<string> report)
     {
@@ -40,6 +100,9 @@ internal sealed class BoardVisuals
                 throw new InvalidDataException("Expected visual descriptor version 1 or 2.");
             if (descriptor.Width != map.Definition.Width || descriptor.Height != map.Definition.Height)
                 throw new InvalidDataException("Descriptor dimensions differ from the battlefield.");
+            int pool = descriptor.VisualPool ?? TerrainCatalog.DefaultPoolVersion;
+            if (TerrainCatalog.VariationPool("grass", pool) is null)
+                throw new InvalidDataException($"Unknown terrain visual pool {pool}.");
 
             var tiles = new Dictionary<BoardPosition, TileVisual>();
             foreach (Tile? tile in descriptor.Tiles ?? throw new InvalidDataException("Expected a tiles array."))
@@ -56,7 +119,7 @@ internal sealed class BoardVisuals
                 if (!tiles.TryAdd(position, visual))
                     throw new InvalidDataException($"Duplicate tile at {position}.");
             }
-            return new BoardVisuals(tiles);
+            return new BoardVisuals(tiles, descriptor.Seed, pool);
         }
         catch (Exception error) when (error is JsonException or InvalidDataException)
         {
@@ -107,7 +170,7 @@ internal sealed class BoardVisuals
             throw new InvalidDataException($"Unknown variant '{variant}' for '{type}' at {position}.");
         if (tile.Prop is { } prop && !TerrainCatalog.AllowsProp(type, prop))
             throw new InvalidDataException($"Prop '{prop}' is incompatible with '{type}' at {position}.");
-        return new TileVisual(TileVariant.Original, false, false, type, variant, tile.Prop);
+        return new TileVisual(TileVariant.Original, false, false, type, variant, tile.Prop, tile.Variant is not null);
     }
 
     internal static string? ReadEmbedded(string mapId)
@@ -154,6 +217,7 @@ internal sealed class BoardVisuals
         public required int Width { get; init; }
         public required int Height { get; init; }
         public int Seed { get; init; }
+        public int? VisualPool { get; init; }
         public required Tile?[]? Tiles { get; init; }
     }
 

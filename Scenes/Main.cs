@@ -270,7 +270,7 @@ public partial class Main : Control
     private BoardVisuals? LoadVisuals(PredefinedMap map)
     {
         string? source = _visualOverrides.GetValueOrDefault(map.Id) ?? BoardVisuals.ReadEmbedded(map.Id);
-        return BoardVisuals.Load(map, source, message => GD.PushWarning(message));
+        return BoardVisuals.Resolve(map, source, message => GD.PushWarning(message));
     }
 
     private void UpdateLayout()
