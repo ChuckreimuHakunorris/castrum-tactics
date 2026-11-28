@@ -6,18 +6,35 @@ namespace CastrumTactics.Presentation.Tests;
 public sealed class CastleTopologyTests
 {
     [Fact]
-    public void CastleArtworkUsesTwoFacadesAndOneSharedCrystalMask()
+    public void CastleArtworkUsesFourFacadesAndOneSharedCrystalMask()
     {
         (int Base, int Tint)[] expected =
         [
-            (1, 10), (1, 10), (1, 10), (4, 15), (5, 15),
-            (6, 15), (7, 15), (1, 10), (1, 10), (10, 10),
+            (1, 1), (2, 2), (2, 2), (4, 15), (5, 15),
+            (6, 15), (7, 15), (8, 8), (8, 8), (10, 10),
             (10, 10), (12, 15), (13, 15), (14, 15), (15, 15),
         ];
         for (int mask = 1; mask <= expected.Length; mask++)
         {
             Assert.Equal(expected[mask - 1], BoardRenderer.GetWallArtworkMasks(mask));
         }
+    }
+
+    [Fact]
+    public void OpposingFortressesTerminateWhereTheirFacadeRowsTouch()
+    {
+        var one = new CellState(TerrainType.Playable, PieceType.Castle, PlayerId.PlayerOne, 3);
+        var two = new CellState(TerrainType.Playable, PieceType.Castle, PlayerId.PlayerTwo, 3);
+        int[] expected = [2, 10, 8, 2, 10, 8];
+        for (int x = 0; x < expected.Length; x++)
+        {
+            var position = new BoardPosition(x, 1);
+            PlayerId owner = x < 3 ? PlayerId.PlayerOne : PlayerId.PlayerTwo;
+            int artwork = CastleTopology.ArtworkMask(position, owner, 6, 2, At);
+            Assert.Equal((expected[x], expected[x]), BoardRenderer.GetWallArtworkMasks(artwork));
+        }
+
+        CellState At(BoardPosition position) => position.X < 3 ? one : two;
     }
 
     [Theory]

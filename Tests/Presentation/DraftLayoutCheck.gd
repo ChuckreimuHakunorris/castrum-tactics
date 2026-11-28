@@ -142,9 +142,9 @@ func check_visual_sidecar() -> void:
 	for path: String in board.call("ReadTerrainCatalogPaths"):
 		var texture = load(path)
 		expect(texture != null and texture.get_size() == Vector2(128, 128), "Missing terrain texture " + path)
-	for mask in [1, 4, 5, 6, 7, 10, 12, 13, 14, 15]:
+	for mask in [1, 2, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15]:
 		var base = load("res://Assets/Sprites/Board/wall-%d_base.png" % mask)
-		var tint = load("res://Assets/Sprites/Board/wall-%d_mask.png" % (15 if mask & 4 else 10))
+		var tint = load("res://Assets/Sprites/Board/wall-%d_mask.png" % (15 if mask & 4 else mask))
 		expect(base != null and tint != null and base.get_size() == tint.get_size(), "Misaligned castle mask %d" % mask)
 	var one: Button = fixture.get_node("%PlayerOne")
 	var two: Button = fixture.get_node("%PlayerTwo")
@@ -176,8 +176,8 @@ func check_connected_castles() -> void:
 	await play(board, two, submit, Vector2(2, 1), dimensions)
 	await play(board, one, submit, Vector2(1, 0), dimensions)
 	await play(board, two, submit, Vector2(3, 2), dimensions)
-	expect(piece_art_at(board, Vector2.ZERO, dimensions) == "wall-1_base.png" and
-		piece_art_at(board, Vector2(1, 0), dimensions) == "wall-1_base.png",
+	expect(piece_art_at(board, Vector2.ZERO, dimensions) == "wall-2_base.png" and
+		piece_art_at(board, Vector2(1, 0), dimensions) == "wall-8_base.png",
 		"Resolved friendly castles did not join along their shared edge.")
 	expect(piece_art_at(board, Vector2(2, 2), dimensions) == "castle_base.png", "An isolated castle acquired a wall.")
 	await capture("connected-castles")
@@ -186,7 +186,7 @@ func check_connected_castles() -> void:
 	await play(board, one, submit, Vector2(0, 1), dimensions)
 	await play(board, two, submit, Vector2(3, 2), dimensions)
 	expect(piece_art_at(board, Vector2.ZERO, dimensions) == "wall-4_base.png" and
-		piece_art_at(board, Vector2(1, 0), dimensions) == "wall-1_base.png",
+		piece_art_at(board, Vector2(1, 0), dimensions) == "wall-8_base.png",
 		"The roof did not add a rampart beside the eastern facade.")
 	await play(board, one, submit, Vector2(1, 1), dimensions)
 	await play(board, two, submit, Vector2(2, 3), dimensions)

@@ -29,7 +29,9 @@ Isolation clears alpha below 8 and crops to the surviving silhouette before sizi
 
 | Artwork mask | Base | Tint | Ramparts |
 | --- | --- | --- | --- |
-| N (1), E (2), NE (3), W (8), NW (9) | 1, gate | 10 | Façade row |
+| N (1) | 1, gated, both ends finished | 1 | Façade row |
+| E (2), NE (3) | 2, gated, left end finished | 2 | Façade row |
+| W (8), NW (9) | 8, gated, right end finished | 8 | Façade row |
 | EW (10), NEW (11) | 10, uninterrupted | 10 | Façade row |
 | S (4) | 4 | 15 | N, E, W · 10 blocks |
 | NS (5) | 5 | 15 | E, W · 8 blocks |
@@ -42,7 +44,9 @@ Isolation clears alpha below 8 and crops to the surviving silhouette before sizi
 
 Roofs evaluate their east and west edges independently. A side gets a rampart if there is no friendly castle on that side or the friendly neighbor has no southward castle connection and therefore displays a façade. For artwork lookup, clear that side bit on the roof. The north edge still uses the roof’s northward connection. The existing pre-composed bases already cover every resulting combination, including two side ramparts. They reuse the same crystal mask, so the cache needs no extra textures, layers or draw calls. The renderer re-evaluates the layout on each new board snapshot, including when a diagonal castle changes a neighboring façade into a roof.
 
-Both façades use the uninterrupted source for all four upper blocks, masonry, banner and foundation. Processing narrows the lower façade crop to columns `[3, 125)` at 128 px, refits it to the full width, and feathers the horizontal edges over three texels. A traced arch from the gate source at `(142, 266, 356, 435)` in the script’s 500 × 500 working image is resampled to 54 × 41 and overlaid at `(37, 70)`. The common ramparts, edges, banner and foundation align across both variants.
+The seamless base uses the uninterrupted source for all four upper blocks, masonry, banner and foundation. Processing narrows the lower façade crop to columns `[3, 125)` at 128 px, refits it to the full width, and feathers the horizontal edges over three texels. A traced arch from the gate source at `(142, 266, 356, 435)` in the script’s 500 × 500 working image is resampled to 54 × 41 and overlaid at `(37, 70)`.
+
+The endcaps restore the original artwork’s outer bevels to the exposed sides of the production gate. The outer five source columns expand to an eight-texel blend band, with matching treatment on the tint mask. This preserves the banner, doorway, masonry courses, rampart grid and connected edges. The façade continues only toward friendly castles, so opposing factions meeting along a horizontal wall show two finished edges. The owner approved the endcaps after reviewing the preview sheet.
 
 Pavement’s raw mean absolute edge jumps were 20.25 RGB levels north–south and 13.77 east–west at 128 px, compared with 16.06 and 8.98 between average interior neighbors. The script feathers both sides toward the mean of their border pixels over five texels with a cosine taper. The opposite border rows and columns match exactly after correction. Interior cobblestones retain their pattern. The nonrotated 32 × 32 rampart block fills one cell of the 4 × 4 grid. Corners shared by two exposed edges receive a single block. The 32 × 32 crystal, including its gold frame, is isolated from source alpha, centered at `(48, 48)` and baked into all eight otherwise opaque compositions. Its shared mask affects the gemstone.
 
@@ -57,14 +61,14 @@ python scripts/art/build-game-pieces.py $sources
 python scripts/art/build-game-pieces.py $sources --check --previews exports/10c1/previews
 ```
 
-The check validates source checksums, output dimensions and alpha, mask coverage within the sprite silhouette, all 15 cardinal configurations, rampart counts, matching pavement borders, and façade differences confined to the doorway. It regenerates PNGs in a temporary directory and compares bytes with production. The generated previews cover both default faction colors and representative green and violet tints.
+The check validates source checksums, output dimensions and alpha, mask coverage within the sprite silhouette, all 15 cardinal configurations, rampart counts, and matching pavement borders. It also checks that the façade variants preserve their shared continuing edges and that differences are confined to the doorway and terminal bands. It regenerates PNGs in a temporary directory and compares bytes with production. The generated previews cover both default faction colors and representative green and violet tints.
 
 ### Review images
 
 | Evidence | Coverage |
 | --- | --- |
 | [Faction colors](assets/10c1/faction-colors.png) and [connectivity](assets/10c1/connectivity.png) | Base and mask alignment, four color samples, all 15 connected configurations and the singleton. |
-| [Horizontal façades](assets/10c1/assemblies-facades.png) | E–W, E–EW–W and E–EW–EW–EW–W at native texel size. |
+| [Horizontal façade endcaps](assets/10c1/assemblies-facades.png) | Individual façade variants, a continuous six-tile wall, and directly adjacent red and blue fortresses at native texel size. |
 | [Vertical and rectangular fortresses](assets/10c1/assemblies-fortresses.png) | S–NS–N, 2 × 2, 3 × 3 and 5 × 4. The 3 × 3 upper, middle and lower rows are ES–ESW–SW, NES–NESW–NSW and NE–NEW–NW. |
 | [Irregular formations](assets/10c1/assemblies-irregular.png) and [façade transitions](assets/10c1/assemblies-facade-transitions.png) | L, T, cross, irregular cluster and adjacent opposing factions. The focused sheet shows left, right and bilateral ramparts in red and blue at native texel size. |
 | [Godot fortifications](assets/10c1/fortifications.png) and [alternate shader colors](assets/10c1/fortifications-alternate.png) | A temporary review fixture applied all 16 castle masks through the production board renderer and checked the bound base and tint resources. Both default shader colors and `#59ca87` / `#b48af5` were rendered. |

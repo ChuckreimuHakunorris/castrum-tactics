@@ -459,10 +459,12 @@ public partial class BoardRenderer : Control
         return art;
     }
 
-    // Group the two façades by doorway. All south-connected bases share the centered crystal mask.
+    // Façades use the horizontal friendly connections. Roofs share the centered crystal mask.
     internal static (int Base, int Tint) GetWallArtworkMasks(int mask) => mask switch
     {
-        1 or 2 or 3 or 8 or 9 => (1, 10),
+        1 => (1, 1),
+        2 or 3 => (2, 2),
+        8 or 9 => (8, 8),
         10 or 11 => (10, 10),
         _ => (mask, 15),
     };

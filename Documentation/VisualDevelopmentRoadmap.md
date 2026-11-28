@@ -28,7 +28,7 @@ The owner tested 10B on Windows and accepted its rendering and asset architectur
 
 1. 10C.1a implements the knight with tintable red livery and gold lion heraldry.
 2. 10C.1b implements the singleton castle with a source-derived mask for the banner and foundation.
-3. 10C.1c implements full-tile connected castles assembled offline from two façades, a rampart block, pavement and a faction crystal. Roof tiles add a side rampart at each adjoining friendly façade.
+3. 10C.1c implements full-tile connected castles assembled offline from façade art, a rampart block, pavement and a faction crystal. Roof tiles add a side rampart at each adjoining friendly façade. The owner approved the horizontal façade endcaps that distinguish opposing fortresses.
 4. 10C.1d implements the neutral grave with surrounding dirt and no vegetation.
 5. 10C.1e covers playable ground and damage.
 6. 10C.1f covers forest and mountain autotiles.

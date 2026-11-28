@@ -26,11 +26,13 @@ SOURCES = {
 
 NORTH, EAST, SOUTH, WEST = 1, 2, 4, 8  # Scenes/CastleTopology.cs
 DIRECTIONS = ((NORTH, 0, -1), (EAST, 1, 0), (SOUTH, 0, 1), (WEST, -1, 0))
-GATE_MASKS = (NORTH, EAST, WEST, NORTH | EAST, NORTH | WEST)
-PLAIN_MASKS = (EAST | WEST, NORTH | EAST | WEST)
+FACADE_BASES = {NORTH: NORTH, EAST: EAST, NORTH | EAST: EAST,
+                WEST: WEST, NORTH | WEST: WEST, EAST | WEST: EAST | WEST,
+                NORTH | EAST | WEST: EAST | WEST}
 PAVEMENT_COUNTS = {4: 10, 5: 8, 6: 7, 7: 4, 12: 7, 13: 4, 14: 4, 15: 0}
 TILE = 128
 BLOCK = 32
+ENDCAP_WIDTH = 8
 COLORS = ("#f06c68", "#69a4ff", "#59ca87", "#b48af5")
 
 
@@ -109,8 +111,31 @@ def match_edges(image, horizontal, vertical):
     return Image.fromarray(np.rint(pixels).astype(np.uint8))
 
 
-def facade_pair(sources):
-    master = sources["wall_ew_original.png"].resize((TILE, TILE), LANCZOS)
+def finish_facade_edges(production, original, exposed):
+    # Widen the original bevel slightly so it remains legible at gameplay scale.
+    weights = np.array([1, 1, 1, 0.9, 0.65, 0.35, 0.1, 0])
+    result = []
+    for layer, source in zip(production, original):
+        pixels = np.array(layer)
+        for side in exposed:
+            if side == WEST:
+                bevel = source.crop((0, 0, 5, TILE))
+                band = pixels[:, :ENDCAP_WIDTH]
+                blend = weights
+            else:
+                bevel = source.crop((TILE - 5, 0, TILE, TILE))
+                band = pixels[:, -ENDCAP_WIDTH:]
+                blend = weights[::-1]
+            bevel = np.asarray(bevel.resize((ENDCAP_WIDTH, TILE), Image.Resampling.BILINEAR))
+            blend = blend.reshape((1, ENDCAP_WIDTH) + (1,) * (band.ndim - 2))
+            band[:] = np.rint(band * (1 - blend) + bevel * blend)
+        result.append(Image.fromarray(pixels))
+    return tuple(result)
+
+
+def facades(sources):
+    original = sources["wall_ew_original.png"].resize((TILE, TILE), LANCZOS)
+    master = original.copy()
     # Remove the external bevel on the masonry and red strip so horizontal repeats meet.
     # Leave the four upper block bevels intact, as on the modular rampart.
     masonry = master.crop((3, 32, 125, TILE)).resize((TILE, TILE - 32), LANCZOS)
@@ -133,7 +158,14 @@ def facade_pair(sources):
     base, mask = faction_pair(master, allowed)
     gate = base.copy()
     gate.alpha_composite(door, (37, 70))
-    return (gate, mask), (base, mask)
+    gate_pair = gate, mask
+    original_pair = faction_pair(original, allowed)
+    return {
+        "wall-1": finish_facade_edges(gate_pair, original_pair, (WEST, EAST)),
+        "wall-2": finish_facade_edges(gate_pair, original_pair, (WEST,)),
+        "wall-8": finish_facade_edges(gate_pair, original_pair, (EAST,)),
+        "wall-10": (base, mask),
+    }
 
 
 def rampart_cells(mask):
@@ -146,7 +178,6 @@ def rampart_cells(mask):
 
 
 def build(sources):
-    gate, plain = facade_pair(sources)
     floor = match_edges(sources["wall_floor.png"].resize((TILE, TILE), LANCZOS), 5, 5)
     rampart = sources["wall_rampart_block.png"].resize((BLOCK, BLOCK), LANCZOS)
     crystal = isolate(sources["wall_crystal_original.png"])
@@ -165,8 +196,7 @@ def build(sources):
         "knight": fit_sprite(isolate(sources["knight_original.png"]), 100, tinted=True),
         "castle": fit_sprite(castle, 98, tinted=True, regions=banner_and_foundation),
         "grave": fit_sprite(isolate(sources["grave.png"]), 96, tinted=False),
-        f"wall-{NORTH}": gate,
-        f"wall-{EAST | WEST}": plain,
+        **facades(sources),
     }
     for topology, count in PAVEMENT_COUNTS.items():
         base = floor.copy()
@@ -182,15 +212,11 @@ def build(sources):
 def wall_key(topology):
     if topology == 0:
         return "castle"
-    if topology in GATE_MASKS:
-        return f"wall-{NORTH}"
-    if topology in PLAIN_MASKS:
-        return f"wall-{EAST | WEST}"
-    return f"wall-{topology}"
+    return f"wall-{FACADE_BASES.get(topology, topology)}"
 
 
 def verify(pairs):
-    if set(GATE_MASKS + PLAIN_MASKS) | PAVEMENT_COUNTS.keys() != set(range(1, 16)):
+    if FACADE_BASES.keys() | PAVEMENT_COUNTS.keys() != set(range(1, 16)):
         raise ValueError("Every nonzero cardinal configuration needs a texture pair")
     for key, layers in pairs.items():
         base = layers[0]
@@ -210,18 +236,34 @@ def verify(pairs):
     interior = np.asarray(pairs["wall-15"][0])
     if not (np.array_equal(interior[0], interior[-1]) and np.array_equal(interior[:, 0], interior[:, -1])):
         raise ValueError("Pavement edges do not match")
-    for gate, plain in zip(pairs["wall-1"], pairs["wall-10"]):
-        changed = np.argwhere(np.asarray(gate) != np.asarray(plain))
+    for standalone, left, right, plain in zip(*(pairs[f"wall-{key}"] for key in (1, 2, 8, 10))):
+        if not np.array_equal(np.asarray(plain)[BLOCK:, 0], np.asarray(plain)[BLOCK:, -1]):
+            raise ValueError("The middle façade masonry or foundation does not tile")
+        if not (np.array_equal(np.asarray(standalone)[:, :ENDCAP_WIDTH], np.asarray(left)[:, :ENDCAP_WIDTH])
+                and np.array_equal(np.asarray(standalone)[:, -ENDCAP_WIDTH:], np.asarray(right)[:, -ENDCAP_WIDTH:])):
+            raise ValueError("Standalone façade must use both endcaps")
+        if not (np.array_equal(np.asarray(left)[:, -ENDCAP_WIDTH:], np.asarray(plain)[:, -ENDCAP_WIDTH:])
+                and np.array_equal(np.asarray(right)[:, :ENDCAP_WIDTH], np.asarray(plain)[:, :ENDCAP_WIDTH])):
+            raise ValueError("Endpoint façades changed a continuing edge")
+        interior = (slice(None), slice(ENDCAP_WIDTH, TILE - ENDCAP_WIDTH))
+        gate = np.asarray(standalone)[interior]
+        if not (np.array_equal(gate, np.asarray(left)[interior]) and np.array_equal(gate, np.asarray(right)[interior])):
+            raise ValueError("Endpoint façades changed the gated interior")
+        if any(np.array_equal(np.asarray(standalone)[BLOCK:, side], np.asarray(plain)[BLOCK:, side])
+               for side in (slice(ENDCAP_WIDTH), slice(-ENDCAP_WIDTH, None))):
+            raise ValueError("A terminal bevel matches a continuing edge")
+        changed = np.argwhere(gate != np.asarray(plain)[interior])
         if changed.size and (changed[:, 0].min() < 70 or changed[:, 0].max() > 110
-                             or changed[:, 1].min() < 37 or changed[:, 1].max() > 90):
+                             or changed[:, 1].min() + ENDCAP_WIDTH < 37
+                             or changed[:, 1].max() + ENDCAP_WIDTH > 90):
             raise ValueError("Gate and uninterrupted façade differ outside the doorway")
 
 
 def write_assets(pairs, directory):
     for key, layers in pairs.items():
         names = ["grave.png"] if key == "grave" else [f"{key}_base.png"]
-        # The gate shares its common façade tint. All eight crystal masks are identical.
-        if key in ("knight", "castle", "wall-10", "wall-15"):
+        # All eight crystal masks are identical. Façade masks include their terminal trim.
+        if key in ("knight", "castle", "wall-1", "wall-2", "wall-8", "wall-10", "wall-15"):
             names.append(f"{key}_mask.png")
         for name, layer in zip(names, layers):
             layer.save(directory / name, optimize=True)
@@ -302,6 +344,25 @@ def review_sheets(pairs, directory):
         raise ValueError(f"Assembly fixtures missed {set(range(1, 16)) - seen}")
 
     margin = 12
+    facade_width = 6 * TILE
+    facade_rows = (
+        ("Same-faction wall: continuous masonry and foundation", ("RRRRRR",)),
+        ("Adjacent fortresses: red and blue terminate at the center", ("RRRBBB", "RRRBBB")),
+    )
+    facade_review = Image.new("RGB", (facade_width + 2 * margin, 4 * TILE + 48 + 5 * margin), "#304138")
+    draw = ImageDraw.Draw(facade_review)
+    labels = ("E: left end", "EW: middle", "W: right end", "N: both ends")
+    for column, (key, label) in enumerate(zip((2, 10, 8, 1), labels)):
+        x = margin + column * (facade_width - TILE) // 3
+        draw.text((x, margin), label, fill="white")
+        facade_review.paste(preview_tint(pairs[f"wall-{key}"], COLORS[0]), (x, margin + 16))
+    y = TILE + 3 * margin
+    for label, layout in facade_rows:
+        sheet, _ = preview_assembly(pairs, label, layout)
+        facade_review.paste(sheet, (margin, y))
+        y += sheet.height + margin
+    facade_review.save(directory / "assemblies-facades.png")
+
     width = 9 * TILE + 4 * margin
     top_height = 3 * TILE + 24
     irregular = Image.new("RGB", (width, top_height + 4 * TILE + 24 + 3 * margin), "#304138")
@@ -310,6 +371,17 @@ def review_sheets(pairs, directory):
     irregular.paste(assemblies["Irregular"], (margin, top_height + 2 * margin))
     irregular.paste(assemblies["Opposing factions"], (5 * TILE + 2 * margin, top_height + 2 * margin))
     irregular.save(directory / "assemblies-irregular.png")
+
+    top_height = assemblies["3 x 3"].height
+    large = assemblies["Large rectangle"]
+    fortress_review = Image.new("RGB", (6 * TILE + 4 * margin, top_height + large.height + 3 * margin), "#304138")
+    x = margin
+    for label in ("Vertical", "2 x 2", "3 x 3"):
+        panel = assemblies[label]
+        fortress_review.paste(panel, (x, margin))
+        x += panel.width + margin
+    fortress_review.paste(large, (margin, top_height + 2 * margin))
+    fortress_review.save(directory / "assemblies-fortresses.png")
 
     row_height = 2 * TILE + 24
     transitions = Image.new("RGB", (width, 2 * row_height + 3 * margin), "#304138")
