@@ -195,6 +195,7 @@ func check_connected_castles() -> void:
 	expect(piece_art_at(board, Vector2.ZERO, dimensions) == "wall-6_base.png" and
 		piece_art_at(board, Vector2(1, 0), dimensions) == "wall-12_base.png",
 		"The roof retained its eastern rampart after the neighboring facade became a roof.")
+	await capture("grass-connected-castles")
 	game.queue_free()
 	await process_frame
 
@@ -213,6 +214,8 @@ func check_knight_support_local() -> void:
 	var two: Button = game.get_node("%PlayerTwo")
 	var submit: Button = game.get_node("%Submit")
 	expect(badge.text == "Knight Support", "Local startup did not default to Knight Support.")
+	var grass := str(board.call("ReadTerrainVariation", 2, 0))
+	expect(grass.contains("grass_base_"), "New grass variation did not reach the renderer.")
 	await play(board, one, submit, Vector2.ZERO, dimensions)
 	await play(board, two, submit, Vector2(2, 2), dimensions)
 	expect(phase.text == "Main · Turn 1", "Knight Support did not enter Main after the draft.")
@@ -229,6 +232,7 @@ func check_knight_support_local() -> void:
 	expect(board.call("ReadGroundDamage", 2, 0) == 1 and board.call("ReadGroundDamage", 1, 2) == 0,
 		"Ground damage was not independent of piece status.")
 	expect(board.call("ReadDamageMarkerCount", 2, 0) == 0, "A Knight Support grave drew damage markers.")
+	expect(board.call("ReadTerrainVariation", 2, 0) == grass, "Damage or a new piece changed the grass selection.")
 	expect(piece_art_at(board, Vector2(1, 0), dimensions) == "knight_base.png", "Supported capture did not survive.")
 	check_banner(board, dimensions, ["1", "1"])
 	await capture("knight-support-mixed-portrait")
@@ -244,6 +248,7 @@ func check_knight_support_local() -> void:
 	click(game.get_node("%Restart").get_global_rect().get_center())
 	await settle()
 	expect(phase.text == "Draft · Round 1" and badge.text == "Knight Support", "Restart lost the active ruleset.")
+	expect(board.call("ReadTerrainVariation", 2, 0) == grass, "Restart or resize changed the grass selection.")
 	check_banner(board, dimensions, ["0", "0"])
 	game.queue_free()
 	await process_frame

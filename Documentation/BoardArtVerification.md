@@ -1,5 +1,39 @@
 # Board art verification
 
+## 10C.1e.1 · Approved grass artwork
+
+Grass variation is implemented and awaits owner in-game acceptance. Sand, snow and the final ground damage art remain future work. The generator verifies the approved source bytes before reading the artwork.
+
+| Approved source | Source pixels | SHA-256 | Production texture |
+| --- | --- | --- | --- |
+| `grass_base_01.png` | 1254 × 1254 | `b39ccb4246f771151ecd89641c35af4c790b092b6138dd8593047cd848d97a1b` | `grass_base_01.png`, 128 × 128 |
+| `grass_base_02.png` | 1254 × 1254 | `351ae89a1c441fab04c5f301fa724446bf558a815912eb6ffaf11e834d94972a` | `grass_base_02.png`, 128 × 128 |
+| `grass_base_03.png` | 1254 × 1254 | `df4e16a2fc2e33813562d7cffa01023194786f5408b5f5340bf4ffbc9064f1f3` | `grass_base_03.png`, 128 × 128 |
+| `grass_base_04.png` | 1254 × 1254 | `b033b628606cc8279d1588ce17ce4ee1b271cfbc37795e6d43dcc5510dc7f0b3` | `grass_base_04.png`, 128 × 128 |
+| `accent_flowers.png` | 447 × 329 | `cabf9b7133e8de75d360a19294b22a619f30b57cfdc0c7af243ac6f3347c9b65` | `grass-accent-flowers.png`, 128 × 91 |
+| `accent_pebbles.png` | 358 × 271 | `a6884dcb7d74468aacca99acafc27a61d49e621e31063b76de755211dcbd20c0` | `grass-accent-pebbles.png`, 128 × 94 |
+
+The bases use Lanczos downsampling. The generator averages opposite borders across the four variants and reconciles the corner pixels. It fades each edge’s color correction into its own texture over six texels with a cosine taper. It compares every ordered pair in both axes and confirms that each resized interior remains pixel-identical. For the isolated accents, it crops fully transparent margins, preserves the aspect ratio up to pixel rounding and retains soft alpha. Production imports use lossless compression, linear filtering and no mipmaps.
+
+```powershell
+python -m pip install Pillow==10.3.0 numpy==1.26.4
+$sources = 'D:\Game Projects\Files\Assets'
+python scripts/art/build-grass.py $sources --previews Documentation/assets/10c1e1
+# Import in Godot before checking new texture import settings.
+python scripts/art/build-grass.py $sources --check
+```
+
+The [mixed-seam sheet](assets/10c1e1/grass-assets.png) shows all four bases and both accents at their scale limits with different offsets and mirroring. The [seed comparison](assets/10c1e1/grass-seeds.png) shows a 12 × 10 field at two seeds. The two renders at seed 0 match pixel for pixel. They contain 89 bare, 20 flower and 11 pebble tiles. Seed 29 contains 96 bare, 17 flower and 7 pebble tiles. [Selection and map compatibility](VisualArchitecture.md#deterministic-terrain-variation)
+
+| Native Windows capture | Review coverage |
+| --- | --- |
+| [Demonstration draft](assets/10c1e1/mixed-draft.png) | Mixed grass, sand and inaccessible terrain. Check the authored flower at A1, tuft at B1 and contrast with the gold draft shields. |
+| [Demonstration Main](assets/10c1e1/mixed-main.png) | Landscape play with knights, standalone castles, graves and tinted damage beneath collision sites. |
+| [Open Meadow portrait](assets/10c1e1/small-portrait.png) and [Open Meadow landscape](assets/10c1e1/connected-castles.png) | A 6 × 5 grass-heavy map with Knight Support pieces. Full-tile castles cover their underlying terrain. |
+| [Twelve Towers portrait draft](assets/10c1e1/large-portrait.png) | A 12 × 12 board at 360 × 640. The decorative pebbles are visibly smaller than the inaccessible rock tiles. |
+
+For Windows playtesting, choose Open Meadow and Twelve Towers in New Match. Use Demonstration for mixed terrain and the [Classic walkthrough](PlatformVerification.md#windows-and-android-walkthrough) for damage. On Android export the standard signed APK and update with the [repository installer](PlatformVerification.md#android-export). Review both orientations, restart the same map, and check that accents and base choices stay put when pieces and damage change.
+
 ## 10C.1a–10C.1d · Approved game piece artwork
 
 The knight, singleton castle, connected castles and gravestone are implemented and await owner in-game acceptance. The integrated baseline is `0f0ca87`. The approved high-resolution originals remain in the owner’s external `D:\Game Projects\Files\Assets` directory. All ten files sit directly in that directory.

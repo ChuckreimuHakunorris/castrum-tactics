@@ -30,7 +30,7 @@ The owner tested 10B on Windows and accepted its rendering and asset architectur
 2. 10C.1b implements the singleton castle with a source-derived mask for the banner and foundation.
 3. 10C.1c implements full-tile connected castles assembled offline from façade art, a rampart block, pavement and a faction crystal. Roof tiles add a side rampart at each adjoining friendly façade. The owner approved the horizontal façade endcaps that distinguish opposing fortresses.
 4. 10C.1d implements the neutral grave with surrounding dirt and no vegetation.
-5. 10C.1e covers playable ground and damage.
+5. 10C.1e.1 integrates the approved grass artwork and deterministic terrain variation. Implemented and awaiting owner in-game acceptance. Sand, snow and final ground damage artwork remain in 10C.1e. [Grass verification](BoardArtVerification.md#10c1e1--approved-grass-artwork)
 6. 10C.1f covers forest and mountain autotiles.
 7. 10C.1g covers rivers, lakes and bridges.
 8. 10C.1h covers remaining terrain, vegetation, ruins and settlements.

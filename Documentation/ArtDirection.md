@@ -26,6 +26,7 @@ The default colors remain `#f06c68` and `#69a4ff`. Knights, singleton castles an
 
 - Terrain and connected castle textures use 128 × 128 canvases. Knights, singleton castles and graves use padded 104 × 104 canvases. Connected castles fill the square. Other pieces center within it.
 - The new terrain and base/mask pairs use linear sampling. Imports use lossless compression with mipmaps disabled.
+- Grass uses four approved base textures with matching borders and optional flower or pebble clusters on the tuft-free base. The smaller decorative pebbles sit within playable squares. Check them against the full-tile inaccessible rocks and review contrast against legal and damage cues at board scale. [Grass artwork and previews](BoardArtVerification.md#10c1e1--approved-grass-artwork)
 - Rivers use compatible edge profiles. Walkable bridges cross depicted water at right angles. Authored orientations remain explicit. Props, buildings and ruins stay inside one cell.
 - Preserve visible damage, territory, starts and legal indicators by drawing their cues in independent layers.
 

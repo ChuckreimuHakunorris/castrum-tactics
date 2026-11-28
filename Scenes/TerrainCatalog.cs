@@ -8,6 +8,25 @@ internal static class TerrainCatalog
 {
     internal const string AssetDirectory = "res://Assets/Sprites/Board/";
     internal const int FullHealth = 3;
+    internal const int DefaultPoolVersion = 1;
+
+    // Keep published pools intact. New artwork can opt in through a new ID.
+    private static readonly IReadOnlyDictionary<(string Terrain, int Version), TerrainVisualPool> VariationPools =
+        new Dictionary<(string, int), TerrainVisualPool>
+        {
+            [("grass", 1)] = new("grass", 75,
+                [new("grass_base_01", AssetDirectory + "grass_base_01.png", AllowsAccent: true),
+                 new("grass_base_02", AssetDirectory + "grass_base_02.png"),
+                 new("grass_base_03", AssetDirectory + "grass_base_03.png"),
+                 new("grass_base_04", AssetDirectory + "grass_base_04.png")],
+                [new("flowers", AssetDirectory + "grass-accent-flowers.png", 15, ["grass_base_01"],
+                     0.48f, 91f / 128, 0.65f, 1, 0.2f, 0.2f, AllowMirror: true),
+                 new("pebbles", AssetDirectory + "grass-accent-pebbles.png", 10, ["grass_base_01"],
+                     0.38f, 94f / 128, 0.65f, 1, 0.2f, 0.2f, AllowMirror: true)]),
+        };
+
+    internal static TerrainVisualPool? VariationPool(string terrain, int version) =>
+        VariationPools.GetValueOrDefault((terrain, version));
 
     // These IDs describe the artwork and its permitted pairing with the gameplay map.
     internal static readonly IReadOnlyDictionary<string, TerrainArtType> Types =

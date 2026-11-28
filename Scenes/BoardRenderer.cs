@@ -25,6 +25,7 @@ public partial class BoardRenderer : Control
 
     private BoardState? _board;
     private BoardVisuals? _visuals;
+    private BoardVisuals? _anonymousVisuals;
     private TerritoryAnalysis? _territory;
     private HashSet<BoardPosition> _eligiblePositions = [];
     private readonly List<(BoardPosition Position, Sprite2D Sprite, float Footprint)> _pieceSprites = [];
@@ -75,6 +76,8 @@ public partial class BoardRenderer : Control
     internal void SetVisuals(BoardVisuals? visuals)
     {
         _visuals = visuals;
+        if (visuals is null && _board is { } board && _anonymousVisuals is null)
+            _anonymousVisuals = BoardVisuals.Anonymous(board.Width, board.Height);
         QueueRedraw();
     }
 
@@ -87,6 +90,10 @@ public partial class BoardRenderer : Control
         _eligiblePositions = eligiblePositions is null ? [] : new HashSet<BoardPosition>(eligiblePositions);
         _activePlayer = activePlayer;
         bool piecesMayHaveChanged = !ReferenceEquals(_board, board);
+        bool dimensionsChanged = _board is not { } previous || previous.Width != board.Width || previous.Height != board.Height;
+        if (dimensionsChanged) _anonymousVisuals = null;
+        if (_visuals is null && _anonymousVisuals is null)
+            _anonymousVisuals = BoardVisuals.Anonymous(board.Width, board.Height);
         _board = board;
         _territory = territory;
         ApplyLegalMaterial();
@@ -249,7 +256,7 @@ public partial class BoardRenderer : Control
                 var position = new BoardPosition(x, y);
                 Rect2 tile = geometry.GetCellRect(position);
                 CellState cell = board.GetCell(position);
-                BoardTerrainArt.Draw(this, tile, cell, _visuals?.At(position) ?? default);
+                BoardTerrainArt.Draw(this, tile, cell, (_visuals ?? _anonymousVisuals)?.At(position) ?? default);
                 DrawTerritory(tile, position);
             }
         }
@@ -295,6 +302,9 @@ public partial class BoardRenderer : Control
 
     private int ReadGroundDamage(int x, int y) =>
         _board is { } board ? TerrainCatalog.Damage(board.GetCell(new BoardPosition(x, y))) : 0;
+
+    private string ReadTerrainVariation(int x, int y) =>
+        (_visuals ?? _anonymousVisuals)?.At(new BoardPosition(x, y)).Appearance?.ToString() ?? "";
 
     private string[] ReadTerrainCatalogPaths() => TerrainCatalog.Types
         .SelectMany(pair => pair.Value.Variants.SelectMany(variant =>
