@@ -34,6 +34,34 @@ The [mixed-seam sheet](assets/10c1e1/grass-assets.png) shows all four bases and 
 
 For Windows playtesting, choose Open Meadow and Twelve Towers in New Match. Use Demonstration for mixed terrain and the [Classic walkthrough](PlatformVerification.md#windows-and-android-walkthrough) for damage. On Android export the standard signed APK and update with the [repository installer](PlatformVerification.md#android-export). Review both orientations, restart the same map, and check that accents and base choices stay put when pieces and damage change.
 
+### Grass rendering measurements
+
+Windows x64 debug exports of baseline `c0452d28042c606448f160c31d0dcd0c360e5902` and candidate `56f5de4c4ef354bfc343022ffe9dcf1be723e8e9` both completed the version 2 Quick cases and three additional grass-heavy cases. Both ran on the native GTX 1060 3 GB with Godot 4.7.2 .NET, OpenGL Compatibility, a 900 × 650 window, a reported render texture of 1465 × 1057 and V-Sync at 59.973 Hz. Each case warmed up for two seconds and measured four seconds once at seed 42. Detailed CPU search and viewport timings were off. All start and end board digests matched between builds.
+
+Cells show baseline → candidate. Scene nodes and texture memory are medians of the sampled counters. Objects and draw calls are frame medians. Allocated MB is cumulative process-managed allocation over the measured interval, including benchmark overhead.
+
+| Case | Nodes | Objects | Draw calls | Texture MiB | Allocated MB | Sprite sync median ms |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Small | 188 → 188 | 234 → 241 | 51 → 69 | 6.43 → 6.46 | 0.21 → 0.20 | — |
+| Scripted turns | 199 → 199 | 260 → 267 | 67 → 83 | 6.60 → 6.64 | 0.29 → 0.30 | 0.341 → 0.300 |
+| Monster | 204 → 204 | 415 → 455 | 94 → 209 | 7.00 → 7.03 | 11.74 → 11.75 | 0.363 → 0.293 |
+| Large | 189 → 189 | 364 → 404 | 71 → 197 | 7.00 → 7.03 | 0.16 → 0.17 | — |
+| Castle clusters | 247 → 247 | 570 → 602 | 176 → 282 | 7.89 → 7.93 | 0.17 → 0.18 | — |
+| Extreme damage | 267 → 267 | 1191 → 1223 | 907 → 917 | 8.06 → 7.93 | 0.17 → 0.35 | — |
+
+| Case | Average FPS | Median ms | P95 ms | P99 ms | Intervals >33.33 ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Small | 59.97 → 60.31 | 16.67 → 16.67 | 16.87 → 16.83 | 16.98 → 16.93 | 0 → 0 |
+| Scripted turns | 59.97 → 59.97 | 16.68 → 16.66 | 17.22 → 17.01 | 18.95 → 18.27 | 0 → 1 |
+| Monster | 59.97 → 59.97 | 16.67 → 16.69 | 17.30 → 17.32 | 17.80 → 17.56 | 0 → 0 |
+| Large | 59.97 → 59.97 | 16.68 → 16.67 | 16.95 → 16.85 | 17.36 → 16.97 | 0 → 0 |
+| Castle clusters | 59.97 → 59.97 | 16.68 → 16.68 | 16.90 → 16.88 | 17.14 → 16.95 | 0 → 0 |
+| Extreme damage | 59.97 → 59.97 | 16.69 → 16.67 | 16.95 → 16.90 | 17.10 → 16.97 | 0 → 0 |
+
+The large case added 126 median draw calls. The scene node counts stayed level, and engine texture estimates moved by at most 0.13 MiB. Frame pacing stayed near 60 FPS in these short samples, with one candidate interval above 33.33 ms. The tests did not isolate the costs of extra accent draws from the effect of changing base textures. Uncapped headroom and physical Android performance remain unmeasured. Raw results and package logs are in the local ignored `exports/10c1e1/` directory. Follow the [benchmark procedure](RenderingBenchmarks.md) to repeat with the same settings.
+
+The warnings-as-errors solution build, ExportRelease and Release Benchmarks builds, all 458 automated tests and both Godot presentation regressions passed. The Windows export launched on the native renderer. The Android ARM64 debug export passed signature, 16 KiB alignment and `com.castrumtactics.prototype` package checks. Physical Android play and owner in-game acceptance remain pending.
+
 ## 10C.1a–10C.1d · Approved game piece artwork
 
 The knight, singleton castle, connected castles and gravestone are implemented and await owner in-game acceptance. The integrated baseline is `0f0ca87`. The approved high-resolution originals remain in the owner’s external `D:\Game Projects\Files\Assets` directory. All ten files sit directly in that directory.
