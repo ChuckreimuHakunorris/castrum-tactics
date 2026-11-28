@@ -24,7 +24,7 @@
 
 ## Current
 
-**10C.1a** is next and covers knight artwork refinement. The remaining 10C.1 art reviews follow, then 10C.2 evidence-driven rendering optimization, 10D Android zoom and panning, 10E animation and feedback, and 10F curated battlefield beautification. [Visual roadmap](VisualDevelopmentRoadmap.md)
+**10C.1a–10C.1d** are implemented and await owner in-game acceptance. The terrain art reviews in 10C.1e–10C.1h follow, then 10C.2 evidence-driven rendering optimization, 10D Android zoom and panning, 10E animation and feedback, and 10F curated battlefield beautification. [Game piece verification](BoardArtVerification.md#10c1a10c1d--approved-game-piece-artwork) · [Visual roadmap](VisualDevelopmentRoadmap.md)
 
 ## Planned
 

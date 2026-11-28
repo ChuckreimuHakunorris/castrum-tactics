@@ -405,9 +405,9 @@ public partial class BoardRenderer : Control
             {
                 var position = new BoardPosition(x, y);
                 CellState cell = cellAt(position);
-                int mask = cell is { Piece: PieceType.Castle, Owner: { } owner }
-                    ? CastleTopology.Mask(position, owner, board.Width, board.Height, cellAt) : 0;
-                if (CreatePieceSprite(cell, mask) is { } piece)
+                int artworkMask = cell is { Piece: PieceType.Castle, Owner: { } owner }
+                    ? CastleTopology.ArtworkMask(position, owner, board.Width, board.Height, cellAt) : 0;
+                if (CreatePieceSprite(cell, artworkMask) is { } piece)
                 {
                     piece.Sprite.ZIndex = PieceLayer;
                     AddChild(piece.Sprite);
@@ -447,15 +447,27 @@ public partial class BoardRenderer : Control
 
     private FactionPieceArt GetWallArt(int mask)
     {
-        if (!_wallArt.TryGetValue(mask, out var art))
+        var (baseMask, tintMask) = GetWallArtworkMasks(mask);
+        if (!_wallArt.TryGetValue(baseMask, out var art))
         {
-            string name = TerrainCatalog.AssetDirectory + $"wall-{mask}";
-            art = new FactionPieceArt(BoardTerrainArt.GetTexture(name + "_base.png"),
-                BoardTerrainArt.GetTexture(name + "_mask.png"), 1f, linear: true);
-            _wallArt.Add(mask, art);
+            art = new FactionPieceArt(
+                BoardTerrainArt.GetTexture(TerrainCatalog.AssetDirectory + $"wall-{baseMask}_base.png"),
+                BoardTerrainArt.GetTexture(TerrainCatalog.AssetDirectory + $"wall-{tintMask}_mask.png"),
+                1f, linear: true);
+            _wallArt.Add(baseMask, art);
         }
         return art;
     }
+
+    // Façades use the horizontal friendly connections. Roofs share the centered crystal mask.
+    internal static (int Base, int Tint) GetWallArtworkMasks(int mask) => mask switch
+    {
+        1 => (1, 1),
+        2 or 3 => (2, 2),
+        8 or 9 => (8, 8),
+        10 or 11 => (10, 10),
+        _ => (mask, 15),
+    };
 
     private void RefreshLayout()
     {

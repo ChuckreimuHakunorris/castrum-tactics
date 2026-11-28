@@ -1,6 +1,6 @@
 # Castrum Tactics — Art Direction Reference
 
-10B uses smooth medieval fantasy board art with clean outlines, bright readable surfaces and a stylized front or three-quarter piece view. The gameplay grid stays square and non-isometric. The active board asset bank is `Assets/Sprites/Board`. The owner approved the 10B architecture after Windows testing and identified the need for substantial artwork refinement in 10C.1. [Visual roadmap](VisualDevelopmentRoadmap.md)
+The board uses smooth medieval fantasy art with dark outlines, soft shading and beveled surfaces on a square, non-isometric grid. The active board asset bank is `Assets/Sprites/Board`. The 10C.1a–10C.1d artwork adds cool gray stone, silver armor and gold lion heraldry in place of the 10B military emblem. [Visual roadmap](VisualDevelopmentRoadmap.md)
 
 ## 1. Visual reference
 
@@ -20,11 +20,11 @@ Keep bold silhouettes, cohesive edges, recognizable territory and strong faction
 
 ## 3. Faction-color system
 
-The default colors remain `#f06c68` and `#69a4ff`. Knights, singleton castles and wall shapes pair a neutral RGBA base with an aligned grayscale mask. Tint applies to fabric, shield faces, castle banners and trim. Stone, armor, spear, gold and white heraldry keep their source colors. The shader reuses base alpha and one material per shape and owner.
+The default colors remain `#f06c68` and `#69a4ff`. Knights, singleton castles and wall shapes pair a selectively neutralized RGBA base with an aligned grayscale mask derived from the same approved source. Tint applies to the knight’s plume, cape, cloth panels and shield face, the castle banners and foundation strips, and the inset gemstone on paved castle tiles. Armor, weapons, stone, wooden doors, gold trim and lion heraldry retain their source colors. The shader uses base alpha and caches one material per distinct base and owner.
 
 ## 4. Production asset requirements
 
-- Terrain and wall textures use 128 × 128 canvases. Native piece crops occupy a 104 × 104 padded canvas and keep their source detail. Pieces center on a cell and stay inside it.
+- Terrain and connected castle textures use 128 × 128 canvases. Knights, singleton castles and graves use padded 104 × 104 canvases. Connected castles fill the square. Other pieces center within it.
 - The new terrain and base/mask pairs use linear sampling. Imports use lossless compression with mipmaps disabled.
 - Rivers use compatible edge profiles. Walkable bridges cross depicted water at right angles. Authored orientations remain explicit. Props, buildings and ruins stay inside one cell.
 - Preserve visible damage, territory, starts and legal indicators by drawing their cues in independent layers.
@@ -41,9 +41,9 @@ Review the [terrain bank, damage matrix, tint tests and rendered boards](BoardAr
 
 ## 7. Implemented faction sprites
 
-The knight, singleton castle and grave use pixels from the owner's boulder-enclosure PNG. Extraction traced each silhouette, removed background fragments and recovered neutral shading in blue livery. Isolation edges and livery normalization intentionally change some pixels. The neutral grave retains the headstone, base and leaves.
+Knights, singleton castles and gravestones use the owner’s approved full-color artwork. The gravestone retains its engraved cross, side stones and dirt mounds. Its silhouette contains no vegetation. The source set uses flat filenames under the owner’s external `D:\Game Projects\Files\Assets` directory. [Source inventory and processing](BoardArtVerification.md#10c1a10c1d--approved-game-piece-artwork)
 
-Connected castles compose the same singleton crop over new masonry joins. The same-faction four-cardinal mask covers isolated, end, straight, corner, T and cross configurations. The front gate and crest remain upright. See the [castle tint sheet](BoardArtVerification.md#asset-sheets) and [topology contract](VisualArchitecture.md#layers-and-transforms).
+Connected castles use five approved graphics. Seven configurations share two south-facing façades, with gates identifying terminal walls and the uninterrupted façade serving horizontal middle sections. Eight configurations with a south connection use dark pavement, a centered crystal and ramparts on exposed north, east and west edges. Upright rampart blocks occupy a 4 × 4 subdivision grid. Each composition is baked offline and rendered with one piece sprite. [Assembly mapping and previews](BoardArtVerification.md#connected-castle-assembly)
 
 ## 8. Ground art and earlier placeholders
 

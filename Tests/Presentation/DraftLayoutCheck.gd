@@ -142,9 +142,9 @@ func check_visual_sidecar() -> void:
 	for path: String in board.call("ReadTerrainCatalogPaths"):
 		var texture = load(path)
 		expect(texture != null and texture.get_size() == Vector2(128, 128), "Missing terrain texture " + path)
-	for mask in range(1, 16):
+	for mask in [1, 2, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15]:
 		var base = load("res://Assets/Sprites/Board/wall-%d_base.png" % mask)
-		var tint = load("res://Assets/Sprites/Board/wall-%d_mask.png" % mask)
+		var tint = load("res://Assets/Sprites/Board/wall-%d_mask.png" % (15 if mask & 4 else mask))
 		expect(base != null and tint != null and base.get_size() == tint.get_size(), "Misaligned castle mask %d" % mask)
 	var one: Button = fixture.get_node("%PlayerOne")
 	var two: Button = fixture.get_node("%PlayerTwo")
@@ -181,6 +181,20 @@ func check_connected_castles() -> void:
 		"Resolved friendly castles did not join along their shared edge.")
 	expect(piece_art_at(board, Vector2(2, 2), dimensions) == "castle_base.png", "An isolated castle acquired a wall.")
 	await capture("connected-castles")
+	await play(board, one, submit, Vector2(0, 1), dimensions)
+	await play(board, two, submit, Vector2(2, 1), dimensions)
+	await play(board, one, submit, Vector2(0, 1), dimensions)
+	await play(board, two, submit, Vector2(3, 2), dimensions)
+	expect(piece_art_at(board, Vector2.ZERO, dimensions) == "wall-4_base.png" and
+		piece_art_at(board, Vector2(1, 0), dimensions) == "wall-8_base.png",
+		"The roof did not add a rampart beside the eastern facade.")
+	await play(board, one, submit, Vector2(1, 1), dimensions)
+	await play(board, two, submit, Vector2(2, 3), dimensions)
+	await play(board, one, submit, Vector2(1, 1), dimensions)
+	await play(board, two, submit, Vector2(2, 3), dimensions)
+	expect(piece_art_at(board, Vector2.ZERO, dimensions) == "wall-6_base.png" and
+		piece_art_at(board, Vector2(1, 0), dimensions) == "wall-12_base.png",
+		"The roof retained its eastern rampart after the neighboring facade became a roof.")
 	game.queue_free()
 	await process_frame
 
@@ -217,6 +231,7 @@ func check_knight_support_local() -> void:
 	expect(board.call("ReadDamageMarkerCount", 2, 0) == 0, "A Knight Support grave drew damage markers.")
 	expect(piece_art_at(board, Vector2(1, 0), dimensions) == "knight_base.png", "Supported capture did not survive.")
 	check_banner(board, dimensions, ["1", "1"])
+	await capture("knight-support-mixed-portrait")
 
 	root.size = Vector2i(1000, 690)
 	await settle()
@@ -478,6 +493,10 @@ func check_board_extremes() -> void:
 			await play(board, two, submit, sample[2], dimensions)
 			expect(phase.text in ["Main · Turn 2", "Match complete"], "Large-board main turn did not resolve.")
 			await capture("10c-large-landscape")
+			if not OS.get_environment("CASTRUM_M8B_SCREENSHOTS").is_empty():
+				root.size = Vector2i(360, 640)
+				await settle()
+				await capture("10c1-compact-main")
 		game.queue_free()
 		await process_frame
 
